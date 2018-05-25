@@ -1,0 +1,46 @@
+\documentclass{article}
+\usepackage{amsmath}
+\newcommand{\x}{{\mathbf x}}
+\begin{document}
+\paragraph{Mutual information formulation of GAN}
+
+Complete data model $(\x,y) \in \Re^d \times \{0,1\}$, where 
+\begin{align}
+p(\x|y=1) = p_y(\x), \;\; p(y=1) = \pi
+\end{align}
+Idealized GAN objective: minimize mutual information between $\x$ and mixing variable $y$.\\[3mm]
+
+\noindent View from $p(\x|y)$
+\begin{align}
+I(\x,y) & = \mathbf E \log \frac{p(\x|y)}{p(\x)} 
+= \sum_{y=-1,1} p(y) \int p(\x|y) \log \frac{p(\x|y)}{p(\x)}d\x \nonumber \\
+& = H(\pi p_0 + (1-\pi) p_1) - \pi H(p_0)  - (1-\pi) H(p_1) 
+\end{align}
+
+\noindent View from $p(y|\x)$
+\begin{align}
+I(\x,y) & = \mathbf E \log \frac{p(y|\x)}{p(y)} = H(y) - H(y|\x) 
+\end{align}
+The GAN idea is to use a discriminator to approximate the optimal $p(y|x)$ by $q(y|x)$. 
+Note that there is a simple cross-entropy identity (difference between entropy and cross-entropy is given by the KL divergence)
+\begin{align}
+H(y|\x) & = \mathbf E_x p(y|\x) \left[ -\log p(y|\x) \right] = 
+\mathbf E_x p(y|\x) \left[ -\log \frac{p(y|\x) \cdot q(y|\x)}{q(y|\x)} \right] \\
+& = H(y,y'|\x) - \mathbf E_x KL(y||y') \le H(y,y'|\x) 
+\end{align}
+which is what is used in Ferenc's blog post. So instead of maximizing $H(y|\x)$, in GAN we maximize a cross-entropy as an upper bound $H(y,y'|\x)$ for some suitably chosen $y'$ (defined by the discriminator parameters).\\
+
+One key question would be: Can we more directly handle/maximize the conditional entropy $H(y|x)$? Note that what we can control directly is the data generation process. This has two effects. For one, the distribution $p(\x)$ changes as it is a mixture of natural and generated examples. Moreover, $p(y|\x)$ changes indirectly, as we change $p(\x)$. Let us try to investigate the first effect first by keeping $p(y|x)$ fixed and by only changing the expectation.  
+\begin{align}
+\frac{\partial H(y|x)}{\partial \theta}
+= \mathbf E_{x,y} \frac{\partial p(\x)}{\partial \theta} = (1-\pi) \frac{\partial p_\theta(\x)}{\partial \theta} 
+\end{align}
+
+
+
+
+
+
+
+
+\end{document}

@@ -1,0 +1,97 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{hyperref}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\renewcommand{\th}{{\tilde \theta}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\NN}{{\mathbb N}}
+\newcommand{\E}{{\bf E}}
+\newcommand{\w}{{\bf w}}
+\newcommand{\x}{{\bf x}}
+\newcommand{\y}{{\bf y}}
+\newcommand{\z}{{\bf z}}
+\newcommand{\X}{{\bf X}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\Z}{{\bf Z}}
+\newcommand{\Xcal}{{\cal X}}
+\renewcommand{\S}{{\cal S}}
+\newcommand{\Ccal}{{\cal C}}
+\newcommand{\C}{{\bf C}}
+\newcommand{\Zcal}{{\cal Z}}
+\newcommand{\tgamma}{{\stackrel{\gamma}{\longleftarrow}}}
+\newcommand{\mycomment}[1]{}
+\newcommand{\loglike}{{\mathcal L}}
+\newcommand{\indicator}[1]{{\bf 1}\left[ #1 \right]}
+
+\title{Incremental Statistics} 
+
+\author{Thomas Hofmann, 1plusX}
+
+\begin{document}
+
+\maketitle 
+
+\paragraph{Motivation.} Learning statistical models as well as inferring user profiles requires the computation of certain statistics (i.e.~functions of the data). As the former should happen in an incremental manner without re-processing the entire event history, this raises the question of how to compute these statistics in a \textit{streaming} data model. 
+
+\paragraph{Statistics.}  There are several statistics that typically show up.  We focus on three important ones:  
+\begin{itemize}
+\item \textit{Count statistics}, which count the number of events that fulfill a certain condition. Counts may be defined on the user level, e.g. "how often has user $u$ visited domain $x$?", or in a user independent way, e.g. "how many visits has domain $x$ received?", or "how many clicks have occured on ad group $x$?". 
+\item \textit{Count distinct statistics}, which count the number of unique ids that fulfill a certain condition. Examples are, "how many distinct users have visted domain $x$?", "how many distinct users have seen an ad from campaign $x$?"  
+\item \textit{Averages or sums}, which apply to numeric values and compute -- in the simplest case -- uniformly weighted sums or arithmetic averages.  
+\end{itemize}
+
+\paragraph{Counts.} Counting is easy and incremental in nature. If we have a sequence of events $e_t \in \mathcal{E}$, $t=1,\dots,T$ and a pre-defined predicate $\Pi: {\cal E} \to \{0,1\}$ that maps events to binary values, then we can compute counts incrementally via 
+\begin{align}
+C_0^\Pi = 0, \quad C^\Pi_{t+1} = C^\Pi_{t} + \Pi(e_{t+1})
+\end{align}
+This, of course, is trivial: increment the counter, whenever you find a quailfying event. 
+%In Scala:
+%\begin{verbatim}
+%def pi ( e: Event ) : Boolean = { ... } 
+%val count stream.filter( pi ).length
+%\end{verbatim}
+
+\paragraph{Count Distinct.} While event counts are trivial, distinct counts are more challenging. We model the problem as follows: given is a function $\Phi: {\cal E} \to \NN$ that takes an event and maps it to an identifier (here taken to be the natural numbers). We then want to compute $C_t^\Phi := | D_t^\Phi |$, the cardinality of a set defined as $D_T^\Phi = \bigcup_{t=1}^T \Phi(e_t)$. Note that an explicit incremental formulation is given by 
+\begin{align}
+C_{t+1}^\Phi = C_t^\Phi + 1 - | \{ \Phi(e_{t+1}) \cap D_t^\Phi |\,,
+\label{eq:recurrence}
+\end{align}
+so the counter increments only, if the id associated with the new event has not been encountered before. It is not without a reason that the set itself (and not just its cardinality) shows up on the right-hand-side of the recurrence in Eq.~\eqref{eq:recurrence}. 
+%In Scala we can write:
+%\begin{verbatim} 
+%def phi ( e: Event ) : Int = { ... }
+%val uniqueCount = stream.groupBy( e => phi(e) ).mapValues().size
+%\end{verbatim}
+The count distinct problem can be easily solved incrementally, if the sets of elements are explicitly stored along the way or a grouping by the ids is performed. However, this may create some significant overhead. 
+
+\paragraph{Approximate Count Distinct.} 
+
+There are a number of solutions to find approximations to the count distinct problem. For a motivation see the blog \cite{bigdatacounting}. Here, we only breifely mention the two most common solutions: 
+\begin{itemize}
+\item \textit{Linear sketches}. Here each id is hashed to a smaller range and the corresponding bit in a maintained  bit array is set to $1$. Counting the number of zero elements of the bit array gives an estimate of the number of unique elements encountered. Note that the hash function consistently maps the same id to the same hash value, so the insert operation is idempotent. 
+\item \textit{HyperLogLog counters}.  A near optimal strategy for approximate counting is the famous HyperLogLog algorithm, described in \cite{flajolet2008hyperloglog}. It achieves a much smaller memory footprint than linear sketching. It uses the basic ideas of computing as its fundamental statistic the maximal number of trailing zeros of a set of hashed ids. However, multiple hash functions need to be used and a bias correction is needed, which makes this algorithm mathematically as well as practically non-trivial. 
+\end{itemize}
+
+\paragraph{Averages.} Computing averages as \textit{running} averages is a well known trick. One basically needs to keep track of the number of items seen so far. Define a function $\Psi: \mathcal{E} \to \Re$, then the recurrence is simply 
+\begin{align}
+& C^\Psi_0 := 0, \quad S^\Psi_0 := 0 \\ 
+& C^\Psi_{t+1} := C^\Psi_t +1, \quad S^\Psi_{t+1} := S^\Psi_{t}  + \Psi(e_{t+1})
+\end{align}
+so that the averages at step $t$ is given by $S^\Psi_t / C^\Psi_t$. 
+
+\paragraph{Conclusion.}  Counts and averages are easy to compute in a streaming manner. More difficult are statistics that depend on sets of events or sets of values computed from sets of events. The cardinality of a set, i.e.~the count distinct statistic, is the best known example in this family. There are two options: (i) approximating these statistics, e.g.~using HyperLogLog counters, or (ii) storing representations of sets of events explicitly. Note that for 1plusX use cases, we may need to maintain a vast numebr of distinct counters, for instance in order to compute the number of unique visitors to (sub-)domains, where the number of such domains is large. We may also want to have the flexibility to add additional counters. It would thus simlify things a lot, if we were to create persistent representations 
+
+ 
+
+\newpage
+
+
+
+\bibliography{MultiCause}
+\bibliographystyle{acm}
+
+\end{document} 

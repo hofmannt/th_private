@@ -1,0 +1,66 @@
+\documentclass{article}
+\usepackage{amsmath,amssymb}
+\author{Thomas Hofmann}
+\title{Multiclass Objective Functions}
+\renewcommand{\Re}{{\mathbb R}}
+\begin{document}
+\maketitle
+
+\paragraph{Cross Entropy} 
+
+Standard objective function: cross entropy (or equivalently, multinomial log-likelihood) 
+\begin{align}
+l(W;x,y) = -\log p_y(x), \quad p_y(x) = \frac{ \exp\left[ \langle w_y, f(x) \rangle \right] }{ \sum_z \exp \left[ \langle w_z, f(x) \rangle\right]}
+\end{align}
+Here $f: \Re^d \to \Re^m$ is the transer function implemented by the network, i.e.~$f(x)$ is the final representation of an input $x \in \Re^d$. 
+
+\paragraph{Distance-Based Loss} 
+
+In \cite{wang2016relation} the authors propose a different objective that we re-write as follows. 
+\begin{align}
+\label{eq:loss-dist}
+\delta(W;x,y) = \left\| \frac{f(x)}{\| f(x)\|} - w_y   \right\| 
+\end{align}
+This is the distance between a label embedding $w_y$ and a normalized version of the learned representation. \textit{This is very ad hoc and it is unclear, e.g., why one needs to explicitly normalize.} 
+%
+The authors then define a margin-inspired loss function 
+\begin{align}
+l^*(W; x,y) = 1 - \left[ \delta(W; x,y) - \min_{z \neq y} \delta(W, x,z)\right]
+\end{align}
+\textit{(why do they use max in the paper?})
+
+\paragraph{Margin Based Objective}
+
+The standard margin-based multiclass objective would define 
+\begin{align}
+\delta'(W; x,y) = -\langle f(x), w_y \rangle
+\end{align}
+If we were to normalize $f(x)$ to unit length though, this is almost equivalent as then
+\begin{align}
+\delta^2(W; x,y) = 1 - 2 \langle f(x), w_y \rangle + \| w_y\|^2
+\end{align}
+There are thus two things that are odd about \eqref{eq:loss-dist}. First, the fact that it does not use a squared norm. Second, the fact that it does not use the more common inner product form. The claimed connection to \cite{mikolov2013linguistic} is unclear, as they use standard ML training. It would be natural to try the more standard approach.  
+
+\paragraph{Class Embedding} 
+
+The class embedding is not explained well in the paper. They refer to \cite{santos2015classifying}. In that paper they suggest (in Eq.~(1))  an ad-hoc loss function as follows:
+\begin{align}
+L = & \log \left(1 + \exp \left[  \gamma \left( m^+ - \langle f(x), w_y \rangle \right)  \right]  \right)
+\\ & \nonumber 
++ \log \left( 1+ \exp\left[  \gamma \left( m^- - \langle f(x), w_z \rangle \right) \right]  \right)
+\end{align}
+where they "fudge" the factors $m^+$ and $m^-$. This is very (!) \textit{ad hoc}. 
+ 
+ \paragraph{Attention-Based Pooling}
+ 
+The attention-based pooling suggested in \cite{wang2016relation} is somewhat complex. I want to reconstruct it here for better understanding. The attention mechanism is injected between the convolution and the max-pooling. So we have a window-based data representation of filter reponse vectors $v_t \in \Re^l$, where $t$ indexes the windows.  Then we learn a matrix $U$ that quantifies a correlation strength between these vectors and the class embeddings via the form 
+\begin{align} 
+G_{ty}= v_t^\top U w_y, \quad A_{ty} = \frac{ e^{G_{ty}}}{\sum_{t'} e^{G_{t'y}}}
+\end{align}
+So the $A$-coefficients capture how (relatively) relevant word position $t$ is with regard to class label $y$. Then the vector $v_t$ gets reweighted by $ A_{ty} \cdot v_t$. Finally a maximization over $y$ is performed. 
+ 
+ 
+\bibliography{Paulina}
+\bibliographystyle{acm}
+
+\end{document}

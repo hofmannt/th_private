@@ -1,0 +1,188 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts}
+\usepackage{tikz-cd}
+\usepackage{amsthm}
+\usetikzlibrary{matrix,arrows,decorations.pathmorphing}
+
+\title{Weight Normalization}
+\author{Thomas Hofmann}
+\newcommand{\Edata}{\E_{P}} 
+\newcommand{\Emodel}{\E_{Q}} 
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\logl}{{\mathcal L}}
+\newcommand{\ZZ}{{\mathbb Z}}
+\newcommand{\NN}{{\mathbb N}}
+\newcommand{\mZ}{{\mathbf Z}}
+\newcommand{\E}{{\mathbf E}}
+\newcommand{\z}{{\mathbf z}}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\mX}{{\mathbf X}}
+\newcommand{\mY}{{\mathbf Y}}
+\newcommand{\y}{{\mathbf y}}
+\newcommand{\w}{{\mathbf w}}
+\renewcommand{\v}{{\mathbf v}}
+\newcommand{\smapsto}{{\stackrel \sim \mapsto \,}}
+\newcommand{\word}{{\omega}}
+\newcommand{\words}{{\Omega}}
+\newcommand{\context}{{\sigma}}
+\newcommand{\contexts}{{\Sigma}}
+\newcommand{\n}{{n}}
+\newcommand{\mN}{{\mathbf N}}
+\newcommand{\mat}[1]{{\mathbf #1}}
+\newcommand{\lrangle}[1]{{\left\langle \, #1\, \right\rangle}}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+
+
+\setlength\parindent{0pt}
+
+\begin{document}
+
+We want to understand the GAN approach to generative models. A generative mechanisms first generates a code $z \sim p_Z$, which then is transformed into a data point $x$ through a parameterized function $f: \Re^d \to \Re^n$, which we assume to be an injection, i.e.~in particular $d \le n$.  In order to avoid degeneracies that arise from the fact that not every $x$ may have a pre-image under $f$, we use the following technical trick. We sample a second random vector $\bar z \sim p_{\bar Z}$, $\bar z \in  \Re^{n-d}$ from an isotropic distribution. Given $z$, we think of $\Re^{n-d}$ as the orthogonal complement of the tangent space $T_{x}$ at $x = f(z)$. As $\bar z$ is isotropic, we can chose any orthonormal basis for the tangent space without changing  the resulting density. Note that if we fix bases for all tangent spaces, then we can think of an extended bijective mapping $\bar f(z,\bar z)$. The idea is that $\bar z$ will just add some (small) unspecific noise to avoid the resulting density of $x$ to not have full-dimensional support. 
+
+
+\newpage
+
+
+
+Below we make some additional assumptions on invertability in order to avoid degeneracies that arise from injecting 
+
+
+using a latent code $\z \in \Re^d$ from which a parameterized mechanism $f$ produces a data point $\x = f(\z) \in \Re^n$ where $n \ge d$. Note that $f$ is invertible than it injects $\Re^d$ into the space $\Re^n$. 
+
+
+\newpage
+
+
+
+
+Let us assume that we have a generative model with a $\theta$-parameterized differentiable function  $f_\theta$
+\begin{align}
+\Re^d \ni \z \sim \Pi, \quad \x = f_\theta(\z), \quad \text{which induces} \quad \x \sim Q\,.
+\end{align}
+ We are interested in optimizing $\theta$ using gradient descent. Usually $\nabla_\theta \E f_\theta = \E \nabla_\theta f_\theta$ and hence we can stochastically assess the effect of a parameter change by randomly sampling $\z$ and by working with the stochastic gradients $\nabla_\theta f_\theta(\z;\theta)$. \\
+
+Note that a change direction $\delta \theta$ introduces a $\z$-indexed vector field
+\begin{align}
+\delta f := f_{\theta + \delta \theta} - f_\theta: \Re^d \to \Re^n 
+\end{align}
+This models how for each choice of $\z$ the resulting data point $\x = f_\theta(\z)$ will change as we change the generator. \\
+
+For powerful models, we can only assess the change $\delta f$ by sampling form $\z$. That is, instead of looking at the entire vector field, we will look at sample points $\z \sim p_\z$ and the corresponding sampled displacements $\delta f(\z)$.\\
+
+Note that instead of just getting a gradient of a density w.r.t.~$\theta$, we have a Jacobian
+\begin{align}
+\mathbf J := \left( \frac{\partial f_\theta}{\partial \theta} \right), \quad \z \mapsto \mathbf J(\z) \in \Re^{m \times n}
+\end{align} 
+
+How can we compute the gradient $\nabla_\theta Q(\x)$? There are two effects. One is the change in the relative contribution to the probability for a fixed $\z$. This is given by the Jacobian of the transformation (if we assume invertability; we should be able to do this with extra noise dimensions)
+\begin{align}
+p(\x) = \pi(\z) \left| \frac{\partial \x}{\partial \z} \right| = p_\z \left| \mathbf J_{f_\theta} \right|
+\end{align}
+so that 
+\begin{align}
+\nabla_\theta p_\x = p_\z \nabla_\theta \left| \mathbf J_{f_\theta} \right|
+\end{align}
+
+
+\newpage
+
+In the GAN setting, the Bayes-optimal discriminator uses the posterior
+\begin{align}
+\tau =  \frac{Q}{Q+P} = \frac{1}{1+ \exp\left[ - \log (Q/P) \right]} = \sigma\left(\log (Q/P) \right) \,.
+\end{align}
+Which is the choice maximizing the cross entropy
+\begin{align}
+H = \frac 12 \Emodel \left[ \log \tau  \right] + \frac 12 \Edata \left[ \log (1-\tau) \right]
+\end{align}
+The gradient function of the optimal discriminator can be computed as 
+\begin{align}
+\nabla \tau = \tau (1-\tau) \left( \nabla \log Q - \nabla \log P \right)  \,.
+\end{align}
+
+[Would it make sense to work in a quantized setting? Maybe this avoids the complexities with having to deal with densities and provides more insights.]\\
+
+Assume that we quantize the input space and represent $\tau$ as a vector $\tau \in [0;1]^r$. Denote by $p_i$ the data pmf and by $q_i(\theta)$ the model pmf, then $\tau_i = q_i/(p_i+q_i)$. Assume that we consider a change in $\theta \to \theta + \triangle \theta$. This would change the model distribution to be $q_i^{\triangle}$. We cannot assess the global effect of this parameter change. However, imagine that $q(\x) = \int q(\x|\z) p(\z) d\z$ with a latent variable $\z$. Then we can approximate the effect of a parameter change bvy sampling $\z$ instead of dealing with the entire integral. So essentially assume that we will change $\x(\z)$ for some given $\z$ to some $\x'(\z)$ under the change $\triangle \theta$. In expectation over $\z$ this is good, so it is unbiased. So we have two effects. One is that $\x$ might change it's value (in the infinitesimal limit that is always the case). The change in $\x$ will 
+
+\newpage
+
+
+What does this mean intuitively? We can give it a counterfactual interpretation: if instead of generating $\x$, the $Q$-mechanism would have generated some $\x + \triangle \x$, then the posterior at this point would change by a rate $\langle \nabla \tau, \triangle \x \rangle$.   Now, of course, if were to change $Q$, this would also implicitly change $\tau$. Let us play this through with a thought experiment. Assume first that $P(\x)/Q(\x)>1$, then by shuffling probability mass from $\x$ to $\x + \triangle \x$ we will move mass from an area where $Q$ is under-representing to an area, where $Q$ is even more under-representing.  As we deal with ratios, this will be a good thing. If $P(\x)/Q(\x)<1$ $Q$ is over-representing at $\x$ and we move to a direction, where $Q$ is less over-represented. So in both cases, we seem to be doing the right thing. 
+
+\newpage
+
+to yield
+\begin{align}
+\nabla H = \frac12 \Edata 
+\end{align}
+
+In score matching, we start use the objective 
+\begin{align}
+J = \frac12 \int \left( \nabla \log Q - \nabla \log P\right)^2 dP 
+\end{align}
+which leads to the gradient 
+\begin{align}
+\nabla E = \nabla^2 \log (Q/P) \cdot (\nabla \log Q - \nabla \log P)
+\end{align}
+so in both cases, we get the difference between the $Q$ and $P$ score vectors. [Check how this can be simplified]. In the score matching case, we have to deal with the Hessian whereas in the optimal GAN setting, we just get a scalar factor in front of the score difference. \\
+
+Let us look at the scalar that modulates the gradient. In the regime, where the generator is near optimal, we will have $\tau \approx \frac 12$. 
+ 
+
+
+\newpage
+
+
+
+
+\paragraph*{Background \& Motivation} 
+
+Batch normalization \cite{ioffe2015batch} is an important "trick", which accelerates learning and improves stability of gradient-based methods in deep learning. The idea is to standardize activities per units across the network to $z$-scores, making their activity levels and variations more comparable.  While batch normalization uses a mini-batch of data points as a reference point to compute mean and variances, layer normalization \cite{ba2016layer} takes a transposed view and uses neurons from within the same layer to compute the reference statistics. This removes the dependency on mini-batches and the resulting sampling noise and potential of overfitting. A related idea is weight normalization \cite{salimans2016weight}, which factors out the directional part of a weight vector from its length through a simple reparameterization and then suggests to perform gradient descent in this scalar + direction parmaterization. The superficial analysis in \cite[Section 2.1]{salimans2016weight} seems insufficient to capture the phenomenon. in particular, the learing rate stablization effect is not explained in a formal way. Our goal is to understand weight normalization schemes better.
+
+\paragraph*{Weights \& Activities}
+
+A typical neuron with input $\x$ has the form 
+\begin{align}
+\bar \y_i := \w_i^\top \x + b_i, \quad 
+\y_i = \sigma \left( \bar \y_i \right), \quad \text{where $\sigma$ is the activation function} 
+\end{align}
+Let us factor out direction and length by re-parameterizing
+\begin{align}
+\v_i := \frac{ \w_i}{\gamma_i}, \quad \gamma_i := \| \w_i \|
+\end{align}
+Assume that inputs to a neuron are random variables that are independently distributed with the same means $\nu$ then obviously 
+\begin{align}
+\E \y_i = \frac{1}{\gamma_i} \sum_j w_{ij} \E x_j  = 
+\end{align}
+
+
+\newpage
+
+The special handling of the weight vector norms in  \cite{salimans2016weight} also factors out the effect that $L_2$ regularization will have on the learning dynamics. Moreover, one can define a hierarchical prior over the norm of weight vectors. Let us denote weight vectors within a layer by $\w_i$ and 
+\begin{align}
+\v_i := \frac{ \w_i}{\gamma_i}, \quad \gamma_i := \| \w_i \|
+\end{align}
+The prior on the direction $\v_i$ will just be a uniform distribution over the $m$-sphere. The prior over the vector lengths can be controlled, e.g.~by a normal distribution $\gamma_i \sim \mathcal N(\mu, \sigma^2)$.  Effectively, this will result in a population effect 
+\begin{align}
+\left(\frac{\gamma_i - \mu}{\sigma} \right)^2
+\end{align}
+
+\newpage
+
+
+Specifically, one can tie weights within one layer 
+\begin{align}
+\w_i  \sim \mathcal N(\mathbf \mu, \sigma^2 \mathbf I)
+\end{align}
+such that we get 
+
+
+
+
+
+
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}

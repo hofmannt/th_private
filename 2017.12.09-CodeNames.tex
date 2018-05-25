@@ -1,0 +1,71 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{color,graphicx}
+\graphicspath{{./figures/}}
+
+\renewcommand{\Re}{{\mathbb R}}	
+\newcommand{\E}{{\mathbf E}}	
+\newcommand{\x}{{\mathbf x}}	
+\newcommand{\xp}{{x^+}}	
+\newcommand{\xx}{{x}}	
+\newcommand{\xm}{{x^-}}	
+\newcommand{\mI}{{\bf I}}	
+\newcommand{\mN}{{\bf 0}}	
+\newcommand{\z}{{\mathbf z}}	
+\newtheorem{lemma}{Lemma}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\title{
+	{\large Thoughts on} \\[2mm]
+	Self Playing Code Names 
+}
+\author{Thomas Hofmann}
+
+\begin{document}
+
+\maketitle 
+
+\paragraph{Goal.} The goal of this project is to devise a set-up that allows agents to make use of word embeddings in order to play the game of ``Code Names''.
+
+\paragraph{Background.}  Much of the recent progress in intelligent agent has taken a game-playing agent setting as a starting point. This includes the ATARI game-playing agents of DeepMind \cite{mnih2013playing} as well as AlphaGo \cite{silver2016mastering} and AlphaZero \cite{silver2017mastering}, a purely self-playing Go program. The use of game-playing scenarios to learn communication between agents has been very rudimentary so far. Most notable are: 
+\begin{enumerate}
+\item The multi-agent learning scenario of \cite{foerster2016learning} that includes learning a communication protocol.
+\item A system to learn to describe images with the goal to perform image selection \cite{das2017learning}. 
+\item The work of \cite{mordatch2017emergence}, which considers multi-agent systems grounded in (simulated) physical environments and which can show a successful case of syntax emerging. 
+\item The related approach of \cite{havrylov2017emergence} which claims that differentiable relaxations are more efficient than reinforcement learning approaches. 
+\item The mainly negative results of \cite{kottur2017natural}. that show that compositionally does not always emerge easily. 
+\end{enumerate} 
+Much of this work aims more at a proof-of-concept that languages emerge from scratch in the context of coordination problems between multiple agents. 
+
+\paragraph{Lexical Semantics Game.} Word embedding models are  the \textit{de facto} standard in capturing lexical semantics and the building block for inducing representations for sentences and documents. We ask the questions: Can we measure the effectiveness of such embeddings in a game-like setting? Is it possible to learn non-trivial strategies for word usage via a game? We pursue this direction, taking a popular game, known as ``Codenames" as the starting point. In this game, a queue giver $Q$ (aka.~spy master) gives hints in the form of single words and the other players  $P$ need to select words from a fixed set of words put out openly (for more details, see ...). 
+
+\paragraph{Shared Codebooks}  One can think of a complete word space as a common code book, which players $P$ and $Q$ might share and base their code upon. For instance, given positive and negative set of words $S^\pm$, $Q$ may use the encoding (for some $\alpha \in [0;1]$):
+\begin{align}
+w^* & = \argmin_{w} \left[ \alpha \sum_{v \in S^+} \| \x_w - \x_v\|^2  - (1-\alpha) \sum_{v \in S^-} \| \x_w - \x_v\|^2 \right]\,.
+\end{align}
+which would aim to find a word that is close to the elements of $S^+$, while being far away from those in $S^-$. This encoding would be mirrored by a decoding that ranks all words based on their distance to $\x_{w^*}$ and return the top $m$ (assuming that $|S^+|=m$ is known). In a way, this is in lose analogy with vector quantization, where a codebook of vectors is available beforehand. 
+
+\paragraph{Noisy Codebooks} If we exchange a full word space model between $P$ and $Q$ ahead of time, then it is likely that the players can somehow overfit to the word embeddings in each encoding/decoding move. This would thus have an unwanted effect and one that may lead to unrealistic communication strategies. In practice (if we take human communication as the baseline), players will not have the exact same codebook, but rather noisy versions thereof. So we assume that there is some stochastic process $\mathbb P$ of generating word embeddings $\mathcal X$. Then at each round, $P$ and $Q$ sample $\mathcal  X_P$ and $\mathcal X_Q$, respectively. This seems an interesting setting as we can now control the amount of information shared beforehand and we may expect to see different communication strategies to succeed in different noise regimes. 
+
+\begin{enumerate}
+\item The simplest way to generate noisy versions is to take a gold standard embedding $\mathcal X$ and to corrupt each word embedding $\x_w$ in an independent manner by some zero-mean Gaussian noise vector $\xi_w$. 
+\item A slightly more realistic variant would assume that the noise level scales as $1/\sqrt{n}$ with the corpus frequency $n$ of a word, less frequent words being less precisely located than more common ones. 
+\item A more realistic noise model would be to take subsets of documents from a given corpus and to train models for $P$ and $Q$ based on different subsets. Ideally the splitting should be done based on topical information. As this is complicated, it is probably best to start with approach 2.
+\end{enumerate}
+
+\paragraph{Fixed Strategies} It would be best to start with some fixed strategies and see how they behave under varying degrees of noise. The above encoding/decoding could be a starting point of many variants that one could consider
+\begin{enumerate}
+\item different weighting of the distances, based on word frequencies
+\item favoring more frequent words as queues over less frequent ones
+\item projecting to subspaces, e.g.~the one spanned by $\x_{S^+} = \{ w \in S^+: \x_w\}$. 
+\item ...
+\end{enumerate}
+
+\paragraph{Learning Strategies} Once it is clear effects are established, say between noise level and what good coding strategies are, one could use reinforcement learning or (perhaps more efficient) a differentiable model to learn a strategy. It would be really interesting to see what the best (robust) strategy looks like. There is also an interesting question of comparing word embeddings (e.g.~skipgram vs.~GloVe etc.) with regard to their effectiveness for this game.
+
+\bibliographystyle{acm}
+\bibliography{th}
+
+\end{document}

@@ -1,0 +1,67 @@
+\documentclass{article}
+\usepackage{amsmath}
+\author{Thomas Hofmann}
+\title{Latent Space Interpolation}
+\begin{document}
+
+\maketitle
+
+\paragraph{Linear Interpolation} It is a common problem in many latent variable models to smoothly interpolate between two points in latent space $z_0,z_1 \in \Re^d$. We focus first on the special case, where the latent space distribution is an isotropic normal distribution, a common assumption made in many models from factor analysis to generative adverserial models. 
+%
+First of all note that linear interpolation via the curve
+\begin{align}
+f(t) = (1-t) z_0 + t z_1, \quad t \in [0;1]
+\end{align}
+may not be favorable for high $d$ as all of the probability mass concentrates around a spherical shell, which is a simple consequence  of the fact that $\|z\|^2$ follows a $\chi^2$-distribution with $d$ degrees of freedom. This means the interpolant may pass mainly through low density regions of the latent space. This has two disadvantages: (1) There is a discrepancy between the distribution of data points as defined by the generative model and the distribution of points on the interpolant, most extreme at the mid-points. If we believe the model density to be somewhat accurate, then this  implies that interpolated codes lead to less typical samples. (2) The generator is -- by definition -- trained on the prior code distribution and one cannot necessarily expect it to generalize to systematically underrepresented code vectors, e.g.~ones with lower than normal norm. This bears the danger of further deteriorating the quality of the interplated samples. 
+
+\paragraph{Spherical Interpolation} In the large $d$ limit (assuming proper length re-scaling by 1$/\sqrt{d}$), the relevant code space basically collapses to a unit sphere. It therefore feels natural to use the geodesics, i.e.~the arcs of great circles as the interpolant curves. If the length differences are small, one can additionally perform an independent interpolation in the radial direction as well. This is the approach known as Slerp. 
+\begin{align}
+f(t) = \frac{\sin((1-t) \theta)}{\sin(\theta)} z_0 + \frac{\sin(t\theta)}{\sin(\theta)} z_1, \quad \theta := \angle(z_0,z_1), \;\; |\theta| \le \frac \pi 2\,.
+\end{align}
+Spherical interpolation avoids the problems with interpolant curves passing through low density regions. For now, we take this as a feature and ask ourselves how we can generalize the underlying principle. 
+
+\paragraph{Variational Approach: Warm-up}
+
+We would like to take a variational approach in defining the optimal interpolation path. To that end, let us start with the definition of the arc length of a smooth curve $f: [0;1] \to \Re^d$. It is given by 
+\begin{align}
+L(f) = \int_0^1\ell(t) \; dt, \quad \ell = \| \dot f\|, \quad \dot f = (\dot f_1, \dots, \dot f_d) \,.
+\end{align} 
+The standard way of solving extremal problems of the type $f^* = \min_f L(f)$ one typically makes use of the Euler-Lagrange formalism. Let us therefore derive (necessary) Euler-Lagrange conditions for each component function,
+\begin{align}
+& 
+\frac{\partial \| \dot f\|}{\partial \dot f_j}  = \frac{\dot f_j}{\| \dot f\|}, \quad 
+\frac{d}{dt} \frac{\partial \| \dot f\|}{\partial \dot f_j} = \frac{\ddot f_j g_j + \frac 12 \dot f_j \dot g_j}{\| \dot f\|^3}, \quad g_j := \sum_{i \neq j} \dot f_i^2
+% \frac{d}{dt} \frac{\partial \| \dot f\|}{\partial \dot f_j} \stackrel != 0 
+% \iff \sum_{i \neq j} ( \dot f_i^2 \ddot f_j - \ddot f_i \dot f_j ) \stackrel !=0 \quad (\forall j)
+% 2 g_j \ddot f_j - \dot g_j \dot f_j \stackrel != 0, \quad g_j = \sum_{i \neq j} \dot f_i^2\\
+% & \iff \sum_{i \neq j} \dot f_i^2 \ddot f_j - \ddot f_i \dot f_j  \stackrel !=0 
+\end{align} 
+Hence 
+\begin{align}
+\frac{d}{dt} \frac{\partial \| \dot f\|}{\partial \dot f_j} \stackrel != 0  \quad \iff  \quad 
+\ddot f_j  \sum_{i \neq j} \dot f_i^2 + \dot f_j \sum_{i \neq j}  \ddot f_i \stackrel !=0 
+\end{align}
+Except for some possible corner cases, this is only fulfilled, if all the second derivatives vanish, resulting in straight line interpolants.\footnote{Just glossing over this here.}
+
+\paragraph{Variational Approach: Isotropic Distributions}
+
+Let us focus on the special case of isotropic distribution first. Essentially, for any two points $z_0, z_1$, it is sufficient to consider a 2-dimensional setting. We favor polar coordinates and will write $z = (\theta, r)$. Then the interpolant is given by  an angular and a radial component  $f(t) = (\theta(t), r(t))$. Isotropy of the distribution means that the density $p(\theta, r)= q(r)$, i.e.~it only depends on the second argument. 
+
+We would like to parameterize curves with arc length, which can be accomplished by requiring that $\| \dot f\|=\text{const}$. In polar coordinates this means 
+\begin{align}
+& f_1 = r \cos \theta, \; f_2 = r \sin \theta, \; 
+\dot f_1 = \dot r \cos \theta - r \dot \theta  \sin \theta, \; \dot f_2 = \dot r \sin \theta + r  \dot \theta \cos \theta\\
+& \| \dot f\|^2 = \dot r^2 (\cos^2 \theta _+ \sin^2 \theta) + r^2 \dot \theta^2  (\sin^2 \theta + \cos^2 \theta) = \dot r^2 + r^2 \dot \theta^2 = \text{const.}
+\end{align}
+Variational Ansatz
+\begin{align}
+L(f) = \int_0^1 (h \circ r)(t) \cdot C_f \; dt, \quad C_f = \int_0^1 \| \dot f(t)\| \; dt
+\end{align}
+where $h$ is some function depending on the radial distribution $q$, e.g.~$h = 1/q$. The latter choice would penalize passing through points with low density. 
+
+\begin{itemize}
+\item One needs the arc length parameterization in order to avoid that one ``speeds-up" in low-density regions.
+\item Now there are additional constraints. How does the Euler-Lagrange approach work out?  Is there an analytic solution for the isotropic case? One would expect that one moves 
+\item 
+\end{itemize}
+\end{document}

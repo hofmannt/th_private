@@ -1,0 +1,34 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts}
+\title{Duality}
+\author{Thomas Hofmann}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\fenchel}{{\mathcal L}}
+\setlength\parindent{0pt}
+
+\begin{document}
+
+Function class: lower semi-continuous, convex functions. \\
+Legendre transfrom
+\begin{align}
+\fenchel f(x) := f^*(y) := \sup_{y} \langle x, y \rangle - f(y) 
+\end{align}
+Characterization via self-inverse and order reversal \cite[Theorem 1]{artstein2009concept}
+
+Fenchel-Young inequality 
+\begin{align}
+f^*(y) + f(x) \ge \langle y, x \rangle 
+\end{align}
+
+Duality from perturbation functions
+\begin{align}
+ \inf_{x \in \Re^n} F(x) & ;\stackrel{\text{generalize}}{\longrightarrow} \inf_{x \in \Re^n} \Phi(x,p), \; \Phi: \Re^n \times \Re^m \to \bar \Re, \; \Phi(\cdot,0) = F 
+ \\
+& \; \stackrel{dual}{\longrightarrow} \sup_{q} \left\{ - \Phi^*(0,q) \right\}
+\end{align}
+
+\bibliography{duality}
+\bibliographystyle{acm}
+
+
+\end{document}

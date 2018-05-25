@@ -1,0 +1,45 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\renewcommand{\th}{{\tilde \theta}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\E}{{\bf E}}
+\newcommand{\w}{{\bf w}}
+\newcommand{\x}{{\bf x}}
+\newcommand{\y}{{\bf y}}
+\newcommand{\z}{{\bf z}}
+\newcommand{\X}{{\bf X}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\Z}{{\bf Z}}
+\newcommand{\Xcal}{{\cal X}}
+\renewcommand{\S}{{\cal S}}
+\newcommand{\Ccal}{{\cal C}}
+\newcommand{\Zcal}{{\cal Z}}
+\newcommand{\tgamma}{{\stackrel{\gamma}{\longleftarrow}}}
+\newcommand{\mycomment}[1]{}
+\newcommand{\loglike}{{\mathcal L}}
+
+\title{{\large Idea on {\LARGE 1} Page} \\ Markov Chain Monte Carlo and \\ Variational Inference}
+\author{Thomas Hofmann, ETH Zurich -- \today}
+\date{}
+
+\begin{document}
+
+\maketitle 
+
+\paragraph*{Idea.} 
+\paragraph*{Sketch.} ELBOW $\log p(x) \geq \E_q [\log p(x,z)] + H(q) := \loglike$. Run Markov chain for $T$ steps and interpret the outcome as a better variational approximation than a one-shot choice $q$. The intermediate variables in the chain are denoted $y=(y_0,\dots,y_{T-1})$, then 
+\begin{align}
+q(y,z; x) = r(z|y_{T-1};x ) \prod_{t=0}^{T-1} r(y_t|y_{t-1};x) 
+\end{align}
+This means the variational distribution will be of the form $q(z; x) = \sum_{y}  q(y,z;x)$. 
+
+\paragraph*{Complexity and Complications.} Bla \\[5mm]
+
+\textit{Salimans, T. et al. (2014). Markov chain Monte Carlo and variational inference: Bridging the gap. arXiv preprint arXiv:1410.6460.}
+
+\end{document}

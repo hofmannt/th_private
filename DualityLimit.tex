@@ -1,0 +1,71 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts}
+\usepackage{tikz-cd}
+\usepackage{amsthm}
+\usetikzlibrary{matrix,arrows,decorations.pathmorphing}
+
+\title{{\large ... Thoughts on ...} \\ Dual Optimization}
+\author{Thomas Hofmann}
+\newcommand{\J}{{\mathbf J}}
+\newcommand{\Edata}{\E_{q}} 
+\newcommand{\Emodel}{\E_{p}} 
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\logl}{{\mathcal L}}
+\newcommand{\ZZ}{{\mathbb Z}}
+\newcommand{\NN}{{\mathbb N}}
+\newcommand{\mZ}{{\mathbf Z}}
+\newcommand{\E}{{\mathbf E}}
+\newcommand{\z}{{\mathbf z}}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\mX}{{\mathbf X}}
+\newcommand{\mY}{{\mathbf Y}}
+\newcommand{\y}{{\mathbf y}}
+\newcommand{\w}{{\mathbf w}}
+\renewcommand{\v}{{\mathbf v}}
+\newcommand{\smapsto}{{\stackrel \sim \mapsto \,}}
+\newcommand{\word}{{\omega}}
+\newcommand{\words}{{\Omega}}
+\newcommand{\context}{{\sigma}}
+\newcommand{\contexts}{{\Sigma}}
+\newcommand{\n}{{n}}
+\newcommand{\mN}{{\mathbf N}}
+\newcommand{\mat}[1]{{\mathbf #1}}
+\newcommand{\lrangle}[1]{{\left\langle \, #1\, \right\rangle}}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+
+
+\setlength\parindent{0pt}
+
+\begin{document}
+
+\maketitle
+
+Dual objective for ridge regression
+\begin{align}
+D_n(\alpha) & = \frac 1n \left( \sum_i \alpha_i y_i  -\frac 14 \alpha_i^2 \right) - \frac \mu 2 \left\| \frac 1{n \mu} \sum_i \alpha_i x_i \right\|^2 
+\\
+& = \E \alpha_i y_i - \frac 14 \E\alpha_i^2 - \frac{1}{2\mu} \| \E \alpha_i \x_i \|^2
+\end{align}
+Derivative
+\begin{align}
+\E y - \frac 12 \E \alpha - \frac{1}{\mu}  \E \alpha \x^\top \x
+\end{align}
+
+%Dual objective for double sample of size $2n$ 
+%\begin{align}
+%\bar D_{2n}(\alpha)  
+%& = \frac 1{2n} \left[ 
+%2 \begin{pmatrix} \alpha \\ \alpha \end{pmatrix} ^\top \begin{pmatrix} \y \\ \y \end{pmatrix} 
+%- \frac 12 \| \alpha \|^2  - \frac{1}{n\mu} \| \mathbf X \alpha\|^2 \right]
+%\\
+%& = \frac{1}{n}  \left[ 
+%\alpha^\top \y 
+%- \frac 14 \| \alpha \|^2  - \frac{1}{2n\mu} \| \mathbf X \alpha\|^2
+%\right] 
+%\end{align}
+
+
+\bibliography{th}
+\bibliographystyle{acm}
+\end{document}

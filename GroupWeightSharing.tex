@@ -1,0 +1,35 @@
+\documentclass{article}
+\usepackage{amsmath}
+
+\author{Thomas Hofmann}
+\title{Group Weight Sharing}
+\begin{document}
+\maketitle
+
+As a starting point we take inspiration from Szemer\'edi's famous regularity lemma. Cast in terms of graph theory, it states that essentially each large graph can be partitioned into a (not too large) number of equally sized groups of nodes with the following property: The connectivity (e.g.~edge density) between any two groups is well approximated by the connectivity between (not too small) subsets of these groups.  What that means is that conditioned on the partitoning, the connectivity between the groups looks like a random graph. 
+
+Let us investigate now, how we could use a similar structure for defining the connectivity between two layers in a neural network.\footnote{The link to Szemer\'edi's lemma is inspirational, but maybe it can be made formal - TBD.} We effectively have a bi-partritie graph of nodes $U$ at the previous layer and $V$ at the subsequent layer. Let us assume we partition $U$, $|U|=M$ into $m$ equally sized groups $U_i$, $i \le i \le m$, and $V$, $|V|=N$ into $n$ equally sized groups $V_j$, $1 \le j \le n$. We than have $m \cdot n$ pairs of groups to connect via appropirate weights (as there are no connections within $U$ or $V$). For each such pair $(U_i,V_j)$ we assume to have an independent set of weights, which may be significantly less than $|U_i| \cdot |V_j| = \frac Nn \frac Mm$.  How do we define such a weight-shared low-dimensional "random graph" model for each such pair? We basically use the hashing trick, such that 
+\begin{align}
+w_{kl}  =  w^{ij}_{ab}, \quad & \text{where} \;\; u_k \in U_i \; \wedge v_l \in V_j  \\
+& \text{and} \; a = h(k,l,0), \; b= h(k,l,1)
+\nonumber 
+\end{align}
+So weights are shared within a group in a pseudo-random pattern. 
+
+Why is this interesting? Think of the $n \times m$ network as a starting point. Each "virtual" group is represented by a single unit. The simplest case is to share one weight, i.e.~$h = 1$. In this case, as we were to expand the groups, all units would just be clones of each other. 
+
+
+
+
+Randomize connectivity = drop-out? 
+
+
+\end{document}
+
+
+lass uns davon ausgehen, dass die zahl der neurone gross (genug) ist. vielleicht ist sie zu gross als dass man sie wirklich effizient berechnen wollte. nun gehen wir davon aus, dass die neurone sich in etwa gleich grosse gruppen einteilen lassen. nach szemeredi würden wir erwarten, dass die konnektivität zwischen paaren dieser gruppen sich in etwa wie eine zufallsgraph verhält. (ich denke konzeptionell in umgekehrter richtung: nicht die zerlegung eines gegebenen graphen, sondern ein generatives modell für graphen). 
+
+also konstruktiv gesponnen. wir teilen die neurone beider layer in gruppen ein. jede dieser gruppen verhält sich nun wie ein art ensemble 
+
+
+\end{document}

@@ -1,0 +1,63 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\renewcommand{\th}{{\tilde \theta}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\E}{{\bf E}}
+\newcommand{\w}{{\bf w}}
+\newcommand{\x}{{\bf x}}
+\newcommand{\y}{{\bf y}}
+\newcommand{\z}{{\bf z}}
+\newcommand{\X}{{\bf X}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\Z}{{\bf Z}}
+\newcommand{\Xcal}{{\cal X}}
+\renewcommand{\S}{{\cal S}}
+\newcommand{\Ccal}{{\cal C}}
+\newcommand{\C}{{\bf C}}
+\newcommand{\Zcal}{{\cal Z}}
+\newcommand{\tgamma}{{\stackrel{\gamma}{\longleftarrow}}}
+\newcommand{\mycomment}[1]{}
+\newcommand{\loglike}{{\mathcal L}}
+
+\title{Noisy-Or Networks for Multi-Role Clustering} 
+
+\author{Thomas Hofmann, ETH Zurich}
+
+\begin{document}
+
+\maketitle 
+
+\paragraph*{Multi-Role Clustering}
+The model in \cite{frank2013role} proposes to decompose a binary matrix of observables $X_{nm} \in \{0,1\}$, $1 \le n \le N$, $1\le m\le M$ in the following manner. It assumed that for every $n$ we have a latent profile vactor $z_n \in \{0,1\}^K$, for given $K$. Moreover, we define a set of link random variables via\footnote{Note that what we defines as $\beta_{mk}$ here is denoted by $(1-\beta_{mk})$ in \cite{frank2013role}}. 
+\begin{align}
+u_{mk} \sim \text{Bernoulli}(\beta_{mk}), \quad u_m:= (u_{m1},\dots,u_{mk})'
+\end{align}
+Then the prediction for $X_{nm}$ is governed by a deterministic function
+\begin{align}
+X_{nm} = \bigvee_{k=1}^K u_{mk} \wedge  z_{nk}
+\end{align}
+This is then turned into a probabilistic model of the form 
+\begin{align}
+\label{eq:model}
+& p(x_{nm} =0 | \beta_m ,z_n) = \prod_{k} (1-\beta_{mk})^{z_{nk}} , \\
+& p(x_{nm}=1 | \beta_m,z_n)  = 1-  \prod_{k} (1-\beta_{mk})^{z_{nk}}
+\end{align}
+
+\paragraph*{Noisy-OR Model}
+
+The model in \eqref{eq:model} is nothing but a two-layer noisy-OR network as first investigated in \cite{shwe1991probabilistic,jaakkola1999variational,ng1999approximate,vsingliar2006noisy}. Here $Z$ variables correpond to binary latent causes and $X$ to observables. The $n$ index denotes instances and the $m$ index observations within an instance, while $k$ enumerates the latent causes.  
+
+In order to account for unmodeled causes in the noisy-OR model, one usually introduces a dummy variable clamped to  $1$, i.e.~$z_{n0}=1$. The corresponding parameters $\beta_{m0}$ then encode the "leaking" probability for each observable. 
+
+Inference in the noisy-or model is traditionally dealt with by applying variational methods \cite{jaakkola1999variational,vsingliar2006noisy} or simpler mean-field approximations \cite{ng1999approximate,platt2007fast}. In some cases, exact inference is tractable, such as discussed in \cite{halpern2013unsupervised} . There are some recent stochastic optimization methods such as \cite{salimans2013fixed} that may offer interesting alternatives. 
+
+
+\bibliography{Noisy-Or-Multi-Clustering}
+\bibliographystyle{acm}
+
+\end{document} 

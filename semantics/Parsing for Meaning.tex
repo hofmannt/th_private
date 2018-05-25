@@ -1,0 +1,91 @@
+\documentclass{article}
+\usepackage{url}
+
+\title{Parsing for Meaning \\ \large Research Overivew, Vision and Project Ideas} 
+\author{Thomas Hofmann}
+
+\oddsidemargin 0.0cm
+\evensidemargin 0.0cm 
+\textwidth 15.748cm
+
+\begin{document}
+\maketitle 
+
+
+\section{Introduction}
+
+Semantic parsers aim at mapping natural language sentences, so-called surface forms, into a formal representation of meaning, for instance, a logical form. 
+
+
+\section{Learning}
+
+Most successful approaches to conctructing semantic parsers rely on some form of learning. 
+
+\subsection{Training Data}
+
+\paragraph{Methods}
+
+In a standard supervised approach, one assumes that training data are available, namely pairs of surface forms and their corresponding logical form. Different supervised semantic parsing approaches have been investigated that make use of different formalisms and learning algorithms:
+\begin{itemize}
+\item String kernels \cite{Kate2006stringkernels}
+\item Synchronous grammers, adapted from machine translation \cite{Wong2007synchronous}
+\item Combinatory categorial grammars (CCGs) \cite{Kwiatkowski2010unification}, \cite{Kwiatkowski2011lexical}
+\item Tree transducers \cite{Jones2012transducers}. 
+\end{itemize}
+Providing this supervision is a major bottleneck in scaling semantic
+parsers. Thus a lot of research has focussed on weakly supervised or unsupervised methods. 
+
+\begin{itemize}
+\item Response driven learning \cite{Clarke2010response} exploits user feedback on the interpretation of sentences (e.g.~answers provided to queries) as a weak signal of supervision.  
+\item Learning from question-answer pairs \cite{Liang2013learning}, treating the logical form as a latent structure 
+\item Learning from natural conversations \cite{Artzi2011conversations}
+\item Learning with indirect syntactic (dependency parser) and semantic (knwoledge base) supervision \cite{Krishnamurthy2012weakly}
+\item Extending CCG lexica thorugh schema matching \cite{Cai2013semantic}, \cite{Kwiatkowski2013ontology}
+\item Learning from system behavior \cite{Goldwasser2011instructions}, \cite{Chen2011instructions}, \cite{Artzi2013weakly}
+\end{itemize}
+
+Unupservised
+\begin{itemize}
+\item Markov random fields \cite{Poon2009unsupervised}
+\end{itemize}
+
+\paragraph{Real Details} 
+
+\begin{itemize}
+\item a
+\end{itemize}
+
+\section{Tasks} 
+
+\subsection{Geo Query}
+
+\paragraph{Resources}
+\begin{itemize}
+\item \url{http://www.cs.utexas.edu/~ml/geo.html}
+\end{itemize}
+
+
+\subsection{E-Discovery}
+
+\paragraph{Resources}
+\begin{itemize}
+\item TREC legal task \url{http://trec-legal.umiacs.umd.edu/}
+\item Enron corpus \url{https://www.cs.cmu.edu/~enron/}
+\end{itemize}
+
+\paragraph{Question} 
+Use semantic parsing to improve automatic e-discovery. 
+
+\paragraph{Proposal}
+\begin{itemize}
+\item Parse sentences in documents into logical forms. 
+\item Identify logical forms that are critical for responsiveness
+\item Use these features to improve a simple text based classifier 
+\end{itemize}
+
+
+
+\bibliographystyle{apalike}
+\bibliography{thofmann}
+
+\end {document}

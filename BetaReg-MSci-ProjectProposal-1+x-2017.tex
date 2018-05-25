@@ -1,0 +1,117 @@
+\documentclass{article} % For LaTeX2e
+%\usepackage{nips14submit_e,times}
+\usepackage{hyperref}
+\usepackage{url}
+% For figures
+
+\usepackage{mathtools}
+\usepackage{graphicx} % more modern
+%\usepackage{subfigure} 
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage[margin=3cm]{geometry}
+\usepackage{nameref}
+\hypersetup{colorlinks,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=magenta,
+    linktocpage,
+plainpages=false}
+
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+\DeclareMathOperator*{\argmin}{\arg\min}
+\DeclareMathOperator*{\argmax}{\arg\max}
+
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{amsopn}
+\usepackage{ifthen}
+\usepackage{multirow}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{xcolor}
+\usepackage{adjustbox}
+
+%paragraph and subparagraph behave like sections
+\setcounter{tocdepth}{4}
+\setcounter{secnumdepth}{5}
+
+\newcommand{\z}{{\mathbf z}}
+\newcommand{\y}{{\mathbf y}}
+\newcommand{\X}{{\mathbf X}}
+\newcommand{\D}{{\mathbf D}}
+\newcommand{\U}{{\mathcal U}} % users
+\newcommand{\V}{{\mathcal V}} % items 
+\renewcommand{\v}{{\mathbf v}}
+\newcommand{\q}{{\mathbf q}}
+\newcommand{\Z}{{\mathbb Z}}
+\newcommand{\E}{{\mathbb E}}
+\newcommand{\vlambda}{{\pmb \lambda}}
+\newcommand{\veta}{{\pmb \eta}}
+\newcommand{\valpha}{{\pmb \alpha}}
+\newcommand{\vbeta}{{\pmb \beta}}
+\newcommand{\vpi}{{\pmb \pi}}
+\renewcommand{\Re}{{\mathbb R}}
+
+%changing paragraph to break lines 
+\usepackage{titlesec}
+\titleformat{\paragraph}[hang]{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}{0pt}{3.25ex plus 1ex minus .2ex}{0.5em}
+\titleformat{\subparagraph}[hang]{\normalfont\normalsize\bfseries}{\thesubparagraph}{1em}{}
+\titlespacing*{\subparagraph}{0pt}{3.25ex plus 1ex minus .2ex}{0.5em}
+
+\title{Deconvolving Aggregate Demographics \\ with Probabilistic Inference \\[4mm] CONFIDENTIAL -- DO NOT DISTRIBUTE }
+
+\author{Young-Jun, Hastagiri Vanchinathan, Thomas Hofmann \\
+1plusX AG and ETH Zurich}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\providecommand\AbstractOnly{false}
+\begin{document}
+
+\maketitle
+
+
+\paragraph*{Motivation} Inferring user attributes from their observed on-line behaviors is a key challenge in areas such as e-commerce and digital marketing. This includes, in particular, the prediction of user socio-demographics  such as gender, age, family status or level of education. Often web site owners have knowledge about the aggregate statistics of their (anonymous) users, but for privacy reasons this information is typically limited to a minimal group size and thus cannot be freely re-aggregated. This raises a fundamental research question: with what accuracy can individual user attributes be inferred based on observed behaviors such as page or site visits, if aggregate statistics over subpopulations are given? The goal of this thesis project is to investigate this question and to develop and compare suitable inference methods. 
+
+\paragraph*{Maximum Entropy} 
+Let us assume that users $u \in [1:n]$ interact with items $v \in [1:m]$ and that interactions are captured in a binary matrix $\X  \in \{0,1\}^{m \times n}$ with row sums $\D = \text{diag}(\sum_{u} x_{vu})$. For simplicity, we focus on inferring a single binary latent attribute (such as gender) denoted by $\z \in \{0,1\}^n$. 
+We assume that aggregate attribute probabilities $\vpi = \D^{-1} \X \z$  are available. Our interest is in inferring $\z$ from $\vpi$ and $\X$ in the underdetermined case of $n \gg m$. To a first approximation, one can model this problem in the framework of maximum entropy estimation \cite{shore1980axiomatic} \cite{jaynes1982rationale}. We are interested in identifying a probability mass function $P(\z)$
+\begin{align}
+P^* = \argmax_P H(P) \quad \text{s.t.} \quad  \D ^{-1} \X \langle \z\rangle_P = \vpi, \quad \text{where} \quad \langle \z \rangle_P := \sum_{\z} P(\z) \z
+\end{align}
+where $H$ denotes the entropy. Note that we require each of the $m$ constraints to be fulfilled in expectation over the model uncertainty. We can then think of $\langle \z\rangle_P \in [0;1]^n$ as the inferred (probabilistic) attributes. It is well known that by convex duality, the solution can be finitely parameterized in an exponential (or Gibbs) form with sufficient statistics $\D^{-1}\X\z$,
+\begin{align}
+P^*(\z)  \propto \exp \left[  \vlambda^\top \D^{-1}\X \z\right],\quad \text{with parameters} \quad \vlambda \in \Re^m 
+\end{align}
+Maximum entropy is  sound and leads to a finite-dimensional  parametrization, yet it is unclear how to modify maximum entropy estimation in the presence of noise in the measured $\vpi$. There can be many reasons for inaccuracies, in particular as populations on which these statistics are based may differ or change over time. Experimental findings confirm that real data sets may lead to infeasible problems, necessitating a re-formulation that introduce (e.g.) slack variables. 
+
+\paragraph*{Graphical Model} As an alternative, we want to pursue an approach in which such problems are seen as (discrete) linear inverse problem akin to deconvolution and express them in terms of a probabilistic graphical model, enabling us to perform approximate Bayesian inference using belief propagation. This can circumvent infeasibility problems and may potentially lead to scalable approximate algorithms. In this scenario, instead of taking $\vpi = \D^{-1}\X\z$ as a deterministic (i.e.~noise-free) relationship, we think of $\vpi$ as a random vector and $\D^{-1}\X\z$ as its noise-free version. A natural choice for a distribution over such Bernoulli success probabilities is a Beta distribution 
+\begin{align}
+p(\vpi) = \prod_{v} p(\pi_v), \quad p(\pi_v) \propto \pi_v^{\alpha_v-1} (1-\pi_v)^{\beta_v-1}
+\end{align}
+Following \cite{ferrari2004beta}, we may relate these parameters to the latent attributes $\z$ via a (normalized) linear model
+\begin{align}
+\valpha(\z) = \tau  \D^{-1} \X \z, \quad \vbeta(\z) = \tau \mathbf 1 - \valpha(\z), \quad \tau \in [0;1]
+\end{align}
+Here $\tau$ is a dispersion parameter that controls the variance of the Beta distributions. As $\E[\vpi; \valpha, \vbeta] = \D^{-1} \X \z$ we recover the maximum entropy model in the limit of $\tau \to 0$. By putting a (factorial) prior on latent attributes $\z$, we end up with a joint inference problem over discrete latent variables $\z$ and audience statistics $\vpi$. The model is hierarchical:
+\begin{align}
+z_u  & \stackrel{\text{iid}}\sim \text{Bernoulli}[\rho] \quad (\forall u), \quad \rho \in (0;1)  \\
+\veta & \stackrel{\text{det}}{=} \D^{-1} \X \z \\
+\pi_v & \stackrel{\text{iid}}\sim \text{Beta}\left[\tau  \eta_v, \tau (1-\eta_v)\right]
+\end{align}
+We want to infer $p(z_u=1 \mid \hat \vpi)$, where $\hat \vpi$ are the observed aggregates. This can be accomplished by loopy belief propagation algorithms or -- alternatively -- by Markov chain Monte Carlo techniques. One could further extend the model by assuming that zero entires in $\X$ are also noisy as we often only have partial observations and $x_{vu}=0$ may not exclude that a $u$ has interacted with $v$. 
+
+\paragraph*{Evaluation}
+
+Ground truth data to verify the inferred attributes is available for a fraction of the user population and can be used to evaluate different models.
+
+\bibliographystyle{acm}
+\bibliography{th}
+
+\end{document}
+

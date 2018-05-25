@@ -1,0 +1,42 @@
+\documentclass[twocolumn]{article}
+
+\usepackage{amsmath}
+\usepackage{graphicx} 
+\usepackage{subfigure} 
+
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{hyperref}
+
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\y}{{\mathbf y}}
+
+\title{Normalizing Flows} 
+\author{Thomas Hofmann, ETH Z\"urich}
+
+\begin{document} 
+
+\maketitle 
+
+How can one transform a given (simple) probability density into a family of more complex densities? A straightforward approach is to transform the random variable in question via a differentiable and  invertible map $F: \x \mapsto \y$ which induces a new density via the rule of change of variables, i.e.
+\begin{align}
+p_\y(\y) = p_\x(F^{-1}(\y))  \cdot |\text{det} \, \mathbf J_F(\x)|^{-1}\,.
+\end{align}
+In cases, where this map belongs to a parameteric family, one would like to avoid having to deal with the Jacobian by constructing families $\mathcal F$ such that \textit{by design} $F\in \mathcal F \Longrightarrow \text{det}  \, \mathbf J_{F}(\x)= \pm 1$. In fact, one can then apply the transformation repeatedly to generate a \textit{normalizing flow} $\y^t = F(\y^{t-1}) = (F^t)(\x)$, $t \ge 1$ \cite{rezende2015variational}. Obviously, if $\mathcal F$  is a $d$-dimensional parameteric family, we will create a $d$-dimensional family of probability distributions. However, as opposed to standard approaches that create homogeneous families, e.g.~by pre-scribing sufficient statistics as in exponential families, the idea is to create a more diverse set of distributions, possibly including multimodal and differently shaped densities.
+
+\newpage
+
+
+One approach is to repeatedly apply to not solve this problem in one step, but to  generate a sequence of densities by repeated application of the same transformations and create a so-called (normalizing) flow. 
+
+\newpage
+
+
+One can easliy construct volume preserving transformations by using auto-regressive $F: \x \mapsto \y$ in which $y_i =x_i + f_i(x_{1:i-1})$ such that irrespective of the form of the functions $f_i$ one gets $|\mathbf J_F|=1$, an idea that goes back to \cite{deco1995nonlinear}.
+
+
+
+\bibliography{../th.bib}
+\bibliographystyle{acm}
+
+\end{document} 

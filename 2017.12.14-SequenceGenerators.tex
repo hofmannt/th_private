@@ -1,0 +1,338 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm,bbm}
+\usepackage{color,graphicx}
+\graphicspath{{./figures/}}
+
+\newcommand{\indep}{\rotatebox[origin=c]{90}{$\models$}}
+\renewcommand{\Re}{{\mathbb R}}	
+\newcommand{\E}{{\mathbf E}}	
+\newcommand{\x}{{\mathbf x}}	
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\definecolor{Red}{rgb}{0.9,0.1,0.1}
+\newcommand{\textred}[1]{{\color{Red} #1}}
+\newcommand{\textbred}[1]{{\color{Red}\bf #1}}
+\newcommand{\mV}{{\mathbf V}}
+\newcommand{\mSigma}{{\boldsymbol \Sigma}}	
+\newcommand{\mGamma}{{\boldsymbol \Gamma}}	
+%
+
+
+\title{
+	Learning Generative Mechanisms for \\ Symbol Sequences 
+}
+\author{
+	Thomas Hofmann, Florian Schmidt
+}
+
+\begin{document}
+
+\maketitle 
+
+\section{Introduction}
+
+We are interested in learning rich probabilistic models for generating sequences with a special focus on discrete variables. Such models have recently received a lot of attention, particularly in the context of natural language processing, where they are used as language models \cite{mikolov2010recurrent,jozefowicz2016exploring}, often as conditional models for machine translation \cite{sutskever2014sequence,bahdanau2014neural}, image captioning \cite{kiros2014unifying,donahue2015long,vinyals2015show,xu2015show,karpathy2015deep}, or speech recognition \cite{chorowski2015attention,chan2015listen}. 
+
+The paradigmatic class of such models is the recurrent network architecture first proposed in \cite{graves2013generating}, where a hidden state sequence $h^t$ is evolved from an initial state via a recurrent neural network (RNN). This can, optionally, also include a control sequence $u^t$ as inputs. The transition function may involve memory units like LSTMs \cite{hochreiter1997long} and GRUs \cite{chung2015gated} or even stacked versions thereof as in \cite{graves2013generating}. Outputs  are generated from the current state via some local model, which in the discrete case typically takes the form of a projection plus soft-max  layer. We can thus write
+\begin{align}
+F_\theta: (h^{t},u^t) \mapsto h^{t+1}, \quad x^t \sim p(h^t; \vartheta)
+\label{eq:model1}
+\end{align}
+
+Note that the output generation is the  only source of randomness in the model as the mechanism $F_\theta$ is deterministic. In order to inject stochasticity into the state sequence, it is common to feed the generated output $x^t$ back into the computation, i.e.~to have $h^{t+1} = F_\theta(h^t,x^t)$ \cite{graves2013generating}, which is in resemblance to autoregressive models. This approach has also been used as a decoder in the sequence-to-sequence learning model of \cite{sutskever2014sequence}. 
+
+A popular training strategy for such models is via maximization of the likelihood function, which factorizes into predicting one output at a time. During learning one then often replaces the generated output by the ground truth output, $h^{t+1} = F_\theta(h^t,x_*^t)$, following a scheme that has been called \text{teacher forcing} \cite{williams1989learning}. The advantage of this approach is that the model stays close to the ground truth training sequences. Yet, on the downside, it introduces a discrepancy as during (free) generation such information is not available. There is thus the danger of \textit{exploration bias} \cite{ranzato2015sequence} and a compounding of errors over time. This weaknesses has been pointed out repeatedly, especially in the context of discrete outputs, suggesting improvements via beam search \cite{wiseman2016sequence}, mixed exploration strategies \cite{bengio2015scheduled}, alternative sequence loss functions \cite{ranzato2015sequence}, or by using ideas from GANs  \cite{lamb2016professor}.
+
+
+\section{Stochastic RNN Model} 
+
+\subsection{Generic State Space Model}  We would like to take a different starting point. Our main idea is to work with (real) stochastic RNNs which do not require stochasticity to emerge indirectly through the autoregressive feedback mechanism. Instead, we suggest the general state-space model\footnote{We drop  $u^t$ dependencies as they are easy to bring in.}
+\begin{align}
+h^{t+1} = F_\theta(h^t,\xi^t), \quad \xi^t \stackrel{iid}\sim \mathcal N(\mathbf 0,\mathbf I),
+\quad x^t \sim p(h^t; \vartheta)
+\label{eq:implicit-model}
+\end{align}
+and retain the step-by-step generation structure as before. There are two sources of randomness in this model: the noise vector sequence $\xi^t$ and the randomness associated with the generation of $x^t$ from $h^t$. 
+
+We would like to not make any over-simplistic assumptions about the internal structure of the state transition function $F_\theta$ and not posit any specific form of interaction (such as additivity) between the previous state and the injected random vector, nor constrain ourselves to a particular parametric model family. Rather we would like to think of $F_\theta$ \textit{generically}, for instance, in terms of an \textit{implicit model}, i.e.~a sampling device for next states and not necessary an explicit probability density function. Assumptions and restrictions will be made only where needed or suggested by the structure of the problem and the choice of learning algorithm. The bottom line is that we want to derive an overall learning algorithm that is modular in that it can interface (abstractly) with a  learning sub-routine that is specific to the model. We will, however, dedicate attention to variational auto-encoders as they allows for a mathematically elegant treatment.\footnote{TH: I am still a bit torn here. It depends a bit on what works best. It would be great, if one could use GRUs, say, in this context.} 
+
+\subsection{Variational Learning with Inference RNNs}
+
+\paragraph{Evidence Lower Bound} We first explore a variational approach to the sequence learning problem, the starting point of which is a lower bound on the evidence (ELBO). Denote a variational distribution over hidden states $h$ by $q$, then for a single sequence 
+\begin{align}
+\log p(x)
+& = \log \int p(x,h) \, dh \ge  \E_q  \left[ \sum_t \log p(x^t|h^t)+  \log  p(h^t | h^{t-1}) \right] + \mathbf H(q) =: \mathcal L(x)
+\label{eq:elbo}
+\end{align} 
+where the decomposition follows directly from the Markov properties of the model. It is well known that the tightest lower bound is achieved at the \textit{posterior} $q(h;x) = p(h|x)$, for which the following conditional independences hold
+\begin{align}
+h^{t+1:T} \indep \, h^{0:t-1} \, | \, h^{t} \quad \text{and} \quad
+h^{t+1:T} \indep \, x^{1:t} \, | \, h^{t}.
+\label{eq:indep}
+\end{align}
+A similar set of statements hold, if we reverse the time ordering. This suggests to design a variational family with parameter $\phi$ in a way that mirrors this structure, hence
+\begin{align}
+q_\phi(h) = \prod_t q_\phi(h^t | h^{t-1}, x^{t:T}) \quad \text{or} \quad q_\phi(h) = \prod_t q_\phi(h^t | h^{t+1}, x^{1:t})
+\end{align}
+The model above is similar to the one considered in \cite[2.3.3]{mnih2014neural} in that it only differs in the observation model.
+
+\paragraph{Inference RNN} The dependency structure expressed by Eq.~\eqref{eq:indep} suggests to implement $q_\phi$ via a RNN with hidden states $a^t$, which digests $x$ in reverse order, $a^t = \text{enc}(x^{T:t})$. At each $t$, the inference RNN  produces not just a density for $h^t$,  but rather a  conditional probability density function $q(h | h'; a^t)$. Here $h'$ denotes the formal variable that represents the previous state\footnote{Note that (by symmetry) we can also define a model $q^t(h|h'; x^{1:t})$, where $h'$ is a formal variable for the next state, but we stick to the first version for the exposition.}, which we can think of as a slot in which to plug-in a state vector, hence
+\begin{align}
+q(h;x) = \prod_{t=1}^T q(h^t| h^{t-1}; a^t), \quad a^t  = G(a^{t+1},x^t)
+\label{eq:inference}
+\end{align}
+The appeal of Eq.~\eqref{eq:inference} is that it directly reflects the independence structure of the posterior and avoids a fully factorized \textit{mean field} model (see the argumentation in \cite{mnih2014neural} contrasting with \cite{salakhutdinov2010efficient}). 
+We will not worry about the analytic tractability of performing exact averages with regard to $q$, but rather settle for a Monte Carlo integration approach, where we will approximate $q$ by drawing i.i.d.~samples from it. With the simple chain structure of the model in  Eq.~\eqref{eq:inference} this is trivial. Note that structurally, we process $x$ deterministically in backward order, yet construct $h$ samples stochastically in forward order.\footnote{We need to be precise about how to sample $h^1$.}
+
+\paragraph{Conditional Density Model}
+The above formulation leaves it open of how the inference network implements the conditional density. It may be sufficient to use a relatively weak model for this, as the conditioning on $x$ makes the couplings between $h^t$ and $h^{t+1}$ weaker than what we expect to see in the generative model. Thus, one may also reasonable consider to use a factorial model, compensating for the lack of left context by conditioning on the entire observation sequence, something that can be favorably implementd with a bidirectional RNN. The would result in a model 
+\begin{align}
+q_\phi(h; x) =\prod q_\phi(h^t | a^t), \quad a^t = \text{enc}_\phi(x^{1:T})
+\end{align}
+Note that this would use a powerful determinstic model (the bidi-RNN) with a relative simplistic noise model.
+
+Another argument can be made  via Taylor approximation of the mechanism $F_\theta$(in the second argument), which describes the case of small amplitude noise:
+\begin{align}
+F_\theta(h^t,\zeta^t) = F_\theta(h^t,\zeta^t_0) + \epsilon \mathbf J(h^t,\zeta_0^t) (\zeta^t-\zeta^t_0) + \mathbf O(\epsilon^2) 
+\end{align}
+where $\mathbf J$ denotes the Jacobian. So for small noise amplitutes the effect of the noise can be approximated by additive noise on $h^{t+1}$ with covariance matrix
+\begin{align}
+\mGamma^t = \mathbf J(h^t,\zeta_0^t) \E[ (\zeta^t-\zeta_0^t) (\zeta^t-\zeta_0^t)^\top]  \mathbf J(h^t,\zeta_0^t)^\top\,.
+\end{align}
+Thus in the small noise regime, it will be sufficient to define a multivariate normal noise model,
+\begin{align}
+q_\phi(h^t | a^t) = \mathcal N(\mu(a^t), \mSigma(a^t)).
+\end{align}
+
+\paragraph{Re-parameterization} 
+
+An appealing alternative is provided by the so-called re-para\-meterization trick \cite{kingma2013auto,rezende2014stochastic}.  Instead of treating $h^t$ as the latent variables to perform variational inference over, we do this over the noise sequence $\zeta^t$. Note that state variables are then functions that can be defined recursively
+\begin{align}
+h^{t+1}(\zeta^{0:t}) = F_\theta(h^{t}(\zeta^{0:t-1}),\zeta^{t})
+\end{align}
+
+
+
+\paragraph{Using the Generator} 
+
+One may wonder, whether one could re-use the generator model and amortize some of the challenges faced by the inference network. This can be accomplished by building upon the intertwining of models used in variational autoencoders \cite{rezende2014stochastic}. The idea is for the inference network to learn distributions over the noise variables driving the generator
+\begin{align}
+\zeta^t \sim \mathcal N( \mu(a^t), \mSigma(a^t)), \quad h^t = F_\theta(h^{t-1},\zeta^t)
+\end{align}
+Here, the state vector sequence becomes a (deterministically) dependent variable of the independent noise variables, $h^t=h^t(\zeta^{1:t})$. Sampling from the inference model than consists in: (1) Computing the backward RNN sequence $a^{T:1}$. (2) Sampling $\zeta^t$ for every time step independently. (3) Injecting the sampled vectors into the state evolution equations and performing forward propagation from some initial $h^0$ to produce a sequence $h^{1:T}$. \\
+ 
+
+
+
+
+\paragraph{Virtual Use of the Generator} 
+
+\newpage
+
+From here things would be straightforward, if we had a prescribed parametric model. One could simply compute the gradient of the ELBO, namely
+\begin{align}
+\nabla_\theta \mathcal L(x) = \E_q\left[  \nabla \log p(x^t|h^t) + \nabla \log p(h^t|h^{t-1})\right]  \,.
+\end{align}
+Note that the transition model is independent of $x$; learning it is the hard part of the model. The distribution of work between the generative and the inference model can be described as follows: The inference networks aims at finding a chain of target states, which generates a \textit{specific} example $x$. The generative model has to translate this into a \textit{general} transition mechanism that generates a sufficiently rich set of state sequences that can in turn generate all observation sequences (e.g.~sentences). So conceptually, we will produce many ``target'' transitions by sampling from  the inference  network. This takes the role of a training set
+\begin{align}
+\mathcal S := \{ (h^t_{ik},h^{t-1}_{ik}): 1 \le k \le K, 1 \le i \le N, 1 \le t \le T\}, \quad | \mathcal S| = K \cdot N \cdot T\,,
+\label{eq:var-sample}
+\end{align}
+for which the generative model needs to find one shared stochastic state transition function.
+
+\paragraph{\textbred{Simple Chain Models}} \textit{This looks deceivingly simple,  but it may actually not be a ridiculously poor inference model.}\\
+
+To make this concrete, one has to specify the form of the interactions between arguments $h, h'$, and $a^t$.  A systematic way to derive such a model is to take the point of view that the inference network is performing a \textred{local linearization} of the generative model. Let us Taylor expand the later at $(h',\zeta_0)$ where $\zeta_0$ is the mean of the noise inserted.
+\begin{align}
+F_\theta(h',\zeta) = F_\theta(\zeta_0) + \epsilon \mathbf J(\zeta_0) (\zeta-\zeta_0) + \mathbf O(\epsilon^2) = \mu  + \epsilon  \mathbf J(\zeta_0) \zeta + \mathbf O(\epsilon^2) 
+\end{align}
+
+
+
+\paragraph{Weakened Inference Models} \textit{This is more for illustrative purposes.}\\
+
+It is elucidating to discuss weaker inference models and how they interact with the generative model. The weakest class of models is a fully factorized model, with a more limited access to data, the most  na\"ive of which is
+\begin{align}
+q(h^t | h^{t-1}; x^{t:T}) \approx q(h^t; x^{t}, t), \quad \text{vs.~posterior} \quad p(h^t|x^t) \propto p(x^t|h^t) p(h^t)
+\end{align}
+What will such an inference model learn?  It will basically learn to suggest states $h^t$ with high likelihood to generate $x^t$ under the output model, which also have a high marginal density after running the generative chain for $t$ steps.\footnote{Note that in order to distinguish between the marginals $p(h^t)$ at different $t$, one ca consider creating an explicit dependence on $t$.} If the latter is relatively uninformative, then essentially the inference model will suggest states, from which the generator can easily produce the corresponding observation, i.e.~it learns to ``invert'' the observation model. 
+
+Let us consider compensating for dropping $h^{t-1}$ by adding a proxy, namely $x^{t-1}$ to the inference model
+\begin{align}
+q(h^t | h^{t-1}; x^{t:T}) \approx q(h^t; x^{t-1:t}, t), \quad \text{vs.~posterior} \quad p(h^t|x^{t-1:t}) \propto p(x^t|h^t) p(h^t|x^{t-1})
+\end{align}
+Now the inference model will need to also learn a substitute for the one-step forward dynamics. Similarly as we condition on more observations from the past or future. Note however that if there are multi-modalities in the state distributions, we will independently mix these modes at different $t$ as the factorial model ignores the chain structure. This is where the advantage of a non-factorial inference model comes to bear. 
+
+\paragraph{\textbred{Re-Using the Generator}} {\textit{This is very relevant for practical purposes, I think. Essentially, it paves the way for thinking about state space models in terms of a deep Gaussian VAE network, where layers are rolled out over time.} \\ 
+
+One may wonder, whether one could re-use the generator model and amortize some of the challenges faced by the inference network. This can be accomplished by building upon the intertwining of models used in variational autoencoders \cite{rezende2014stochastic}. \textred{The idea is for the inference network to learn distributions over the noise variables driving the generator}
+\begin{align}
+\zeta^t \sim \mathcal N( \mu(a^t), \mSigma(a^t)), \quad h^t(\xi^{1:t}) = F_\theta(h^{t-1},\zeta^t)
+\end{align}
+Sampling from the inference model than consists in: (1) Computing the backward RNN sequence $a^{T:1}$. (2) Sampling $\zeta^t$ for every time step independently (!). (3) Injecting the sampled vectors into the state evolution equations and performing forward propagation from some initial $h^0$ to produce a sequence $h^{1:T}$. Note that although we generate noise vectors in a factorial manner, the state sequences will obey a chain dependency structure imposed by the deterministic nature of the mechanism $F_\theta$.\\
+ 
+What does this approach amount to in cases, where the noise is of small amplitude? Clearly the state distribution will be concentrated around its conditional mean $\E_\zeta[h|h'] = F_\theta(h',\zeta_0)$, where we set $\zeta_0 = \mu(a^t)$. In order to understand the effect of (small) noise propagation through $F_\theta$, we can perform a Taylor approximation. Define $f = (F_\theta(h', \cdot))_i$ as an arbitrary component function, then
+\begin{align}
+F_\theta(\zeta) = F_\theta(\zeta_0) + \epsilon \mathbf J(\zeta_0) (\zeta-\zeta_0) + \mathbf O(\epsilon^2) = \mu  + \epsilon  \mathbf J(\zeta_0) \zeta + \mathbf O(\epsilon^2) 
+% this would be relevant, if we wereto take expectations
+% +\epsilon^2  \text{Tr}\left( \mathbf H_f(\zeta_0) (\zeta-\zeta_0) (\zeta-\zeta_0)^\top \right)
+\end{align}
+where $\mathbf J$ denotes the Jacobian.\\
+
+\textit{It would be great to relate this to the simple inference model. The equations do not quite match up yet.}
+
+\paragraph{Output Feedback} \textit{Not sure, whether this is still relevant for a discussion. Need to think more about it. This is still very preliminary, perhaps irrelevant.}\\
+
+Let us also investigate how a variational approach would work for a model with output feedback. Notice that we can use the same variational approach as before. The main difference is that now, the state transition can be written as
+\begin{align}
+p(h^{t+1} | h^t) = \sum_{x^t} p(x^t | h^t) \mathbbm 1[h^{t+1} = F(h^t, x^t)]\,.
+\end{align}
+As this is an atomic distribution, it cannot be used directly to optimize the likelihood function in the ELBO as for a sample $(h,h')$ drawn from the inference model there may not be an $x$ such that $h=F(h',x)$. There are several  paths out of this difficulty: (1) To add noise to the atomic distribution, (2) to use a different divergence, (3) to adapt the inference distribution.  Let us sketch the latter approach. We would need to make sure that the conditional distribution of the inference network is of the same form, namely
+\begin{align}
+q(h^{t}|h^{t-1}; a^t) = \sum_{x} \pi(x; a^t) \mathbbm 1[h^t =F(x,h^{t-1})], \quad \sum_ x\underbrace{\pi(x;\cdot)}_{\ge 0}=1
+\end{align}
+This can easily be accomplished by changing the model to take $h'$ as input and to produce a soft-max function by which a distribution over $h$ is defined. Sampling $h$ for given $h'$ then involves sampling of an intermediate $x$ according to this soft-max function. \\
+
+However, if we are already doing the work of computing the normalization constant of the soft-max, it seems wasteful to only consider a single sample. Rather, we should better work with the true posterior. We would then use a factorizing inference network, $q(h; x) = \prod_t q(h^t; x)$ and extend this to a conditional model by resusing the output model of the generative model. \\
+
+\textit{Needs more thought (no time). Will this be some form of teacher forcing? If the state $h^t$ is one that has a high probability of producing the true data $x^t$, then yes, but in a smoothed manner.}
+
+
+\paragraph{\textbred{Noisy LSTM or GRUs}} One simple way to get a stochastic unit is to take a deterministic one and to add noise in the end. This approach is limiting as we only perturb the latent states with additive noise, yet it is generally applicable, including to recurrent units like LSTMs or GRUs. Assume for simplicity, we use a fixed noise model
+\begin{align}
+h^{t+1} = F_\theta(h^t) + \gamma \xi^t, \quad \xi^t \sim \mathcal N(\mathbf 0, \mathbf I)\,,
+\end{align}
+then the log-probability term in the ELBO is simply a squared distance
+\begin{align}
+\log p(h^{t+1}|h^t) = \text{const} - \frac{1}{2\gamma^2} \| h^{t+1} - F_\theta(h^t) \|^2\,.
+\end{align}
+This means, the inference network provides hidden state targets that $F_\theta$ will aim to approximate in the least-square sense. Note that as $q$ breaks the dependencies in the generative model, variational training of LSTMs will not perform backpropagation in time, but rather train one-step transitions. \\
+
+It is interesting to conceptually compare this approach to teacher forcing. In teacher forcing, one ``resets" the state chain during training by substituting the generated output by the ground truth output. In the above variational learning algorithm, one actually breaks up the generator chain completely into single state transitions and injects states $h^t$ that come from the inference model, which determines them in accordance with the data, including access to $x^t$. \\
+
+\textit{Needs more formal investigation to clarify.}
+
+
+\paragraph{\textbred{ELBO within ELBO}}
+
+In order to learn an implicit model for state transitions, we suggest to perform an \textit{inner variational approximation} and -- so to speak -- to define an ELBO within the ELBO from Eq.~\eqref{eq:elbo}. Conceptually we can think of the outer inference network to deal with the global dependencies across the chain and provide \textit{local} training samples as in Eq.~\eqref{eq:var-sample}. The inner inference networks is needed to train a powerful local transition model. To make this more precise, let us commit to a specific architecture like the deep Gaussian models of \cite{rezende2014stochastic}. It consists of layers, which we model as latent vectors $g_l$. We identify $g_L=h'$, i.e.~the previous hidden state in the sequence that we want to condition on. From here, we then propagate through layers with transfer functions $H_l$
+\begin{align}
+g_{l} = H_l(g_{l+1}) + G_l \xi_l, \quad h \sim p(\cdot ; H_0(g_1)), \quad \xi_l \sim \mathcal N(\mathbf 0, \mathbf I)
+\end{align}
+Note that this is an instantiation of Eq.~\eqref{eq:implicit-model}, if we identify $\xi = (\xi_1,\dots, \xi_{L-1})$. We can now train an inner inference model $\pi$ for $\xi$. We will thus bound the term occurring in the outer ELBO in Eq.~\eqref{eq:elbo} further by 
+\begin{align}
+\E_q\left[ \sum_t \log p(h^t | h^{t-1}) \right] 
+\ge
+\E_q\left[ \sum_t \E_{\pi^{t}} \left[ \log p(h^t, \xi| h^{t-1}) \right] + \mathbf H(\pi^t) \right]
+\end{align}
+Note that this results in a simple hierarchical sampling scheme: (1) We process a training sequence $x$ with the inference RNN. (2) We sample a state sequence $h^t$ from $q$. (3) For each $t$, we take $(h^{t-1},h^t)$ as the input to a local inference DNN and compute $\pi^t$. (4) We sample $\xi^t \sim \pi^t$ and perform a feedforward step in the transition model of the stochastic RNN, conditioning on $h^{t-1}$ and digesting $\xi^t$. (5) We produce a distribution over $h^t$ and compute the loss $-\log p(h^t|h^{t-1})$ from it. (6) We backpropagate the error through the local model, updating $\theta$. (7) We also perform a simple gradient update step for the output model of the RNN, which we assume to be simple enough to not require a variational weakening. Note that these will effect separate parameters $\vartheta$. (8) We perform a stochastic gradient update for the inner variational model, using stochastic backpropagation \cite{kingma2013auto,rezende2014stochastic}. (9) We perform a stochastic gradient update for the outer variational model (see below). 
+
+
+\paragraph{\textbred{Learning the Inference Network}}
+
+The remaining difficulty in the procedure outlined above is to train the sequence inference network. This is because sample-based estimations of ELBO gradients are potentially plagued by high variance (cf.~\cite{mnih2014neural} for a discussion and an overview of variance reduction techniques). In principle, we can apply any of the known methods (i.e.~we do not have anything novel to add). It may be particularly appealing to also use stochastic backpropagation for this model. We conjecture that the model power needed when conditioning on $x$ (i.e.~in the inference model) is significantly less compared to what is needed in the generative model. For instance, the inference model may not require multimodality, whereas the generative model most certainly does. \\
+
+\textit{TH: Details need to be worked out.\\}
+
+Note one key advantage of our modeling thrust towards increasing the power of the stochastic mechanism for the state transition, instead of feeding back generated outputs (cf.~discussion in the introduction). As we retain a \textbred{closed-form} representation of $p_\vartheta(x^t|h^t)$, we do not have to ever sample actual outputs and therefore avoid the variance it would introduce. The latter may be severe, in particular if outputs are symbols over alphabets of large vocabularies (e.g.~words). Of course, we expect this entropy to be partially reflected in the state transition function, however, here we have better tools to handle it. 
+
+
+\paragraph{\textbred{Speculative Thoughts on GANs}}
+
+One could also think of other training methods for the implicit local model, e.g.~by using GANs \cite{goodfellow2014generative}. However, this would not be as principled as a combined lower bound on the evidence, which composes naturally (a lower bound on a lower bound is a lower bound!). Setting this aside, it would probably also require a higher degree of stability for GAN training, before  one could embed it as a component.\\
+
+\textit{TH: Currently not deemed worth pursuing.}
+
+
+
+\paragraph{Hybrid Models}
+
+Much existing work has chosen to combine or couple a state space model with a determinstic RNN in intricate ways with the goal to exploit the additonal structure for more efficient training methods. One can think of many of those as making special assumption on how stochasticity enters into the state evolution equation.\footnote{Note also that many of these papers deal with generative models for observation vectors and not discrete symbols. We need to come back to that distinction later.} 
+An interesting approach in this direction has been presented in \cite{fraccaro2016sequential}. Here one leaves the determinstic state evolution intact, i.e.~$h^{t+1} = F_\theta(h^t)$, but couples the RNN with a probabilistic state sequence $z^t$, where the coupling only happens indirectly through  the output model $p_\phi(x^t | h^t,z^t)$. Intuitively, $h^t$ models the essential structure of the sequence, whereas $z^t$ can (due to its Markov chain structure) not only induce per-observation noise, but also correlated noise.  Moreover, in the model of \cite[Figure 2(a)]{fraccaro2016sequential}, $z^t$ will depend not only on $z^{t-1}$, but also on $h^t$. In a way, we can think about this model as having a compound state $(h^t,z^t)$ and it differs from our general starting point by structural and parametric assumption that it makes on $F_\theta$. The parametric assumptions are reflected in the choice of a conditional normal model  ...\\
+
+\textit{Fragmentary}\\
+
+We can then sample from the prior $h \sim p_\theta(h^{t+1} | h^{t})$, simulating one forward step in the model, which we can do by injection of noise $\eta^t$ into $F_\theta(h^{t},\eta^t)$. This can be thought of as a proposal distribution of an importance sampler. If we had access to  $p_\theta(x^{t+1:T} |h^{t+1})$ (or an unnormalized score), we could reweigh these samples using  self-normalizing importance sampling \cite[Chapter 9]{owen2013monte}. Finally, we can evaluate a $\theta$-gradient with regard to the sampling approximation of the ELBO and use that as a stochastic ascent direction. 
+
+\begin{itemize}
+\item Of course, if we were to evaluate $p_\theta(x^{t:T} |h)$ from trajectories rolled-out with the generative model, the variance of this estimator may be prohibitively large for practical purposes. This raises the central question of how to get improved, variance  reduced estimates of  the backward information filter. 
+\item  Note that on the plus side, we can reuse $F_\theta$ in defining the proposal distribution and as soon as the model provides a fair approximation, we hope that the discrepancy between this distribution and the posterior becomes small. In fact, we may expect the prior to be more multimodal (obviously: higher entropy) than the posterior. So if we generate sufficiently many samples, the ``good" modes are hopefully not dropped. 
+\end{itemize}
+
+\paragraph{RNNs and State Space Models}
+
+Much existing work has chosen to combine or couple a state space model with a deterministic RNN in intricate ways with the goal to exploit the additional structure for more efficient training methods. One can think of many of those as making special assumption on how stochasticity enters into the state evolution equation.\footnote{Note also that many of these papers deal with generative models for observation vectors and not discrete symbols. We need to come back to that distinction later.} 
+An interesting approach in this direction has been presented in \cite{fraccaro2016sequential}. Here one leaves the deterministic state evolution intact, i.e.~$h^{t+1} = F_\theta(h^t)$, but couples the RNN with a probabilistic state sequence $z^t$, where the coupling only happens indirectly through  the output model $p_\phi(x^t | h^t,z^t)$. Intuitively, $h^t$ models the essential structure of the sequence, whereas $z^t$ can (due to its Markov chain structure) not only induce per-observation noise, but also correlated noise.  Moreover, in the model of \cite[Figure 2(a)]{fraccaro2016sequential}, $z^t$ will depend not only on $z^{t-1}$, but also on $h^t$. In a way, we can think about this model as having a compound state $(h^t,z^t)$ and it differs from our general starting point by structural and parametric assumption that it makes on $F_\theta$. The parametric assumptions are reflected in the choice of a conditional normal model 
+\begin{align}
+p(z^t, h^t | z^{t-1}, h^{t-1}) = & \; F_\theta(z^{t-1},h^{t-1}) + \mathcal N (\mathbf 0, \mathbf \mSigma), \quad \text{where} \\
+& \mSigma_{hh} =\mathbf 0, \;  \mSigma_{zh} = \mathbf 0, \; \mSigma_{zz} = \text{diag}(\Phi(z^{t-1},h^{t-1}))
+\end{align}
+which is just another way of saying that (i.i.d.~normal)  noise is only added to the $z^t$ part of the state. To avoid noise leaking from $z^t$ into $h^t$ it is further enforced that $(\cdot, h^t) = F_\theta(z, h^{t-1})$ for all $z$.
+
+The main advantage of the above restriction (which are severe, in particular when it comes to the structure and shape of noise!) is that it facilitates the design of particularly simple inference models. Note that we can deterministically extent $h^t$ into the future until $t=T$. There is no variance in this roll-out. Most crucially, one can now condition on the entire $h^t$ sequence in the inference network. In a way, the inference network can peek into the future in a ``variance free" manner as far as $h^t$ is concerned. It is then suggestive \cite{fraccaro2016sequential} to use a time-reversed RNN to essentially process the reversed input sequence $x^{T:1}$ and states $h^{T:1}$, summarizing the information into a deterministic sequence $g^{T:1}$. All of this allows to extract information from a ``non-probabilistic" future. The final step is then to define an inference model via $q(z^t; g^t,z^{t-1})$.\\
+
+\textit{A broader discussion of some of the other approaches should go here. This is an old paragraph, before a lot of the previous ones have been written up. Needs revision. }
+
+
+\paragraph{Policy Gradient Approach}
+
+In light of the above difficulties, it feels sensible to explore reinforcement learning methods for the sequence generation problem. Let us first pursue the policy gradient approach, where we retain from amortized learning of any supplemental function or distribution. Basically, we will make use of the generator $p_\theta$ only as a policy and use sampling (possibly with variance-reduction tricks) to train it via Monte-Carlo estimates. This is  pursued in \cite{ranzato2015sequence} via the REINFORCE algorithm \cite{williams1992simple}, an approach that crucially depends on simulated roll-outs with the policy. In the standard sequence model with output feedback this means that we need to sample through the output generation process. However, note that in our model this is not the case (\textbred{!}). In fact, note that starting in some $h^t$, \textred{sampling can be done on the state sequence only}, i.e.~we generate $h^{t+1:T}_k$ for $k=1,\dots,K$. Then this defines a simulated  distribution 
+\begin{align}
+\hat p_\theta(x^{t:T} | h^t) = p_\phi(x^t|h^t) \, \frac 1K\sum_{k=1}^K  \prod_{\tau =t+1}^T p_\phi(x^{\tau} | h^\tau_k)\,.
+\end{align}
+The advantage is that we partially retain a \textbred{closed-form} representation of $\hat p_\theta(x^t|h^t)$, which removes the variance introduced by sampling outputs. The latter may be severe, in particular if outputs are symbols over alphabets of large vocabularies (e.g.~words) and avoiding it is a major benefit of our approach. Connect this to the ELBO-based approach. 
+
+
+\paragraph{Actor--Critic Approach}
+
+One well-known reinforcement learning strategy to reduce variance is the use of a \textit{critic} in so-called actor-critic models. On the down-side, convergence guarantees are much harder to obtain because of the coupling between policy and critic \
+konda2000actor}. In our context, we would consider  learning an amortized model $Q_\phi(h^t; x_*^{t:T})$, which has the  exact same structure as the backward information filter.\footnote{Note that ideally, we would take expectations with regard to continuations under the true data model. Yet, as we only have samples anyway, we can directly start with the sample-based view.} There is a rich literature on how to learn such a critic. Typically, one will folllow the policy and while doing so use a temporal-difference (TD) style learning rule to update $\phi$. What this means is that we compute a target for $Q_\phi(h^t; x_*^{t:T})$ via
+\begin{align}
+Q^*(h^t; x_*^{t:T}) = r^t(h^t) + \int p_\theta(h^{t+1}|h^t) Q(h^{t+1}; x_*^{t+1:T}) \, dh^{t+1}
+\end{align}
+and to adapt $\phi$ to minimize, say a squared loss $(Q_\phi-Q^*)^2$. In principle, we can jointly learn actor and critic on roll-outs carried out by the actor, assuming that there is enough stochasticity.\footnote{At least I do not see a reason of why this would be bad. Something to verify.} The recursive nature suggests to process data in the reverse order from the end. So we will use a RNN $Q_\phi$ that processes the sequence $x_*^{T:t+1}$ jointly with input $h^t$. Ideally, the structure of $Q_\phi$ should allow for an amortized evaluation of many hidden states. Note that the use of the critic is quite different from the variational approach. The variational approach decouples the learning problems at different time steps via the use of the distribution $q$. 
+
+Also: with regard to the local search stuff: we don't need to do the expensive sampling. Even, if we are interested in sequence losses, we could evaluate the loss very quickly by sampling from a fixed sequence. \\
+
+
+\textit{Old text fragments below}\\
+
+In light of the above difficulties, it feels sensible to explore reinforcement learning methods for the sequence generation problem. This is the route pursued in \cite{ranzato2015sequence} and \cite{bahdanau2016actor}. The latter uses an actor-critic approach in the following manner: First, for each training sequence, a number of trajectories are sampled from the policy by running the model $x^{1:T}_k \sim p_\theta(x)$.\footnote{Where we assume for simplicity they are all of the same length.} For each such sample and each $t$ one uses a $Q$ function estimate as a critic to compute gradients via the policy gradient theorem \cite{sutton2000policy,konda2000actor}
+\begin{align}
+\nabla_{k}^t := \nabla p(a | x_k^{1:t-1}) Q(a,x_k^{1:t-1}) \,.
+\end{align}
+The unbiasedness and simplicity of the sampling process from the stochastic policy make this relatively straightforward. However, note that we may need many samples and structurally, the specific architecture of the generative model is not exploited. Moreover, of course, much of the challenge is now off-loaded to the critic, i.e.~one has to efficiently learn an approximate $Q$ function.\footnote{There are severe convergence problems associated with this approach, in particular, if NN are used to approximate $Q$.} In \cite{bahdanau2016actor} the critic then becomes a complex model of its own, performing attention over possible control inputs $u^{1:T}$, encoding the ground truth sequence $x_*^{1:T}$ as well as a partially predicted sequence $x^{1:t}$. The critic may even (optionally) peek into the inner workings of the generator and process $h^{1:t}$. When it comes to training of the critic, \cite{bahdanau2016actor} argue that a na\"ive policy evaluation via stochastic roll-outs are statistically inefficient. Instead, they advocate the standard temporal-difference (TD) learning approach with squared loss.\footnote{Not sure about the squared loss part.}
+
+\paragraph{\textbred{NEW}}
+
+Let us compare the variational approach with the actor-critic one. As a first difference, note that the critic provides feedback on the level of the symbol generation, whereas a variational distribution defines explicit targets for the hidden states. Clearly, the critic feedback propagates back into the black-box mechanism of the stochastic policy, and if the latter happens to be a differentiable stochastic RNN, then this will also provide feedback on the hidden state sequence. However, one may wonder,  if the actor-critic interaction would not possibly profit by making the later be working -- by design -- in the hidden space of the generator.\footnote{This should be done structurally, not just by making the hidden states an input to the critic.} 
+
+Let us fix a particular $t$ and ask the question: what determines the quality of $p_\theta(h^t)$ in a distributional sense with regard to the unknown true distribution $p(x)$?\footnote{For simplicity let us assume the length is fixed to $T$.} Obviously we will need to compare the induced model distribution $p_\theta(x^{t:T} | h^t)$ with the  marginal distribution $p(x^{t:T}) = \sum_{x^{1:t-1}} p(x)$ through some criterion $\ell(p,q)$ (e.g.~a divergence). Assume first that we had access to these marginals, we could then simulate forward trajectories with the generative model to arrive at some empirical $\hat p_\theta(x^{t:T}|h^t)$ and then optimize $\ell$ via gradient descent on $\theta$. \\
+
+\textit{Finish discussion of this approach as well as \cite{ranzato2015sequence}. Part below is old.}\\
+
+\paragraph{\textbred{Reinforcement Learning with States}}
+
+Let us pursue a slightly different approach here and work with the latent states. For simplicity let us assume the reward  decomposes\footnote{TH: Patch this up later} and is attached to the latent states, $r(h^t) = R(h^t,x^t_*)$,\footnote{We use the convection that we $t$ is also used as an index that $r$ may depend on.} via some reward function. For instance, via a log-likelihood
+\begin{align}
+r(h^t) = \log p_\phi(x^t_* | h^t)\,.
+\end{align}
+We can now define a value function for the policy defined by the generative mechanism
+\begin{align}
+V^\theta(h^t)  = r(h^t) + \int p_\theta(h^{t+1:T} | h^t)  \left[ \sum_{s=t+1}^T r(h^s) \right] \, d h^{t+1:T}
+\end{align}
+which is nothing else than the expected cummulatiove reward obtained by running the generator from an intermediate state $h^t$ to the end. Obviously, we can also put this into a recursive form
+\begin{align}
+V^\theta(h^t) =  r(h^t) + \E_{h^{t+1}|h^t} \left[ V_\theta(h^{t+1}) \right]
+\end{align}
+If we think of the $\theta$-parameterized generative model as a stochastic policy $\pi_\theta$, then we can apply the \textred{actor-critic} framework, which would require us to define some critic. Such a critic would be a proxy for the value function, so let us assume that indeed we are trying to parametrize it. 
+ 
+
+
+\paragraph{Learning to Search} Another direction is to cast the above problem as a learning to search problem \cite{leblond2017searnn}. Imagine that we sample a trajectory under the current generative model. This is easy to do via forward sampling in time. The idea is then to investigate all local perturbations of this reference exploration path by selecting a time $t$, imputing a different symbol $x^t$ (this assume discrete outputs) and then rolling-out the respective modified trajectory. Each such decision comes with an associated cost.
+
+\bibliographystyle{acm}
+\bibliography{th}
+\end{document}
+

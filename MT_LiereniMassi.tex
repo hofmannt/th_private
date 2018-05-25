@@ -1,0 +1,66 @@
+\documentclass{article}
+\usepackage{amsfonts,amsmath}
+\newcommand{\x}{{\mathbf x}}
+
+\begin{document}
+
+\subsection*{Word Embeddings}
+
+\paragraph*{\cite{zou2013bilingual} 3*}
+Use alignment counts from MT corpus. Define a penalty objective as follows for words $w$ in a source and $v$ in a target language 
+\begin{align*}
+\Omega(\mathbf X) := \sum_{v} \| \x_{v} - \sum_{w} P(w \to v) \x_w\|^2
+\end{align*}
+
+\paragraph*{\cite{hu2017controllable}}
+
+\paragraph*{\cite{shen2017style}} Style transfer based on latent representations \cite{hu2017controllable}. 
+
+\bibliographystyle{apalike}
+\bibliography{th}
+
+%Hello,
+%
+%I send you the papers that we found so far.
+%
+%- Dual learning: 
+%https://arxiv.org/abs/1611.00179
+%
+%- Zero-shot:
+%https://arxiv.org/abs/1611.04558
+%
+%- NMT with reconstruction: 
+%https://arxiv.org/abs/1611.01874
+%
+%- Semi-supervised learning:
+%https://arxiv.org/abs/1606.04596
+%http://papers.nips.cc/paper/5949-semi-supervised-sequence-learning.pdf
+%https://arxiv.org/pdf/1605.07725.pdf
+%
+%- Autoencoders:
+%https://arxiv.org/pdf/1703.10960.pdf
+%https://www.cs.purdue.edu/homes/dgoldwas/papers/ZJPTG_EMNLP17.pdf
+%https://arxiv.org/abs/1708.01018
+%
+%- Generation of text:
+%https://arxiv.org/abs/1709.08878
+%https://arxiv.org/pdf/1703.00955.pdf
+%
+%- Improving NMT with monolingual data:
+%http://www.aclweb.org/anthology/P16-1009
+%https://arxiv.org/abs/1611.02683
+%http://www.nlpr.ia.ac.cn/cip/ZhangPublications/emnlp2016-jjzhang.pdf
+%
+%- Cross-alignment:
+%https://arxiv.org/pdf/1705.09655.pdf
+%
+%I made a quick search about word embeddings as well. I still need to search more:
+%
+%http://www.aclweb.org/anthology/D13-1141
+%https://arxiv.org/pdf/1602.01925.pdf
+%
+%
+%Regards,
+%Lierni
+
+\end{document}

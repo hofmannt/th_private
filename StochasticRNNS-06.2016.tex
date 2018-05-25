@@ -1,0 +1,112 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{mathtools}
+\usepackage[margin=3cm]{geometry}
+\usepackage{marginnote}
+\usepackage{color}
+\usepackage{xcolor}% http://ctan.org/pkg/xcolor
+
+%%% COLORS
+\definecolor{Blue}{rgb}{0.3,0.3,0.9}
+\definecolor{Orange}{rgb}{0.8,0.4,0.1}
+\definecolor{Red}{rgb}{0.9,0.1,0.1}
+\newcommand{\up}[1]{^{(#1)}}
+\newcommand{\textblue}[1]{{\color{Blue} #1}}
+\newcommand{\textbblue}[1]{{\bf\color{Blue} #1}}
+\newcommand{\textred}[1]{{\color{Red} #1}}
+\newcommand{\textbred}[1]{{\bf\color{Red} #1}}
+\DeclareMathOperator*{\argmin}{\arg\min}
+\DeclareMathOperator*{\argmax}{\arg\max}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{define}[theorem]{Definition}
+
+%%%
+\newcommand{\pro}[2]{{\left\langle #1, #2 \right\rangle}}
+\newcommand{\E}{{\mathbf E}}
+\renewcommand{\P}{{\mathcal P}}
+\newcommand{\G}{{\mathcal G}}
+\newcommand{\D}{{\mathcal D}}
+\renewcommand{\L}{{\mathcal L}}
+\newcommand{\obj}{{\mathcal J}}% objective
+\newcommand{\mX}{{\mathbf X}} % matrix X
+\newcommand{\mU}{{\mathbf U}} % matrix U
+\newcommand{\mV}{{\mathbf V}} % matrix U
+\newcommand{\mZ}{{\mathbf Z}} % matrix Z
+\newcommand{\mY}{{\mathbf Y}} % matrix Z
+\newcommand{\mW}{{\mathbf W}} % matrix Z
+\newcommand{\mXi}{{\mathbf \Xi}} % matrix Z
+\newcommand{\vu}{{\mathbf u}} % vector u
+\newcommand{\vz}{{\mathbf z}} % vector z
+\newcommand{\vxi}{{\mathbf \xi}} % vector \xi
+% \newcommand{\opt}[1]{{#1}^{{\text{\tiny opt}}}}
+\newcommand{\opt}[1]{{#1}^{{\dagger}}}
+\newcommand{\pri}{{\pmb \beta}}
+\newcommand{\dua}{{\pmb \alpha}}
+\newcommand{\mI}{{\mathbf I}}
+\newcommand{\mT}{{\mathbf T}}
+\newcommand{\y}{{\mathbf y}}
+\newcommand{\trace}{{\text{Tr}}}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\z}{{\mathbf z}}
+\newcommand{\vzeta}{{\pmb \zeta}}
+\newcommand{\adual}{{\mathbf a}}
+\newcommand{\bdual}{{\mathbf b}}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\W}{{\mathbf W}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\bigO}{{\mathbf O}}
+% \setlength\parindent{0pt}
+
+\title{Training Recurrent Neural Networks for Sequence Generation}
+\author{Thomas Hofmann}
+
+\begin{document}
+
+\maketitle
+
+\paragraph{RNNs} Recurrent neural networks are connectionist models that propagate activity not just in a layered feedforward manner, but also through  feedback loops. Hidden representations can thus be thought of as time indexed hidden states $\z \up t \in \Re^m$ that evolve over time. Attached to this latent state sequence is typically an input sequence $\x \up t$ which drives the evolution and often also an output sequence $\y \up t$, which optionally may be fed  back into the state evolution.  
+
+\paragraph{Learning via Teacher Forcing} There has been some interest dating back to the 1980ies for using recurrent neural networks as a model of neural circuitry and to explain phenomena like associative memory \cite{hopfield1982neural,lapedes1986self}. In this context, one often defines a time-continuous (or discretized) dynamics, and then is interested in adjusting the weights of the network in a way that the patterns to be stored become point attractors under the non-linear network dynamics. Pattern recall then evolves by presenting some noisy stimulus, which ideally drives the system to \thispagestyle{?}e desired fixpoint. Here, it has been observed that na\"ively applying backpropagation learning can be inefficient or even fail completely. Instead, it has been suggested to constrain the network dynamics by constantly feeding-in the target state to break degeneracy of point attractors \cite[Eqs.~(8.5-8.7)]{pineda1988dynamics}. This mechanism was further developed and used in \cite{williams1989learning}, where the term `teacher forcing' was coined to describe a learning setting, where parts of the hidden state are `overwritten' by a target signal, cf.~\cite[Eq.~(17)]{williams1989learning}. A solid theory for why these modification work is not available.
+
+\paragraph{Maximum Likelihood Training} A similar idea of  constrained learning has been used recently in the context of learning models for discrete sequences, in particular for language modeling and for  sequence-to-sequence learning \cite{sutskever2014sequence}. The main argument here can be made by observing that by the chain rule of probability we have that 
+\begin{align}
+p(\y \up{1:T}) = \prod_{t=1}^T p(y \up t | \y \up{1:t-1})
+\end{align}
+and thus the log-likelihood of a model is given as a sum of log-probabilities of predicting the next output (e.g.~symbol) in a sequence. In the context of language models this is often referred to as word perplexity. Note that the injection of a target signal, results in a truncation of back-propagation through time. \\
+
+\noindent It has been observed from the start though that this type of learning is problematic when using the model to freely generate longer sequences in the absence of a teacher-provided target sequence. There is the possibility that the hidden state sequence may completely move away from the parts of state space seen during training as it lacks the corrective input to keep it on track. This problem is sometimes called \textit{exposure bias} \cite{ranzato2015sequence} and related to the problem of label bias \cite{lafferty2001conditional} in structured prediction. There have been several attempts to derive improved learning rules for RNNs, which we will discuss below. 
+
+\paragraph{Beam Search} One way to address the exposure bias problem is to only provide a fix that gets applied during (test) operation by avoiding search errors. In order to attentuate the reliance on a sequence of greedy decisions about which symbol to generate next, one keeps a set of (partial) candidate outputs and performs beam search. This way, one may find sequences that have a higher joint probability. Beam search was already part of the original sequence-to-sequence learning paper \cite{sutskever2014sequence} and has also been utilized, for instance, in \cite{bahdanau2014neural} for machine translation as well as in \cite{rush2015neural} for text summarization.
+
+
+\paragraph{Learning as Search Optimization} Based on the general framework of \cite{daume2005learning} and similar ideas in \cite{collins2004incremental}, there have been attempts to use beam search also for training \cite{wiseman2016sequence}. The strategy of \cite{collins2004incremental} is to perform an update, once the gold sequence is no longer reachable, whereas \cite{daume2005learning} resumes searching from a state that contains the gold standard. 
+
+\paragraph{Non-Locally Normalized Approaches} \cite{sak2014sequence}, \cite{voigtlaender2015sequence}
+
+\paragraph{Training on Predictions} \cite{daume2009search}. Requires an oracle for the optimal continuation of a sequence (see below \cite{venkatraman2015improving} for how to define a proxy based on data). 
+
+\paragraph{Mixed Strategies} One way to think about the exposure bias problem is as a trade-off. The constrained training ensures that the model stays close to the actual training sequence and provides additional guidance in  the learning phase. On the other hand, the guidance prevents the model to be trained properly when operated in mode, where it autonomously makes a sequence of decisions. A straightfoward idea presented in \cite{bengio2015scheduled} is to mix these two strategies together and to possibly adapt the mixing as training progresses, borrowing inspiration from curriculum learning \cite{bengio2009curriculum}. This way, the model receives (based on randomization) either a guided training signal or one that is based on the previous model prediction(s). Note that in \cite{bengio2015scheduled}, backpropagation is truncated in both cases. 
+
+
+
+\paragraph{Multi-Step Training} The challenges of multi-step learning have also been discussed in \cite{venkatraman2015improving}, where the focus is on learning controlers for dynamical systems. Essentially, the authors suggest to use the data itself in some sort of imitation learning setting by combining the model predicted $\hat \y \up t$ with the next step goal state $\y\up{t+1}$ as training pairs. This `data as demonstrator' approach is similar to \cite{bengio2015scheduled}\footnote{Although it is presented in a somewhat convolved manner as a meta-algorithm for no-regret learners.}
+
+\paragraph{Reinforce} Another direction that has been explored is to modify the REINFORCE algorithm \cite{williams1992simple} for this task. In \cite{ranzato2015sequence} it is suggested to directly optimize objectives  such as BLEU or ROUGE that are defined on the entire sequence. Using linear regression a baseline average reward is established for each time step; the main purpose of this is to reduce the variance in estimating gradients. Then the algorithm proceeds by generating an entire sequence and by deriving gradients for the soft-max at each time step (see. \cite[Eq.~(11)]{ranzato2015sequence}. Details of the gradient derivation can be found in \cite{zaremba2015reinforcement}. Practically, a pre-trained model is used to deal with the large action space. Moreover, an annealing strategy similar to \cite{bengio2015scheduled} is applied. 
+
+\paragraph{Application}
+
+\begin{itemize} \setlength{\itemsep}{3mm}
+\item Machine translation \cite{bahdanau2014neural}
+\item Sentence compression \cite{filippova2015sentence}
+\item Dialogue systems \cite{serban2016building}
+\end{itemize}
+
+
+\bibliographystyle{acm}
+\bibliography{th}
+
+\end{document}

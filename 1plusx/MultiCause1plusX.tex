@@ -1,0 +1,326 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\renewcommand{\th}{{\tilde \theta}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\E}{{\bf E}}
+\newcommand{\w}{{\bf w}}
+\newcommand{\x}{{\bf x}}
+\newcommand{\y}{{\bf y}}
+\newcommand{\z}{{\bf z}}
+\newcommand{\X}{{\bf X}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\Z}{{\bf Z}}
+\newcommand{\Xcal}{{\cal X}}
+\renewcommand{\S}{{\cal S}}
+\newcommand{\Ccal}{{\cal C}}
+\newcommand{\C}{{\bf C}}
+\newcommand{\Zcal}{{\cal Z}}
+\newcommand{\tgamma}{{\stackrel{\gamma}{\longleftarrow}}}
+\newcommand{\mycomment}[1]{}
+\newcommand{\loglike}{{\mathcal L}}
+\newcommand{\indicator}[1]{{\bf 1}\left[ #1 \right]}
+\newcommand{\comment}[1]{{[\small \textit{\underline{Comment}: #1}]}}
+
+\title{Bayesian Belief Networks for User Profiling \\ {\large CONFIDENTIAL -- DO NOT DISTRUBUTE}}
+
+\author{Thomas Hofmann, 1plusX}
+
+\begin{document}
+
+\maketitle 
+
+\section{Introduction} 
+
+\paragraph{User Profiling as Inference} 
+
+A systematic way of inferring user profiles from observational data is to define a generative probabilistic model that relates unobserved or latent user attributes to observed user behaviors. Such a model quantifies the following scenario: "\textit{if we knew all relevant user traits (perfectly observed profile), what behavior would we predict to observe?}". Using (Bayesian) inference we then invert the direction and to go from evidence, i.e.~observed user behaviors, to the inferred user profile. This inference process is called posterior inference or simply \textit{user profiling}. 
+
+\paragraph{Supervised vs.~Unsupervised} 
+
+There are two cases to distinguish. First, in supervised or semi-supervised learning, user attributes have a known semantics. They may, for instance, correspond to socio-demographics attributes or user interests defined with regard to a pre-define taxonomy.  Typcially, we either have direct training data available (e.g.~from a CRM system) or at least have information that holds in the aggregate on the level of audiences (e.g.~"people who visit X are 90\% female"). Second, in an unsupervised setting, latent variables may not correpsond to \textit{a priori} known dimensions, but may be learned based on a criterion that measures their usefulness for prediction or automated decision making. These latent variables may correspond to user traits that are interpretable \textit{post hoc}, but they may not in general have a clear semantics. Their main utility is in capturing regularity in the behavior of user populations that can not easily be modeled and conceptualized by domain experts. 
+
+\paragraph{Bayesian Belief Networks}
+
+Bayesian belief networks \cite{pearl2014probabilistic} are a family of probabilistic models that represents dependencies via directed acyclic graphs (DAGs) and parameterizes the joint distribution as a product of conditional distributions of random variables or nodes, given their respective parent nodes in the DAG. We are especially intersted in layered models, where the connectivity always links a subset of nodes in a (higher, cause) layer to nodes in a (lower, symptom) layer. This includes models like noisy-OR multi-cause models  \cite{shwe1991probabilistic,jaakkola1999variational}, sigmoid belief networks \cite{saul1996mean}, topic models \cite{hofmann2001unsupervised,blei2003latent}, and restricted Boltzmann machines \cite{salakhutdinov2007restricted}. Generally, these models combine the advantages of deep neural networks with probabilistic semantics and reasoning and such are well suited to address the major challenges arising in user profiling. 
+
+\paragraph{Type of Variables}
+
+It is important to  specify the type of variables that represent the user profile. In the supervised setting, we will most typically encounter binary and categorical variables, but sometimes also numeric ones (that often may be quantized). In the unsupervised setting, it is a free design choice of whether to use discrete or continuous variables. As opposed to neural network approaches such as \cite{mikolov2013linguistic,bengio2003neural} we focus mainly on the discrete case, although that is not a principled limitation of the methodlogy. We will call variables that denote user behavior as \textit{observed variables} and the ones denoting user traits \textit{latent variables} as we usually cannot observe them directly. Note that even in the case of so-called \textit{ground truth}, information about users can be noisy and subject to error, or deliberate mis-information. 
+
+\paragraph{Two-Layer Belief Network} The canoncial model we will deal with is a two layer network, where the user traits $Z=(Z_1,\dots,Z_M)$ form the top layer of latent causes and the user behaviors $X= (X_1,\dots,X_N)$ from the observed lower layer. Directed edges connect latent causes to observed effects, i.e.~user behaviors. Unless otherwise stated, we assume a complete connecitivity of each cause with each effect. Our favored model for the conditional distributions connecting the two layers is the noisy-OR model \cite{jaakkola1999variational, vsingliar2006noisy}. The latter has been used successfully in medical applications, some Internet applications \cite{platt2007fast}, and is also the basis of Google's Rephil model \cite{murphy2012machine}. It provides a powerful model for multi-cause dependencies, yet excact inference in noisy-OR models is NP hard \cite{cooper1990computational} with the exception of a few special cases, e.g.~\cite{halpern2013unsupervised}.   The challenge addressed in this write-up is to derive and discuss approximate inference methods that trade-off accuracy for scalabaility. 
+
+The source of the computation hardness comes from the interactions of the latent variables in what is known as \textit{explain away}. We will present appoximations in two stages: First, approximations that na\"ively ignore or simplify the interactions between (some) causes. This will lead to highly efficient inference methods, in many cases wtith simple parameter estimation procedures.  Second, we investigate approximation approaches that start with the joint likelihood function and apply variants of expectation maximization for model learning. Approaches that belong into this family are variational methods, meanfield  inference as well as matrix factorization techniques. 
+
+
+\section{Single-Cause Models} 
+
+\paragraph{Na\"ive Model}
+
+Let us first consider the simplest case possible, the one of a binary user trait and an arbitrary number of binary observables.  We denote the user trait by $Z \in \{0,1\}$ (canonical case: male/female) and by $X_n \in \{0,1\}$, $n=1,\dots,N$ user behaviors. The typical situation involves visits to some domain $D_n$: $X_n=1$, if domain $D_n$ has been visited by the user in question, and $X_n=0$, otherwise. In this model, we ignore mulitple visits to the same domain. We make a conditional independence assumption that is also commonly known as a \textit{na\"ive Bayes} model,
+\begin{align}
+\label{eq:model0} 
+P(X,Z; \pi, \phi) = P(Z; \pi) \prod_{n=1}^N P(X_n|Z, \phi_n) 
+\end{align}  
+In the na\"ive Bayes model, all observed visits (and non-visits) are independent of each other, if we fix the user profile $Z$. In order to turn this into a concrete model, we need to specify the forms of the distributions. In the simplest case, we will chose all distributions as Bernoulli distributions. So we specify the prior trait probability with a parameter $\pi$,\footnote{Note that this notation with Boolean variables in the exponent is used to avoid case distinctions. An exponent of "0" leads to a factor of $1$ in a product, which hance has no influence. An exponent of $1$ selects the respective factor.}
+\begin{align}
+P(Z; \pi) & = \pi^Z (1-\pi)^{1-Z}, \quad \pi \in [0;1]
+\end{align}
+and the conditional probability of the observables as 
+\begin{align}
+P(X_n |Z; \phi_n) &= \left[ \phi_{n1}^{X_n} (1-\phi_{n1})^{1-X_n} \right]^Z \cdot \left[ [ \phi_{n0}^{X_n} (1-\phi_{n0})^{1-X_n} \right]^{1-Z}
+\end{align}
+Note that there are basically two parameters per observable: success probabilities $\phi_{n0}$, $\phi_{1n}$  for the trait $Z$ taking either value of $0$ and $1$. In our example: the probability $\pi$ is the prior probability of "male", $(1-\pi)$ the prior probability of "female". The probability $\phi_{n1}$ is the probability of a "male" user to visit domain $D_n$, the probability $\phi_{n0}$ is the probability that a "female" user will visit the domain. The complementary probabilities of not visiting a domain are then given by $(1-\phi_{n0})$ and $(1-\phi_{n1})$. 
+
+\paragraph{Inference in the Na\"ive Model}
+
+\comment{This is what is currently implemented. Check on use of $P(X_n=1)$ weighting.} 
+
+How do we identify or learn the parameters in the na\"ive model? It would be trivial, if we could directly observe the trait $Z$. However, we only assume to have audience statistics available in aggregate about behaviors. For instance, we assume to have access to information about the trait statistics (e.g.~gender) of users visiting a particular Web (sub-)domain. Usually such statistics take the form  $\tilde P(Z | X_n)$, i.e.~we (or some data provider) may know what percentage of users at a site are "male" or "female".  Note that what we need in the na\"ive Bayes model is the distribution $P(X_n|Z)$. We also assume that we have a sufficiently accurate estimate $\tilde P(Z)$ on the relative frequency of male and female users. We can then apply Bayes' rule for the inversion 
+\begin{align}
+P(X_n|Z) = \frac{P(Z|X_n) P(X_n)}{P(Z)}
+\end{align}
+plugging this into Eq.~\eqref{eq:model0} yields
+\begin{align}
+P(X,Z) = P(Z)  \prod_{n=1}^N \frac{P(Z|X_n)}{P(Z)} P(X_n), \quad 
+P(Z|X) = \frac{P(X,Z)}{P(X)}
+\label{eq:naive-formula}
+\end{align}
+The critical term here is the ratio between the gender probabilities among visitors of the domain vs.~the Web average. A site who's visitors have the same distribution as the overall population does not add any information about $Z$.  If on the other hand the visitors of a site are more frequently "male", say,  then the Web population, then the posterior for $Z=1$ will go up as we would expect. Note also that the marginals $P(X_n)$ correspond to site popularity, i.e.~the fraction of overall users who visit a domain. 
+
+In summary, we can directly estimate all the quantities showing up in Eq.~\eqref{eq:naive-formula} based on the corpus ($\hat P(X_n) \approx P(X_n))$ as well as based on the aggregate supervised information that is assumed to be available ($\tilde P(Z) \approx P(Z)$ and $\tilde P(Z|X_n) \approx P(Z|X_n)$). The $Z$-independent constant $P(X)$ can be dropped as it assures proper normalization of $P(Z|X)$. 
+%
+We thus get the following formula for the log-posterior
+\begin{align}
+\log P(Z|X)
+= \log P(Z)+  \sum_{n=1}^N \left[ \log \frac{P(Z|X_n)}{P(Z)}+ \log P(X_n) \right] - \log P(X)
+\label{eq:log-posterior}
+\end{align}
+
+\paragraph{Unobserved Behaviors}
+
+Finally note that we only assume to have access to $\tilde P(Z|X_n=1)$, i.e.~we assume to know something about users who obey a certain behavior. In most cases where $P(X_n=1)$ is small, it is a reasonable assumption to set $\tilde P(Z|X_n=0) \approx \tilde P(Z)$, i.e.~to assume that users who do not obey a behavior to be almost indistinguishable from the Web population. With this simplification, we arrive at simplified formula for the log-posterior
+\begin{align}
+\log P(Z|X) = \log P(Z) + \sum_{n: X_n=1} \left[ \log \frac{P(Z|X_n=1)}{P(Z)} - \log P(X_n) \right]
++ \log P(X)
+\label{eq:log-solution}
+\end{align}
+%
+It is possible to avoid this simplification by using the basic identity 
+\begin{align}
+P(Z) = P(Z, X_{n}=0) + P(Z, X_n=1)
+\end{align}
+from which it follows that
+\begin{align}
+P(Z | X_n=0) = \frac{P(Z) - P(Z| X_n=1) P(X_n=1)}{1-P(X_n=1)}
+\end{align}
+We can then just precompute the factor 
+\begin{align}
+E_0 := \prod_{n=1}^N \frac{P(Z | X_n=0)}{P(Z)}
+\end{align}
+and all remaining computations scale again with the number of observed behaviors. 
+
+\paragraph{Multi-Valued Traits}
+
+It is easy to generalize the above derivation to the case of multivalued categorical traits, e.g.~age groups or income brackets. Essentially the same equality up to additive constant as in Eq.~\eqref{eq:log-solution} is valid. The only difference is how we chose the additive constant to correctly normalize the distribution. 
+
+\paragraph{Single-Valued Traits}
+
+Another point of consideration is what we call "single-valued" trait. Such a trait can be represented by a binary variable, but the meaning of the values $0$ and $1$ is not symmetric. Rather, the presence of the trait has an effect, whereas the absence does not have an effect. Note that this is the case, for instance, with interest variables, where the existence of an interest can be a possible explanation for domain visits, whereas the absence of interests provides a much weaker (if any, as observations are partial) evidence. This is noteably different to the case of binary variabes, representing traits like gender, say. 
+
+In the case of interests with a given taxonomy, we usually assign (sub-)domains (or other items users interact with) to one or more categories. When a user visits a domain, one heuristic of using these labels is to assume that 
+\begin{align}
+P(Z=1 | X_n=1) = 1-\rho, \quad 0 \leq \rho  < 1-P(Z=1) \,.
+\end{align}
+How to chose such a parameter (or multiple, if done in a category-specific manner) in an optimal way is not clear. However, if we stick to one tuning parameter or a small enough number of parameters, we can simply tune these parameters via grid search or gradient descent over a likelihood function.
+
+Note that in the above case, inference will simply work as follows. A user is initially assigned a (small) prior probability $P(Z_c=1)$ of having an interest $c$. Visiting domains that are unrelated to this interest category have no effect on the posterior. Visiting a domain $X_n$ labeled by $c$ then has the effect 
+\begin{align}
+P(Z_c=1 | X_n=1) & = \frac{P(Z_c=1) \frac{1-\rho}{P(Z_c=1)}}{
+P(Z_c=1) \frac{1-\rho}{P(Z_c=1)} + P(Z_c=0)} \nonumber \\
+& = \frac{1-\rho}{1-\rho + P(Z_c=0)} \approx 
+\frac{1-\rho}{2-\rho}
+\end{align}
+With every additional domain visit, we perform a similar update. 
+
+
+\section{Extensions of the Single Cause Model}
+
+\paragraph{Incoporating Noise into the Model}
+
+Single-cause models assume that the trait under consideration is the only one explaining the observables. This is, of course, na\"ively ignoring the effect of other causes, modeled ones (where we have ignored the interaction) and unmodeled ones (that we may not even be able to conceptualize). One way to improve on the single cause model is to lump the effects of all other causes together and augment the single cause model to a two-cause  model. Since this alternate explanatory variable is not meant to be specific, we can think of it in terms of a trait $Z_0$ that is always "on", $P(Z_0=1)=1$. This takes a similar role to noise effects in models such as noisy-or (see below). We define the noisy single-cause model for a "single-valued" variable $Z\in \{0,1\}$ as follows\footnote{This is, of course, a special case of a true multi-cause noisy-or model.}:
+\begin{align}
+P(X_n=0 | Z) = (1- P(X_n=1 | Z_0=1)) \cdot (1-P(X_n=1|Z)^{Z}
+\label{eq:two-causes}
+\end{align}
+The posterior for $Z$ is available in closed-form\footnote{Under the conditional independence assumptions implied by the Bayesian network and the approximations made above.}
+\begin{align}
+P(Z | X)  & = P(Z) \frac{P(X | Z)}{P(X)} = P(Z) \frac{\prod_{n=1}^N P(X_n) \frac{P(Z|X_n)}{P(Z)}}{P(X)}
+\end{align}
+So there are two additional challanges. First, we need to estimate the noise probabilities $P(X_n=1 | Z_0=1)$. Note that without parameter tying we have a maximum of $N$ parameters. Second, we need to be somewhat more precise in how we want to use $\tilde P(Z_1=1| X_n=1)$ in Eq.~\eqref{eq:two-causes}. 
+
+As far as the second point goes, we now need to also compute the term $\prod_m P(X_m) / P(X)$, which was considered a constant in Eq.~\eqref{eq:posterior-binomial} and consequently dropped. This is not much involved.  As this allows us to compute the exact posterior, we can then resort to the expectation-maximization (EM) algorithm to address the first point and compute the noise probabilities.\footnote{Details are left open.}
+
+\paragraph{Grouping Causes}
+
+It should be clear, that we can group multiple causes into a single multi-valued variable without changing the model. This comes at the cost of an increased cardinality of the composite variable. For instance, if group a binary gender variable, an age variable with 5 levels and and income variable with 5 levels together, then we get a single variable with $2\cdot 5 \cdot 5 =50$ possible values. Thus the computational effort in the posterior computation goes from additive $2+5+5=12$ to combinatorial. However, this may still be sensible in practice as we can stick to the same very simple algorithm. So treating groups of causes indepedently may be a good middle ground between a too na\"ive model and more complex models with significantly harder inference algorithms. 
+
+
+\paragraph{Simple vs.~Simplistic}
+
+The simple model above keeps the main features of profile inference, yet comes with huge computational savings: 
+\begin{itemize}
+\item Only positive evidence needs to be considered. Since the number of obeyed behaviors is usually far less than the total number of possible behaviors, this is a huge saving. 
+\item The assumed lack of interactions between causes breaks up the overall inference problem into tractable pieces, one for each user traits, i.e.~group of latent variables. 
+\item The availability of a simple formula to create plug-in estimates based on audience statistics avoids any more complex learning method.  
+\end{itemize}
+
+However, note that the model also has many shortcomings that are the flip-side of some of the above advantages. 
+\begin{itemize}
+\item The lack of interaction between causes leads to sub-optimal inference as one ignores the so-called \textit{explain away} effect in Bayesian networks. In order to improve profiling accuracy, there is no way around taking interactions into account.  
+\item The latter is also key in order to be able to create hybrid models, which combine interpretable traits with additional dimensions that are trained in a purely unsupervised manner. Without \textit{competitive learning} effects between different causes, there is no way to learn such a model. 
+\item As a consequence of the above, we can no longer hope to find effective one-shot plug-in estimates for the relevant conditional probabilities (or parameters).  Thus we will have to expect to implement more involved procedures for statistical estimation. 
+\end{itemize}
+
+We consider two routes forward: (i) a truley Bayesian network approach to multi-causal learning,  and (ii) a matrix factorization approach. While (i) is more principled and "correct" in that it offers a sound probabilistic semantics, (ii) has advantages when it comes to scalability of inference algorithms. 
+
+\section{Multi-Cause Models}
+
+\section{Matrix Decomposition Models}
+
+\section{Deep Layered Models}
+
+\bibliography{MultiCause}
+\bibliographystyle{acm}
+
+
+\end{document} 
+\newpage
+
+
+
+ case, consider a noisy-OR model for a single $K$-valued variable $Y$ encoded in $K$ binary causes $Z_1,\dots,Z_K$. We then get 
+\begin{align}
+P(X_n=0| Y) = 
+P(X_n=0| Z_1,\dots,Z_K) = 
+(1-\phi_{n0}) \prod_{k=1}^K (1-\phi_{nk})^{Z_{nk}}
+\end{align}
+where $\sum_{m=1}^K Z_m =1$. It is then easy to compute the posterior probability as
+\begin{align}
+P(Y=k|X) = P(Z_k=1|X) = 
+\frac{\pi_k \prod_{n=1}^N (1-\phi_{nk})^{X_n}
+}{
+\sum_{l=1}^K \pi_l \prod_{m=1}^K (1-\phi_{nl})
+}\,.
+\label{eq:softmax}
+\end{align}
+Here the normalization reflects the $1$-out-of-$K$ constraint. Eq.~\eqref{eq:softmax} is also known as a softmax function. It is equivalent to a na\"ive Bayes classifier with $N$ binary features. 
+
+Note that we can significantly simplify posterior inference in the general case by considering each group of causes, corresponding to the same $K$-valued variable independently. Thereby we would ignore the well-known explain-away effect between different causes (cf.~\cite{murphy2001introduction}). This is sacrificing the main benefits of the multi-cause model, yet provides a simple baseline that is computationally highly scalable. 
+
+
+
+
+\newpage
+
+
+
+\paragraph{Two-layer Models} 
+
+The simplest model family to consider are models in which the observables $X$ and the latent variables $Z$ form one layer each. It is custom to speak about the latent variables as \textit{causes} and the observed variables as \textit{symptoms}. 
+These two layers are connected by a directed bipartite graph, which exhibits the probabilistic semantics of a Bayesian network \cite{pearl2014probabilistic}. This means in particular that the user behaviors $X_n$, $n=1,\dots,N$ are independent, given the profile $Z_m$, $m=1,\dots,M$. Moreover, the profile variables are marginally independent \text{a priori}. The above assumptions result in a factorization of the joint probability over $X$ and $Z$ as
+\begin{align}
+P(X, Z) = P(X | Z ) P(Z) = \prod_{n=1}^N P(X_n|Z) \prod_{m=1}^M P(Z_m) 
+\end{align} 
+Specific models are obtained by specifying the probabilistic or causal mechanisms that are modeled through the conditional distributions $P(X_n|Z)$ as well as by assumptions on the prior distribution $P(Z_m)$. 
+
+\section{Multi-cause Models} 
+
+\paragraph{Noisy-OR Model}
+
+For user profiling we deem multi-cause models and specifically the noisy-OR model to be most appropriate. In the classical setting, all variables are binary and we define the conditional distributions in the following way:
+\begin{align}
+P(X_n=0 | Z) = \prod_{m=0}^M (1- \phi_{nm})^{Z_{m}}
+\label{eq:noisy-or}
+\end{align}
+where $Z_0=0$ is a clamped dummy variable. The noisy-OR model assumes that each cause $Z_m$ can "turn on" an effect $X_n$ and that the probability of doing so is $\phi_{nm} \in [0;1]$. The probability of $X_n$ to \textit{not} be activated is hence $(1-\phi_{nm})$. Assuming independence of causes, an observation variable will only be "0", if none of the causes activate it.  This directly leads to the factorial form in Eq.~\eqref{eq:noisy-or}, where we note that inactive causes $Z_m=0$ lead to irrelevant factors of $1$. 
+%
+The model is completed by defining a distribution over $Z$, e.g.~one of  prior independence 
+\begin{align}
+P(Z) = \prod_{m=1}^M \pi_m^{Z_m} (1-\pi_m)^{1-Z_m}
+\end{align}
+
+\paragraph{Mutli-Valued Causes}
+
+The noisy-OR model is not symmetric with regard to the encoding of binary variables, which means that exchanging "0"s and "1"s will lead to a different model. The reason is that the absence of a cause is not considered a cause in itself. So, even for simple profile variables like gender, this may not be the desired or expected behavior. What we need to do here to re-establish symmetry is to model a two-valued variable as two binary variables in the noisy-OR setting. So, if we have a binary variable $Y \in \{0,1\}$, then we will encode it through $Z_1 := Y$ and $Z_2 := 1-Y$. This generalizes naturally to the $K$-valued case, where we introduce $K$ binary variables, one for each possible value. 
+
+One complication in modeling multi-valued causes is that we need to enforce additional constraints on the latent causes in the noisy-OR model as  only exactly one of the $K$ binary variables modeling such an attribute can be set to "1". In the two-valued example above, we would get the constraint $Z_1 + Z_2 =1$, in general for a group of $K$ binary variables modeling a multinomial variable we have to fulfill $\sum_{k=1}^K Z_k=1$. These constraints need to be taken into account during posterior inference.
+
+\paragraph{Naive Bayes Model}
+
+%%%
+
+\paragraph{Learning Single-Cause Models}
+
+Single cause models can be trivially learned from labeled training data. However, cases where we have a sufficiently large number of training data consisting of users  with known profile information is rare. What is more common is aggregate audience information about the users who show a certain behavior as in "80\% of user who visit this domain are female". How can we learn from such data? Basically, what such information specifies is some target probability $P(Z_m | X_n=1)$. The conditional probabilities of the na\"ive Bayes model work in the other direction though and are of the form $P(X_n=1| Z_m)$. However we can write 
+\begin{align}
+P(X_n | Z_m=1) = 
+% (1-\phi_{0n}) (1-\phi_{nm})
+\end{align}
+
+\newpage
+
+\section{Snippets}
+
+$$X$$
+
+$$Z$$
+
+
+\begin{align*}
+P(Z_m | X_n) 
+\end{align*}
+
+\begin{align*}
+Z_1,\dots,Z_M
+\end{align*}
+
+\begin{align*}
+X_1,\dots,X_N
+\end{align*}
+
+\begin{align*}
+Y_0,\dots,Y_K
+\end{align*}
+
+\begin{align*}
+\tilde P(Z | X_n=1) 
+\end{align*}
+
+\begin{align*}
+\tilde P(Z | X_n=0)  \approx P(Z)
+\end{align*}
+
+\begin{align*}
+P(X_n=0 | Y) = \prod_{k=0}^K (1- \phi_{nk})^{Y_{k}}
+\end{align*}
+
+
+\newpage
+
+
+Computation of the posterior probability for $Z$ -- which is nothing else but the inferred profile -- is then trivially given by 
+\begin{align}
+P(Z=1 | X) & = 
+\frac{\pi \cdot \prod_{n=1}^N (1-\phi_{n0}) (1-\phi_{n1})}{
+\pi \cdot \prod_{n=1}^N (1-\phi_{n0}) (1-\phi_{n1}) + (1-\pi) \cdot \prod_{n=1}^N (1-\phi_{n0})} \\
+& = \frac{\pi \cdot \prod_{n=1}^N (1-\phi_{n1})}{ \pi \cdot \prod_{n=1}^N (1-\phi_{n1}) + (1-\pi) }
+\end{align}
+
+\section{Inference}
+
+

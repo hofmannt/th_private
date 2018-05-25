@@ -1,0 +1,58 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts}
+\newcommand{\x}{{\mathbf x}}	
+\title{Information Processing with Attention}
+\author{Thomas Hofmann}
+
+\begin{document}
+
+\maketitle 
+
+\paragraph{Background} Attention \cite{treisman1980feature} is a fundamental feature of information processing in higher animals such as humans, most apparent in the context of visual attention \cite{bergen1983parallel}. In the landmark paper \cite{olshausen1993neurobiological}, visual attention has been conceptualized as a method for \textit{dynamic routing} of information. Neurobiologicially, one can distinguish between a ventral (``what") and a dorsal (``where") pathway in the brain \cite{goodale1992separate}. In a computational or cognitive context, attention has been identified as a mechanism of \textit{selectivity} to exploit sparsity in processing high-dimensional inputs \cite{gershman2010learning}.
+
+
+\paragraph{Gated Units} The idea to use recurrent networks consisting of multiplicative (also called: second order) units  can at least be traced back to \cite{watrous1992induction} and was crucial in the design of long-short-term memory units (LSTMs) \cite{hochreiter1997long}. Similar ideas can be traced even further back to the so-called Sigma-Pi units in feedforward networks \cite{williams1986logic,feldman1982connectionist}. Gated recurrent units \cite{chung2015gated} are a lightweight version of LSTMs that exemplifies the key ingredient of the gating mechanism.
+\begin{align}
+\x_{\text{new}} = \alpha \x_{\text{old}} + (1-\alpha) \x_{\text{update}}, \quad \alpha : \mathcal X \to [0;1]
+\end{align}
+where $\mathcal X$ is some ``conditioning" space that controls the attention mechanism $\alpha$. 
+
+
+\paragraph{Higher Order Boltzmann Machines} There have been various ideas of how to use attention in the context of computer vision systems. One recent line of work uses Restricted Boltzmann Machines to model the sequential process of retinal (multi-)fixation \cite{larochelle2010learning, denil2012learning}. Abstracting from the specific use case, the mathematical feature of this model is that it uses multiplicative interactions. This goes back to earlier work on multiplicative gating mechanism as described in  \cite{memisevic2007unsupervised}, where binary hidden variables gate linear interactions between inputs and outputs. Notably, \cite{denil2012learning} also introduces hierarchical gaze accumulation. The main drawback of these methods is the expensive inference process, consequently they have fallen out of favor. 
+
+\paragraph{Neural Visual Attention} 
+
+
+
+
+\newpage
+
+\paragraph{Associative Memory} Various models have been investigated that deploy a recurrent network as a controller operating on an external memory. A popular choice of data structure has been a stack, e.g.~in the early work on grammar learning \cite{das1992learning, mozer1993connectionist, zeng1994discrete} as well as in more recent work \cite{joulin2015inferring}. However, while simple to control with a few actions (e.g.~push and pop), a stack-based automaton is inherently limited in the type of memory access patterns it can perform. To overcome these limitations attention mechanisms for \textit{associative} access to memory has been developed. In models like Neural Turing Machines \cite{graves2014neural} or memory networks \cite{sukhbaatar2015end} recurrent neural networks implement a policy that actively manages external memory. The principle is simple: a query $q$ is scored against  values $v_i$ stored in an array of memory cells via some function $\psi$. An associative read is then defined to be the convex combination
+\begin{align}
+r(q,v) =   \frac{
+	\sum_i e^{\psi(q,v_i)} \, v_i
+}{
+	\sum_i e^{\psi(q,v_i)}
+} =: \langle v \rangle_{\psi(q)}
+\end{align}
+This can be thought of as performing selective ``soft" attention over all memory cells. 
+
+
+\paragraph{Attention for Language Understanding} The idea to use neural attention mechanisms for natural language processing tasks has first been proposed in the context of the encoder-decoder architecture \cite{sutskever2014sequence,cho2014learning} for machine translation \cite{bahdanau2014neural}. The basic idea here is (1) to synthesize a context vector $c_t$ at every time step and (2)  to restrict context vectors to the convex hull of the latent states of the encoder $h_s$, and (3) to compute combination weights by a softmax over values computed from an alignment:
+\begin{align}
+g_t = F(g_{t-1}, y_{t-1},  c_{t}), \quad c_t = \sum_{s} \alpha_{st} h_s, \quad \alpha_{st} \propto \exp[a(g_{t-1},h_s)] \,.
+\end{align}
+This also has the side-benfit that the encoder can make use of a bi-directional RNN \cite{schuster1997bidirectional}. Basically, the focus of attention is obtained by comparing the previous latent state with the encoder latent state through some DNN mechanism. 
+
+
+\newpage
+
+
+\cite{denil2012learning}
+
+
+
+\bibliographystyle{acm}
+\bibliography{th}
+
+\end{document}

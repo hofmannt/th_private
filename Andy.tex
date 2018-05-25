@@ -1,0 +1,28 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\title{Topics w/ Andy}
+\author{Thomas Hofmann\\ ETH Zurich}
+
+\newcommand{\E}{{\mathbf E}}
+\renewcommand{\H}{{\mathcal H}}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\x}{{\mathbf x}}
+
+\begin{document}
+\maketitle
+
+\section{Reading}
+
+\paragraph*{Replicated Softmax: an Undirected Topic Model \cite{hinton2009replicated}}
+\begin{itemize}
+\item  Argues in favor of multiplicative mixtures vs.~additive mixtures such as topic models
+\item Starting point: restricted Boltzmann machine 
+\item Replication through multiple sampling (trivial, but sold as an "insight") 
+\item Contrastive divergence for training; annealed importance sampling to assess generalization performance 
+\end{itemize}
+
+\bibliographystyle{acm}
+\bibliography{Andy}
+
+\end{document}

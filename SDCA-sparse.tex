@@ -1,0 +1,55 @@
+\documentclass{article}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\author{Thomas Hofmann}
+\title{}
+\newcommand{\RR}{{\mathbb R}}
+\newcommand{\CC}{{\mathbb C}}
+\newcommand{\ZZ}{{\mathbb Z}}
+\newcommand{\mat}[1]{{\mathbf #1}}
+\newcommand{\X}{{\mathcal X}}
+\newcommand{\Y}{{\mathcal Y}}
+\renewcommand{\vec}[1]{{\mathbf #1}}
+
+\begin{document}
+\maketitle
+
+Assume we have a linear map $F: \Re^d \to \Re^n$, such that $F(x) = A x$. $A \in \Re^{n \times d}$ and an elementwise non-linearity $\phi$,
+\begin{align}
+F_\phi(x) := ( \phi(a_1^\top x), \dots, \phi(a_n^\top x))^\top \,.
+\end{align}
+Assume moreover that we combine linearly 
+\begin{align}
+g(x) = w^\top F_\phi(x) 
+\end{align}
+\newpage
+ 
+
+
+\noindent 
+Montone convex composition. Convex component functions $f_i: X \to \Re \cup \{+\infty\}$. Convex combination function  $g: \Re^n \to \Re \cup \{+\infty\}$, which is non-decreasing. 
+
+\newpage
+
+
+\begin{align}
+& \phi(x) = \sigma(w^\top x) , \quad \sigma: \Re \to \Re, \quad \text{convex}\\
+& \phi^*(y) =\sup_{x} \{ y^\top x - \sigma(w^\top x)  \} \\
+& \phi(x) = \sup_{y} \{ x^\top y - \phi^*(y) \}
+\end{align}
+
+\newpage
+
+Primal family of objective functions
+\begin{align}
+H_n(w)  = \frac 1n \sum_{i=1}^n \phi_i(w) + \frac \mu 2 \| w\|^2
+\end{align}
+Fenchel duals
+\begin{align}
+\phi_i(w) & = \sigma(w^\top z_i), \quad \sigma: \Re \to \Re, \quad \text{convex}\\
+% \phi^*(v) & = \sup_{w}\{ w^\top v - \sigma(w^\top z) \}\\
+\phi_i(w) & = \sup_{v}\{ w^\top v - \phi_i^*(v) \}
+% \phi^*(w^\top z_i)  = \sup \left( w^\top z_i  - \phi^*(w^\top z_i)  \right)
+\end{align}
+
+\end{document}

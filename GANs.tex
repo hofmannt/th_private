@@ -1,0 +1,332 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts}
+\usepackage{tikz-cd}
+\usepackage{amsthm}
+\usetikzlibrary{matrix,arrows,decorations.pathmorphing}
+
+\title{{\large ... Thoughts on ...} \\ Generative Mechanisms}
+\author{Thomas Hofmann}
+\newcommand{\J}{{\mathbf J}}
+\newcommand{\Edata}{\E_{q}} 
+\newcommand{\Emodel}{\E_{p}} 
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\logl}{{\mathcal L}}
+\newcommand{\ZZ}{{\mathbb Z}}
+\newcommand{\NN}{{\mathbb N}}
+\newcommand{\mZ}{{\mathbf Z}}
+\newcommand{\E}{{\mathbf E}}
+\newcommand{\z}{{\mathbf z}}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\mX}{{\mathbf X}}
+\newcommand{\mY}{{\mathbf Y}}
+\newcommand{\y}{{\mathbf y}}
+\newcommand{\w}{{\mathbf w}}
+\renewcommand{\v}{{\mathbf v}}
+\newcommand{\smapsto}{{\stackrel \sim \mapsto \,}}
+\newcommand{\word}{{\omega}}
+\newcommand{\words}{{\Omega}}
+\newcommand{\context}{{\sigma}}
+\newcommand{\contexts}{{\Sigma}}
+\newcommand{\n}{{n}}
+\newcommand{\mN}{{\mathbf N}}
+\newcommand{\mat}[1]{{\mathbf #1}}
+\newcommand{\lrangle}[1]{{\left\langle \, #1\, \right\rangle}}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+
+
+\setlength\parindent{0pt}
+
+\begin{document}
+
+\maketitle
+
+\begin{enumerate}
+\item \textit{Code-generative mechanisms}: Define a density function $p_X$ for $X$ over some desired sanple space $\mathcal X \subseteq \Re^n$ by transforming a (random)  code variable $Z$ with a (simple) density $p_Z$  via a parameterized function $f: \Re^m \to \Re^n$, $m \le n$. This is the form of the generator pursued in generative adverserial networks as well as variational autoencoders.
+\item \textit{Diffeomorphism}: Denote the image of $f$ by $M := \text{Im}(f)$. We would like to think of $M$ as a manifold embedded in the ambient space $\Re^n$. For this to hold, we require $f$ to be a diffeomorphism (or \textit{embedding}), i.e.~$f$ should be smooth and have a smooth inverse. This also ensures that $f$ has a derivative that is invertible everywhere. This means the Jacobian $\J_f$  will have maximal rank (i.e.~rank $m$) at every $x \in M$. 
+\item \textit{Additional Noise}: For technical and practical reasons, we would like to add small noise in the directions of ambient space that are orthogonal to the manifold.\footnote{This technique may already have been used in work on manifild learning ...} Denote the tangent space of $M$ at $x = f(z)$ by
+\begin{align}
+T_x M = \text{colsp}(\J_f) = \text{span}\left\{ \nabla_{z_1} f, \dots, \nabla_{z_m} f\right\}
+\end{align}
+We suggest to add (small amplitude) noise to directions $(T_x M)^\perp$.  We capture this in an additional noise vector $y \in \Re^{n-m}$, which is added \textit{after} the transformation by $f$.\footnote{If we could fix an orthonormal basis for these orthogonal complements than we would effectively have an invertible mapping $(y,z) \mapsto x$ with Jacobians of rank $n$ (unclear how to do this and whether it is necessary).} This may not be practical (and not even necessary in practice), but it helps with the analysis. 
+\item \textit{Jacobian Determinants}: It is an elementary result that the density induced by $f$ on $x$ can be related to the density on $z$ via
+\begin{align}
+p_X(f(z)) = p_Z(z) \left| \J_f (z)\right|,
+\end{align}
+which involves the determinant of the Jacobian of $f$. By the above assumptions $\left| \J_f (z)\right| >0$
+\item \textit{Bayes-optimal adversary}: Let us consider the setting of generative adverserial learning with an optimal discriminator. It seems that in the ideal case of a perfect discriminator, one should aim for a method that would be guaranteed to learn a good generator.\footnote{All the "talk"  about small gradients only obstructs the real problem.} Denote the model density by $p_X$ and the true data density by $q_X$.\footnote{We will use somewhat improper notation here and overload the same RV $X$.} Then the Bayes-optimal discriminator makes use of the posterior (that the data point $x$ was drawn from $q_X$)
+\begin{align}
+\tau =  \frac{q_X}{q_X+p_X} = \frac{1}{1+ \exp\left[- \log r_X \right]} = \sigma\left(\log r_X \right), \quad 
+r_X := q_X/p_X
+\end{align}
+Which is the choice maximizing the negative cross entropy
+\begin{align}
+H = \frac 12 \Emodel \left[ \log (1-\tau)  \right] + \frac 12 \Edata \left[ \log \tau \right] \le - \log 2
+\label{eq:cross-entropy}
+\end{align}
+\item \textit{Jenson-Shannon  Divergence}: This objective can also be thought of in terms of the Jenson-Shannon divergence (cf.~\cite{goodfellow2014generative}), which can be made explicit by expanding the expectations to integrals and identifying the respective Kullback-Leibler divergences (up to additive constants)
+\begin{align}
+H  & = 
+\frac 12
+ \underbrace{\int p(x) \log \frac{p(x)}{p(x) + q(x)} dx}_{\text{KL}(p|| \frac 12 (p+q))- \frac 12 \log 2}
+ + \frac 12 
+ \underbrace{\int q(x)\log \frac{q(x)}{p(x) + q(x)}dx}_{\text{KL}(q|| \frac 12 (p+q))- \frac 12 \log 2}
+\end{align}
+\item \textit{Stale Adversary}: Assume the discriminator is represented by the function $\tau: \mathcal X \to [0;1]$ (either optimal or some reasonable approximation) and we were to change $p_X$ through changes in $\theta$. This is to say, let us first investigate the effect of changes of $\theta$ on the model expectation in \eqref{eq:cross-entropy}, without considering the effect on $\tau$ (which depends on the model density). This is the approximation used in GAN, but also a known issue as it implicitly interchanges the order of the $\min$ and $\max$ in the game objective. 
+% 
+\item \textit{Shift of mass effect}: 
+%
+Intutitively, we are considering how to shift probability mass from parts of the space where $\tau$ is small (generated, but unlikely to be realistic) to parts where it is large(r) (not generated, but more realistic). Differentiating the objective  at a fixed point $x^*=f_\theta(z^*)$ one gets
+\begin{align}
+\nabla_x [\log (1-\tau)](x^*)  = - \frac{1}{1-\tau(x^*)} \nabla_x [\tau](x^*)
+\end{align}
+This is the update direction used to train the generator in \cite{goodfellow2014generative}, where $\tau$ is an approximate discriminator. What this rule captures is that by updating $\theta$ we will shift the mass associated with an infinitesimal neighborhood around $z$ from $x$ to some $x + \delta x$. 
+%
+\item \textit{Small gradients}: 
+% 
+As a heuristic it is suggest in  \cite{goodfellow2014generative}  to chose $\theta$ in order to maximize $\log \tau(x)$, instead of minimizing $\log (1-\tau(x))$. Note that $\tau - (1-\tau) = const$, but as we are taking the logarithm, this may give the same result in the ideal case of a perfect generator, but not in general.\footnote{Maybe I am not understanding this correctly. I am not sure why it would result in the same fixed point dynamics.} The motivation, of course, is that this makes the gradients more useful in the early phase of learning. Assume that we generate a sample $x$ that is not only "poor", but in a "poor neighborhood". Then $\tau(x) \approx 0$ and the gradient becomes $-\nabla \tau(x^*)$, which will be very small, if $\tau(x^*)$ has a very weak gradient. However in the modified case, we get
+\begin{align}
+-\nabla[\log \tau](x^*) =-\frac{1}{\tau(x^*)} \nabla \tau(x^*) \to \infty\,,
+\end{align}
+as long as $\nabla \tau$ does not completely vanish at $x^*$. Here the first factor amplifies the gradient norm. Note however that it does not change the stochastic descent direction.\footnote{It is questionable that the suggested "trick" is really the proper way of handling the problem. Rather one would just need to use a SGD version that would use smarter learning rates.}
+%
+\item \textit{Volume effect}: 
+%
+The GAN update rule is incorrect in that it does not take the volume effects into account that come from the determinant of the Jacobian.  Changing $\theta$ will change $\J_f$ at $z^*$ (and elsewhere, of course). This means that effectively, we will increase or descrease the probability mass in an infinitesimal neighborhood around $x^*$. However, this change is ignored in the GAN update, where we just assume that we redirect a \textit{constant} mass from the given $x^*$  to the new $x^* + \delta x$. We can use Jacobi's formula to get 
+\begin{align}
+\partial_{\theta_k} |\J_f| =  |\J_f| \cdot \text{trace}\left(  \J_f^{-1} \cdot \frac{\partial \J_f}{\partial \theta_k} \right) 
+\end{align}
+Note that the Jacobian has two blocks, one ($\partial x / \partial z$) that comes from the actual code $z$ (dimensionality $m$) and one ($\partial x / \partial y$) that comes from the additional noise $y$ (dimensionality $n-m$). $\theta$ only controls the former, not the later. \\
+Of course, there is quite some literature on this problem. Stochastic backpropagation is a preferred, low-variance, solution that is, however, limited to simple families of distributions. The REINFORCE algorithm uses control variates, but generally produces estimates that are very high in variance. So why is this not a problem in GAN?
+%
+\item \textit{Stochastic Backpropagation} 
+%
+Following \cite{kingma2013auto,rezende2014stochastic}, it is sometimes possible to compute gradients of parameters defining a distribution entering an expectation by an expectation of gradients of the respective functions  with regard to the argument, in particular for the normal distribution:
+\begin{align}
+X \sim \mathcal N(\mu, \mathbf \Sigma), \quad \text{then} \quad \nabla_\mu \E f = \E \nabla_x  f 
+\end{align}
+This is useful, if we can easily sample $X=x^*$, so that we can use SGD-style algorithms with gradients $ \nabla_x f(x^*)$. Note that the GAN generator update applies this substitution for a distribution that is not a normal or of any simple form. 
+%
+\item \textit{Score vectors}: 
+%
+Let us see what happens, if we try to differentiate through the discriminator $\tau$. Note first that 
+\begin{align}
+\nabla \tau = \tau (1-\tau) \left( \nabla \log q_X - \nabla \log p_X \right)  \,.
+\end{align}
+So assume we can manage to reduce $\nabla_\theta$ to $\nabla_x$ expressions (see stochastic backpropagation), then we have a difference of score vectors appearing in $\nabla_x \tau$. Of course, as $\tau$ appears as $\log (1-\tau)$ in the GAN objective, we get 
+\begin{align}
+\nabla \log (1-\tau) = \tau \cdot \left( \nabla \log p_X - \nabla \log q_X \right) 
+\end{align} 
+% So this is up to the factor $\tau$ exactly the gradient of $\|  \nabla \log p_X - \nabla \log q_X \|^2$ (see below). 
+%
+\item{Score Matching}: In score matching \cite{hyvarinen2005estimation} one aims to minimize the squared error between score vectors of the model and the data, i.e.
+\begin{align}
+J = \frac 12 \E_q\left[ \| \nabla_x \log q(x) - \nabla_x \log p(x) \|^2 \right]
+\end{align}
+The stochastic gradient at a point is thus 
+\begin{align}
+\partial_{x_i} J(x) =  \left( \nabla \log q(x) - \nabla \log p(x) \right)^\top   \frac{\partial}{\partial x_i} \left[ \nabla \log q(x) - \nabla \log p(x)\right]
+\end{align}
+\item \textit{Score Matching Proof}: Expanding the square, we get 
+\begin{align}
+J & =  \frac12 \E \underbrace{\| \nabla \log q\|^2}_{\text{const}} + 
+\frac 12 \underbrace{ \E \| \nabla \log p \|^2}_{=:A}  
+\underbrace{-\E \nabla \log q^\top \nabla \log p }_{=:B} \\
+B & =  \sum_i B_i, \quad \\
+B_i & :=  -\int \partial_i q \cdot \partial_i \log p \stackrel {(*)}= \int q \cdot \partial_i^2 \log p 
+= \E \left[ \partial_i^2 \log p \right]
+\end{align}
+where the equality $(*)$ follows from integration in parts, where suitable regularity conditions on $q$ are required to imply the difference term to vanish. So we can rewrite 
+\begin{align}
+J = \sum_i \E \left[ \partial_i^2 \log p + \frac 12 (\partial_i \log p)^2\right]
+\end{align}
+This is remarkable as it show that the objective can be easily approximated by a simple data-average and only involves $x$-derivatives (i.e.~does not depend on proper normalization).
+\item \textit{Mode Collapse}: The problem seems to be that the generator may not even generated examples that are in certain high density regions. There is a mode seeking problem involved, as the generator does not see the examples directly. This is a strength of GAN, but also a fundamental weakness.
+\textit{Practically Jacobian}: Backpropagation allows us to pratically compute the Jacobian matrix.
+\item
+Can we make use of normalizing flows? 
+\item 
+% 
+\textit{Tangent Propagation}: 
+%
+It is well known that one can also incorporate tagent information into the backpropagation algorithm. The best-known algorithm is known as tangent prop \cite{simard...}. This has originally been suggested in the context of manifold learning. Can we use this to learn the orientation of the local tangent spaces? Assume that at $x$ we had an estimate of how much the density changes locally. This is exactly what the score vectors give us, a relative rate change. 
+\item Need an example. Maybe a simple Gaussian mixture for $x$.
+What is the score function of a Gaussian mixture with two components
+\begin{align}
+& \nabla_x [ \pi p_1(x) + (1-\pi) p_2(x)] \\
+& = 2\pi p_1(x) \frac{(\mu_1-x)}{\sigma_1} + 2(1-\pi) p_2(x) \frac{(\mu_2-x)}{\sigma_2}
+\end{align}
+\newpage
+
+\item \textit{Unrolling Discriminator Updates}: In \cite{metz2016unrolled} it is suggested to take adaptations of the discriminator into account when computing the gradients for training the generator.  The idea is to simulate $T$ steps of a gradient-based update. Denote by $\phi = \phi^0$ the parameters of the discriminator and let them evolve with steepest descent 
+\begin{align}
+\phi^{t+1} = \phi^t+ \eta \nabla_\phi J (\theta,\phi^t),  \quad t=0,\dots,T-1
+\end{align}
+Let us look at the case $T=1$. If we linearize $J$ at $\phi$, we get\footnote{$\theta$ arguments are dropped for better readability} 
+\begin{align}
+\nabla_\theta J(\phi + \eta \nabla_\phi J(\phi)) 
+& \approx \nabla_\theta J(\phi) + \eta \nabla_\theta\left[ 
+\langle \nabla_\phi J(\phi), \nabla_\phi J(\phi) \rangle
+\right] \\
+& = \nabla_\theta J(\phi) + \eta  \nabla_\theta \| \nabla_\phi J(\phi)\|^2
+\end{align}
+We can also work from the end and apply the chain rule for the partial derivatives of functions of functions, where $\phi = \phi(\theta)$. We will denote by $J_\phi(\theta) = J(\theta,\phi)$ for a fixed $\phi$ so that we can write (this is re-stating \cite[Eq.~(12)]{metz2016unrolled})
+\begin{align}
+\left[ \nabla_\theta J \right](\theta,\phi)  = 
+\left[ \nabla_\theta J_{\phi} \right](\theta) + \left[\frac{\partial \phi}{\partial \theta}\right]\!(\theta,\phi) \cdot \left[ \nabla_\phi J \right] (\theta,\phi)
+\end{align} 
+We thus need to compute the Jacobian. Let us look at a single component. We need to be precise about where derivatives need to be evaluated 
+\begin{align}
+\frac{\partial \phi_i}{\partial \theta_j} = \eta \left[ \frac{\partial}{\partial \theta_j} \left[ \frac{\partial J}{\partial \phi_i} \right](\theta,\phi^0)  \right](\theta.\phi^1)
+\end{align}
+How is this effectively evaluated? 
+
+\newpage
+
+If we use the chain rule, we get 
+\begin{align}
+\nabla_\theta J(\phi+ \eta \nabla_\phi J(\phi))  = 
+\end{align}
+
+
+\newpage
+
+If we were to just determine $\phi^T$ and then perform the gradient computation for the generator, we would get 
+\begin{align}
+\delta \theta = -\gamma \nabla_\theta J(\phi^T,\theta), \quad \text{instead of} \quad  
+\delta \theta = -\gamma \nabla_\theta J(\phi^0,\theta)
+\end{align}
+However note that upon changing $\theta \to \theta + \delta \theta$ we would, of course, no longer end up at $\phi^T$. The idea is to compute an additional correction term. Let us assume $T=1$ for simplicity first. We will use a linear (Taylor) approximation  
+\begin{align}
+J(\underbrace{\phi + \delta \phi}_{=:\phi'}, \theta) = J(\phi,\theta) + \langle \nabla_\phi J(\phi,\theta),\delta \phi\rangle
+\end{align}
+such that 
+\begin{align}
+\nabla_\theta J(\phi',\theta) & =  \nabla_\theta J(\phi,\theta) + [\nabla_\theta \nabla_\phi J(\phi,\theta)] \delta \phi,
+\end{align}
+assuming that $\nabla_\phi J(\phi,\theta) \approx \nabla_\phi J$
+\newpage
+
+Let us try to derive a consistency condition for update directions $\delta \theta$  and $\delta \phi$. Namely,
+\begin{align}
+\delta \theta = \nabla_\theta J(\phi + \eta \delta \phi), \quad 
+\delta \phi = \nabla_\phi J(\phi, \theta - \gamma \delta \theta)
+\end{align}
+linear approximation of the second term
+\begin{align}
+\delta \phi 
+& \approx \nabla_\phi \left[ J(\phi,\theta) - \gamma \langle \nabla _\theta J, \delta \theta \rangle \right] \\
+& = \nabla_\phi J(\phi,\theta) - \gamma \nabla_\phi \langle \nabla _\theta J, \delta \theta \rangle 
+= \nabla_\phi J(\phi,\theta) - \gamma [\nabla_\phi \nabla _\theta J]  \delta \theta 
+\end{align}
+We can now insert this and linearize $J$ again with regard to $\theta$ to get 
+\begin{align}
+\delta \theta = \nabla_\theta 
+\left[ 
+J(\phi + \eta \nabla_\phi J(\phi,\theta),\theta) - \gamma \nabla_\theta J
+\right]
+\end{align}
+
+
+
+
+\begin{align}
+\nabla_\theta J(\phi^1) = \nabla_\theta J(\phi + \eta \nabla_\phi J(\phi))
+\end{align}
+Let us try to derive a consistency condition for update directions $\delta \theta$  and $\delta \phi$. Namely,
+\begin{align}
+\delta \theta = \nabla_\theta J(\phi + \eta \delta \phi), \quad 
+\delta \phi = \nabla_\phi J(\phi, \theta - \gamma \delta \theta)
+\end{align}
+linear approximation of the second term
+\begin{align}
+\delta \phi 
+& \approx \nabla_\phi \left[ J(\phi,\theta) - \gamma \langle \nabla _\theta J, \delta \theta \rangle \right] \\
+& = \nabla_\phi J(\phi,\theta) - \gamma \nabla_\phi \langle \nabla _\theta J, \delta \theta \rangle 
+= \nabla_\phi J(\phi,\theta) - \gamma [\nabla_\phi \nabla _\theta J]  \delta \theta 
+\end{align}
+We can now insert this and linearize $J$ again with regard to $\theta$ to get 
+\begin{align}
+\delta \theta = \nabla_\theta 
+\left[ 
+J(\phi + \eta \nabla_\phi J(\phi,\theta),\theta) - \gamma \nabla_\theta J
+\right]
+\end{align}
+
+According to \cite[Eq.~(12)]{metz2016unrolled} 
+\end{enumerate}
+
+\section{Literature Review}
+
+\subsection{Top Tier}
+
+
+\begin{enumerate}
+\item Towards Principled Methods for Training Generative Adversarial Networks  \cite{arjovsky17principled}
+\begin{itemize}
+\item points out various dimensionality issues with code-based generative models; yet proof techniques and concepts are not very precise. typical "bottou"-style semi-formal approach; very insightful on the problems though!
+\item theorem 2.4 is a somewhat clumsy result about the fact that for discriminators that approach optimality, the gradient required for the generative model vanishes; this confirms, however, the fact that the original JS criterion is not a good one!
+\item theorem 2.5. is interesting. it deals with the "modified" objective. however, it is based on an exploit of the degenerative case, where the optimal discriminator $\tau^*$ is $=0$ on the support of $p_X$. this is more or less just a technical trick.\footnote{Todo: is there a way to prove this under more realistic conditions?} same for theorem 2.6. unclear whether the problems of the GAN algorithm really can be explained in this way.
+\item theorem 3.2 suggests to add noise to the data and model distribution and derives the new gradient. 
+\item finally theorem 3.3 suggests the Wasserstein or earth-mover distance
+\end{itemize}
+\item Generative adversarial imitation learning
+\end{enumerate}
+
+\subsection{MiddleTier}
+
+
+\subsection{Lower Tier}
+
+\begin{enumerate}
+\item Calibrating Energy-Based Generative Adverserial Networks \cite{dai2017calibrating}
+\begin{itemize}
+\item add another term $K(p_X)$ to the adverserial objective that depends on the generator. enforce equality of distributions (very harsh, how can this be useful in pratice!) and then the KKT conditions show how the optimal discriminator will depend on $K$.
+\item finite (discrete) input space simplification 
+\end{itemize}
+\end{enumerate}
+
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}
+
+\end{itemize}
+
+
+
+
+
+
+\newpage
+
+
+[Would it make sense to work in a quantized setting? Maybe this avoids the complexities with having to deal with densities and provides more insights.]\\
+
+Assume that we quantize the input space and represent $\tau$ as a vector $\tau \in [0;1]^r$. Denote by $p_i$ the data pmf and by $q_i(\theta)$ the model pmf, then $\tau_i = q_i/(p_i+q_i)$. Assume that we consider a change in $\theta \to \theta + \triangle \theta$. This would change the model distribution to be $q_i^{\triangle}$. We cannot assess the global effect of this parameter change. However, imagine that $q(\x) = \int q(\x|\z) p(\z) d\z$ with a latent variable $\z$. Then we can approximate the effect of a parameter change bvy sampling $\z$ instead of dealing with the entire integral. So essentially assume that we will change $\x(\z)$ for some given $\z$ to some $\x'(\z)$ under the change $\triangle \theta$. In expectation over $\z$ this is good, so it is unbiased. So we have two effects. One is that $\x$ might change it's value (in the infinitesimal limit that is always the case). The change in $\x$ will 
+
+\newpage
+
+
+What does this mean intuitively? We can give it a counterfactual interpretation: if instead of generating $\x$, the $Q$-mechanism would have generated some $\x + \triangle \x$, then the posterior at this point would change by a rate $\langle \nabla \tau, \triangle \x \rangle$.   Now, of course, if were to change $Q$, this would also implicitly change $\tau$. Let us play this through with a thought experiment. Assume first that $P(\x)/Q(\x)>1$, then by shuffling probability mass from $\x$ to $\x + \triangle \x$ we will move mass from an area where $Q$ is under-representing to an area, where $Q$ is even more under-representing.  As we deal with ratios, this will be a good thing. If $P(\x)/Q(\x)<1$ $Q$ is over-representing at $\x$ and we move to a direction, where $Q$ is less over-represented. So in both cases, we seem to be doing the right thing. 
+
+\newpage
+
+to yield
+\begin{align}
+\nabla H = \frac12 \Edata 
+\end{align}
+
+In score matching, we start use the objective 
+\begin{align}
+J = \frac12 \int \left( \nabla \log Q - \nabla \log P\right)^2 dP 
+\end{align}
+which leads to the gradient 
+\begin{align}
+\nabla E = \nabla^2 \log (Q/P) \cdot (\nabla \log Q - \nabla \log P)
+\end{align}
+so in both cases, we get the difference between the $Q$ and $P$ score vectors. [Check how this can be simplified]. In the score matching case, we have to deal with the Hessian whereas in the optimal GAN setting, we just get a scalar factor in front of the score difference. \\
+
+Let us look at the scalar that modulates the gradient. In the regime, where the generator is near optimal, we will have $\tau \approx \frac 12$. 
+ 

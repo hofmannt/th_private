@@ -1,0 +1,42 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm,bbm}
+\usepackage{color,graphicx}
+\graphicspath{{./figures/}}
+
+\newcommand{\indep}{\rotatebox[origin=c]{90}{$\models$}}
+\renewcommand{\Re}{{\mathbb R}}	
+\newcommand{\E}{{\mathbf E}}	
+\newcommand{\x}{{\mathbf x}}	
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\definecolor{Red}{rgb}{0.9,0.1,0.1}
+\newcommand{\textred}[1]{{\color{Red} #1}}
+\newcommand{\textbred}[1]{{\color{Red}\bf #1}}
+\newcommand{\mV}{{\mathbf V}}
+\newcommand{\mSigma}{{\boldsymbol \Sigma}}	
+\newcommand{\mGamma}{{\boldsymbol \Gamma}}	
+
+
+\title{
+	Stochastic Sequence Models for Language Generation
+}
+\author{
+	Thomas Hofmann \\[1mm] Department of Computer Science, ETH Zurich \\ thomas.hofmann@inf.ethz.ch
+}
+
+\begin{document}
+
+\maketitle 
+
+Neural networks have significantly advanced the state-of-the-art  in natural language processing, including the fundamental problem of language modeling. Starting with the convolutional architectures of \cite{bengio2003neural,schwenk2007continuous}, recurrent neural networks (RNNs) have shown to be powerful models for this task \cite{mikolov2010recurrent,jozefowicz2016exploring}. RNNs have also been used successfully in  encoder-decoder architectures \cite{sutskever2014sequence}, where language models are implicitly realized by the decoder. The latter class of models, often combined with attention mechanisms, extends into tasks such as machine translation \cite{luong2015effective}, speech recognition \cite{chorowski2015attention}, and image caption generation \cite{vinyals2015show,xu2015show}.
+
+Despite their success, there are a lot of open problems  around the use of RNNs as generative models. In particular, note that RNNs are deterministic mechanism without stochasticity. Thus, in many cases, output randomness in the final word generation process is fed back into the RNN. It is unclear whether such dual use of output randomness is optimal and what its limitations may be. Even more severe, during training it is common to feed back not the generated words, but the ground truth ones in an approach that has been called teacher forcing \cite{williams1989learning, sutskever2014sequence}. While convenient, this may ignore a compounding of errors over time \cite{ranzato2015sequence} and introduce a train-test mismatch. Follow-up work has thus suggested various improvements via beam search \cite{wiseman2016sequence}, mixed exploration strategies \cite{bengio2015scheduled}, alternative sequence loss functions \cite{ranzato2015sequence}, or by using ideas from GANs  \cite{lamb2016professor}. None of these seems to deliver a satisfactory and conclusive answer. 
+
+The goal of this project is to investigate alternative models of combining state space models with RNNs, following the work presented in \cite{fraccaro2016sequential}. Specifically, we want to develop and investigate a variational learning approach, where we can model the latent state evolution as a stochastic process, without having to condition on a deterministic skeleton RNN as in \cite{chung2015recurrent,fraccaro2016sequential}. We want to investigate different architectures and pursue the question of what effect different sources of randomness have on the variability captured by the language model. In particular, it is interesting to distinguish between local variations and global variability. We also want to control for the amount of information in conditioning to interpolate between free generation (no conditioning) and forced generation (strong conditioning as in machine translation). 
+\newpage
+
+\bibliographystyle{acm}
+\bibliography{th}
+\end{document}
+

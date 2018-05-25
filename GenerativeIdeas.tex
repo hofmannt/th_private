@@ -1,0 +1,51 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts}
+\usepackage{tikz-cd}
+\usepackage{amsthm}
+\usetikzlibrary{matrix,arrows,decorations.pathmorphing}
+
+\title{Idea Sketches -- Generative Models}
+\author{Thomas Hofmann}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\logl}{{\mathcal L}}
+\newcommand{\ZZ}{{\mathbb Z}}
+\newcommand{\NN}{{\mathbb N}}
+\newcommand{\mZ}{{\mathbf Z}}
+\newcommand{\E}{{\mathbf E}}
+\newcommand{\z}{{\mathbf z}}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\mX}{{\mathbf X}}
+\newcommand{\mY}{{\mathbf Y}}
+\newcommand{\y}{{\mathbf y}}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\smapsto}{{\stackrel \sim \mapsto \,}}
+\newcommand{\word}{{\omega}}
+\newcommand{\words}{{\Omega}}
+\newcommand{\context}{{\sigma}}
+\newcommand{\contexts}{{\Sigma}}
+\newcommand{\n}{{n}}
+\newcommand{\mN}{{\mathbf N}}
+\newcommand{\mat}[1]{{\mathbf #1}}
+\newcommand{\lrangle}[1]{{\left\langle \, #1\, \right\rangle}}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+
+
+\setlength\parindent{0pt}
+
+\begin{document}
+
+\maketitle
+
+Score matching and GAN both require differentiability of $\log p(\x; \theta)$ with regard to $\x$. In language understanding, $\x$ may be discrete and thus these approaches are not na\"ively applicable. 
+
+In most cases, symbol generation will be governed by a softmax, e.g.~in simple embedding models or autoregressive models (where we successively apply the chain rule). One should thus look at the entire symbol distribution in a pseudo-likelihood type setting, where one conditions on everything else. This would in principle enable the computation of a gradient direction. However, note that if one uses a discriminator operating directly on the symbols, then one would need to create many variants around a generated $\x$ in order to identify the right descent directions. For example, it may turn out that replacing a single word in a sentence $\x$ may make it harder for the discriminator, but one would need to search for such a good direction, which can be very costly. That is to say, the interface to the discriminator may be inefficient. In the simplest case, one could look at the top $k$ choices for every $x_i$ and evaluate the discriminator on each local change ($k$ times $|\x|$). Then one would reconstruct a gradient for the weights feeding into the softmax layer of the generating mechanism. 
+
+
+
+
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}

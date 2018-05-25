@@ -1,0 +1,64 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts}
+\usepackage{tikz-cd}
+\usepackage{amsthm}
+\usetikzlibrary{matrix,arrows,decorations.pathmorphing}
+
+\title{{\large ... Thoughts on ...} \\ Variational Autoencoders}
+\author{Thomas Hofmann}
+\newcommand{\J}{{\mathbf J}}
+\newcommand{\Edata}{\E_{q}} 
+\newcommand{\Emodel}{\E_{p}} 
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\logl}{{\mathcal L}}
+\newcommand{\ZZ}{{\mathbb Z}}
+\newcommand{\NN}{{\mathbb N}}
+\newcommand{\mZ}{{\mathbf Z}}
+\newcommand{\E}{{\mathbf E}}
+\newcommand{\z}{{\mathbf z}}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\mX}{{\mathbf X}}
+\newcommand{\mY}{{\mathbf Y}}
+\newcommand{\y}{{\mathbf y}}
+\newcommand{\w}{{\mathbf w}}
+\renewcommand{\v}{{\mathbf v}}
+\newcommand{\smapsto}{{\stackrel \sim \mapsto \,}}
+\newcommand{\word}{{\omega}}
+\newcommand{\words}{{\Omega}}
+\newcommand{\context}{{\sigma}}
+\newcommand{\contexts}{{\Sigma}}
+\newcommand{\n}{{n}}
+\newcommand{\mN}{{\mathbf N}}
+\newcommand{\mat}[1]{{\mathbf #1}}
+\newcommand{\lrangle}[1]{{\left\langle \, #1\, \right\rangle}}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+
+
+\setlength\parindent{0pt}
+
+\begin{document}
+
+\maketitle
+
+\begin{enumerate}
+\item \textit{Integration by Parts }: 
+\begin{align}
+\int u dv= u v - \int v du
+\end{align}
+which can be directly obtained by integrating the product rule of differentiation.
+\item \textit{Gaussian Integration}: denote by $p$ the density of a Gaussian with mean $\mu$ and covariance matrix $\mathbf \Sigma$, then 
+\begin{align}
+\nabla_\mu \E f  & = \int \nabla_\mu p(x)  f(x) dx = - \int \nabla_x p(x) f(x) dx \\
+& \stackrel{*}{=} \int  p(x) \nabla_x f(x) dx = \E \nabla_x f
+\end{align}
+where it remains to check that (with the marginal density $p_i$)
+\begin{align}
+\int p(x) f(x) \prod_{j \neq i} dx_j = p_i(x_i) \cdot \E_{X|x_i} f
+\end{align}
+which is $0$ for $x_i= \pm \infty$, irrespective of what the conditional expectation of $f$ works out to be (assuming it is finite). So it seems the main property used is the location shift property.  
+\end{enumerate}
+
+\bibliography{th}
+\bibliographystyle{acm}
+\end{document}

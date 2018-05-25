@@ -1,0 +1,79 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\title{ODE-Based Algorithm Design}
+\author{Thomas Hofmann\\ ETH Zurich}
+
+\newcommand{\E}{{\mathbf E}}
+\renewcommand{\H}{{\mathcal H}}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\x}{{\mathbf x}}
+\renewcommand{\L}{{\mathcal L}}
+\newcommand{\ly}{{\mathcal E}}
+
+\begin{document}
+\maketitle
+
+The Lyapunov function combines two terms: (1) $\ly_1$: the distance to the optimum as measured by a Bregman distance and (2) $\ly_2$: a (scaled) suboptimality term. Let us start by looking at the time evolution of these terms 
+\begin{align}
+\ly_1 = D_h(x^*,x^\eta), \quad 
+\dot \ly_1 = -\left\langle\frac d{dt} {\nabla} h(x^\eta), x^* - x^\eta\right\rangle , \quad \text{where} 
+\quad x^\eta = x + \eta \dot x \,.  
+\end{align}
+at the same time the Euler-Lagrange optimality condition can be succinctly summarized as in Eq.~(2.7) to yield
+\begin{align}
+\frac{d}{dt} \nabla h(x^\eta) = -\frac{\beta}{\eta} \nabla f(x), 
+\quad \text{s.t.} \quad 
+\dot \ly_1 = \frac \beta \eta \langle \nabla f (x), x^*-x \rangle - \beta \langle \nabla f (x), \dot x \rangle
+\end{align}
+Moreover 
+\begin{align}
+\ly_2 = f(x) - f(x^*), \quad \dot \ly_2 = \langle \nabla f(x), \dot x \rangle 
+\end{align}
+We cannot, in general,  control $ \langle \nabla f (x), \dot x \rangle$ and thus need to design $\ly$ such that this term  cancels out. This requires to use the weighting function $\beta$ and thereby defines a unique Lyapunov function. By the chain rule this then inevitably introduces the term $\dot \beta (f(x)-f(x^*))$  and leads to the remaining term 
+\begin{align}
+& \dot \ly  = \frac \beta \eta \langle \nabla f (x), x^*-x \rangle + \dot \beta (f(x) - f(x^*)) < 0 \\
+\iff & 
+\frac{\dot \beta \eta}{\beta} ( f(x) - f(x^*)) 
+< 
+\langle \nabla f (x), x-x^* \rangle 
+\end{align}
+
+
+\newpage
+
+
+
+Start with the following (simplified) Lagrangian, which special cases Eq.~(2.1) by using the Euclidian distance (instead of arbitrary Bregman distances for concreteness). Moreover, we incorporate the second equality condition of ideal scaling from the start. Define $g=e^{-\gamma}$ and then
+\begin{align}
+g_1 := -\left[ 1/ \frac d{dt} g \right] =  \frac{e^\gamma}{\dot\gamma} \quad \text{and} \quad g_2 := -\frac d{dt} [1/g] = \dot \gamma e^\gamma
+\end{align}
+We will write the simplfied Lagrangian as follows
+\begin{align}
+\mathcal L(x,\dot x; t) = &
+% \frac{e^\gamma}{2 \dot \gamma} \| \dot x \|^2- \dot\gamma e^{\gamma} \beta f(x)
+%= 
+\frac{1}{2} {g_1} \| \dot x\|^2  + g_2   \beta f(x)
+\end{align}
+Partial derivatives 
+\begin{align}
+& \frac{\partial \mathcal L}{\partial x} =  g_2 \beta \nabla f, \quad 
+\frac{\partial \mathcal L}{\partial \dot x} = g_1 \dot x, \quad
+ \frac d {dt} \frac{\partial \L}{\partial \dot x} = g_1 \ddot x + \dot g_1 \dot x
+\end{align}
+Euler-Lagrange
+\begin{align}
+\frac d {dt} \frac{\partial \L}{\partial \dot x} = \frac{\partial \L}{\partial x}  \; \iff \; 
+g_1 \ddot x + \dot g_1 \dot x = g_2 \beta \nabla f(x)
+\end{align}
+The Lyapunov function becomes 
+\begin{align}
+\mathcal E = \left(x^* - x - \frac{1}{\dot \gamma} \dot x\right)^2 + \beta (f(x)- f(x^*))
+\end{align}
+and its time derivative
+\begin{align}
+\dot {\mathcal E} = \dot \beta (f(x)-f(x^*)) + \beta \langle \nabla f(x), \dot x \rangle
+- \langle x^* - x - \frac{1}{\dot \gamma} \dot x, \dot x + \frac 1 {\dot \gamma} \ddot x - \frac{\ddot \gamma}{\dot \gamma^2} \dot x\rangle
+\end{align}
+
+\end{document}

@@ -1,0 +1,146 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\renewcommand{\th}{{\tilde \theta}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\E}{{\bf E}}
+\newcommand{\w}{{\bf w}}
+\newcommand{\x}{{\bf x}}
+\newcommand{\y}{{\bf y}}
+\newcommand{\z}{{\bf z}}
+\newcommand{\X}{{\bf X}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\Z}{{\bf Z}}
+\newcommand{\Xcal}{{\cal X}}
+\renewcommand{\S}{{\cal S}}
+\newcommand{\Ccal}{{\cal C}}
+\newcommand{\C}{{\bf C}}
+\newcommand{\Zcal}{{\cal Z}}
+\newcommand{\tgamma}{{\stackrel{\gamma}{\longleftarrow}}}
+\newcommand{\mycomment}[1]{}
+\newcommand{\loglike}{{\mathcal L}}
+\newcommand{\indicator}[1]{{\bf 1}\left[ #1 \right]}
+
+\title{Inference Algorithms} 
+
+\author{Thomas Hofmann, 1plusX}
+
+\begin{document}
+
+\maketitle 
+
+\section{Introduction} 
+\subsection{Purpose of Document}
+
+The purpose of this document is to outline a family of algorithms, organized from simple to complex that can be implemented in the context of user profiling at 1plusX. In addition to implementing these models, we should evaluate trade-offs between computation or memory footprint on one side and quality or predictive accuracy on the other. 
+
+
+\section{Single Cause Model for Binary Variables}
+
+\subsection{Na\"ive Bayes Model: Model $0$} 
+
+The simplest possible case of user profiling is one with a single binary variable $Z \in \{0,1\}$ (canonical case: male/female). We denote by $X_n \in \{0,1\}$, $n=1,\dots,N$ observed variables that refer to observed user behaviors. The typical situation involves visits to some domain $D_n$: $X_n=1$, if domain $D_n$ has been visited by the user in question, and $X_n=0$, otherwise. In this model, we ignore mulitple visits to the same domain. We make a conditional independence assumption that is also commonly known as a \textit{na\"ive Bayes} model,
+\begin{align}
+\label{eq:model0} 
+P(X,Z; \pi, \phi) = P(Z; \pi) \prod_{n=1}^N P(X_n|Z, \phi_n) 
+\end{align}  
+In the na\"ive Bayes model, all observed visits (and non-visits) are independent of each other, if we fix the user profile $Z$. In order to turn this into a concrete model, we need to specify the forms of the distributions. In the simplest case, we will chose all distributions as binomial ones\footnote{Note that this notation with Boolean variables in the exponent is used to avoid case distinctions. An exponent of "0" leads to a factor of $1$ in a product, which hance has no influence. An exponent of $1$ selects the respective factor.}, 
+\begin{align}
+P(Z| \pi) & = \pi^Z (1-\pi)^{1-Z}, \quad \pi \in [0;1]\\
+P(X_n |Z; \phi_n) &= \left[ \phi_{n1}^{X_n} (1-\phi_{n1})^{1-X_n} \right]^Z \cdot \left[ [ \phi_{n0}^{X_n} (1-\phi_{n0})^{1-X_n} \right]^{1-Z}
+\end{align}
+In our example: the probability $\pi$ is the prior probability of "male", $(1-\pi)$ the prior probability of "female". The probability $\phi_{n1}$ is the probability of a "male" user to visit domain $D_n$, the probability $\phi_{n0}$ is the probability that a "female" user will visit the domain. The complementary probabilities of not visiting a domain are then given by $(1-\phi_{n0})$ and $(1-\phi_{n1})$. 
+
+\subsection{Fully Observed Case}
+
+In the fully observed case, where we know the gender of the user(s), we  just need to collect empirical counts for each domain about what percentage of the male or female population, respectively, is among its visitors. The inference problem is trivial. However, this is not the situation that we typically encounter in practice. 
+
+\subsection{Inference from Audience Statistics}
+
+It is somewhat more challenging to deal with the case, where audience statistics are available in aggregate on the domain level. Usually such statistics take the form  $\tilde P(Z | X_n)$, i.e.~we (or some data provider) may know what percentage of users at a site are "male" or "female".  Note that what we need in the na\"ive Bayes model is the distribution $P(X_n|Z)$. We also assume that we have a sufficiently accurate estimate $\tilde P(Z)$ on the relative frequency of male and female users. We can then apply Bayes' rule for the inversion 
+\begin{align}
+P(X_n|Z) = \frac{P(Z|X_n) P(X_n)}{P(Z)}
+\end{align}
+plugging this into Eq.~\eqref{eq:model0} yields
+\begin{align}
+P(X,Z) = \tilde P(Z)  \prod_{n=1}^N \frac{\tilde P(Z|X_n)}{\tilde P(Z)} P(X_n) 
+\end{align}
+The critical term here is the ratio between the gender probabilities among visitors of the domain vs.~the Web average. A site who's visitors have the same distribution as the overall population does not add any information about $Z$.  If on the other hand the visitors of a site are more frequently "male", say,  then the Web population, then the posterior for $Z=1$ will go up. 
+
+Note also that the marginals $P(X_n)$ correspond to site popularity (fraction of overall users who visit a domain) and  can be ignored for the purpose of inferring $Z$ as the posterior is given by 
+\begin{align}
+P(Z|X) = \frac{P(X,Z)}{P(X)} 
+& = \frac{1}{\tilde P(Z)^{N-1}}  \prod_{n=1}^N \tilde P(Z|X_n) \left[ \frac{\prod_{n=1}^N P(X_n)}{P(X)} \right] 
+\nonumber \\ 
+& 
+\propto  \frac{1}{\tilde P(Z)^{N-1}}  \prod_{n=1}^N \tilde P(Z|X_n) \,,
+\label{eq:posterior-binomial}
+\end{align}
+where the last proportionality is justified by dropping the $Z$-independent term in brackets. 
+
+\subsection{Multi-Valued Socio-Demographic Variables} 
+
+A natural, but important generalization of the above binary model is to allows for a multi-valued (say $K$-valued) profile variable $Z$. The canonical case for us will be an age range. We will (first) ignore the fact that these ranges define an ordering of levels, but rather treat them as one of a fixed number of values a variable can take. The derivation for model esimation is not different from the approach taken above. We will arrive at the same result as in Eq.~\ref{eq:posterior-binomial}, which we can more concretely write as 
+\begin{align}
+P(Z=k|X) = \frac{
+   \tilde P(Z=k) \prod_{n=1}^N \frac{\tilde P(Z=k|X_n)}{\tilde P(Z=k)}
+} {
+\sum_{k'=1}^K 
+   \tilde P(Z=k') \prod_{n=1}^N \frac{\tilde P(Z=k'|X_n)}{\tilde P(Z=k')}
+}
+\end{align}
+
+\subsection{Implementation}
+
+\newpage
+
+
+\subsection{Inference for Interest Variables} 
+
+For socio-demographic variables, the above use of aggregate statistics seems plausible. Another interesting case is the one of interest categories\footnote{These categories are usually organized in a taxonomy.}. The training data we will expoit in this case usually also resides on the domain level. We may be able (manually, through crowd sourcing or other means) to identify a subset of domains that "belong" to a particular category. How should we propagate this information to the posterior of $Z$, if we observe a user visiting such a domain? Here, we need to augment the single-cause model 
+
+
+\newpage
+
+
+
+\subsection{The Bayesian Variant of Na\"ive Bayes: Model 0B}
+
+In the above setting, we have just plugged in what we assumed to be correct estimates for the site audience probabilities. Because of the conditional independence assumption, we have also opend ourselves to the possibility of being over-confident in our inference about $Z$. One way to be somewhat more careful with regard to incertainties of the statistics used and inaccuracies of the model is to define a prior distribution over the parameter $\pi$. The common choice is to exploit conjugacy and to impose Beta distributions on $\pi$ and the parameters $\phi_{bn}$, instead of simply assuming that the information we have allows us to estimate them accuractely. A Beta-distribution has the following form 
+\begin{align}
+P(\pi; \alpha,\beta) = \frac1{B(\alpha,\beta)} \, \pi^{\alpha-1}(1-\pi)^{\beta-1},
+\end{align}
+where $B$ is a normalizing constant, known as the Beta-function. 
+
+
+\newpage
+
+\subsection{Supervised Learning} We first assume that we have user data with ground truth (e.g.~known gender). There is a set of indexed by $u$ and for each user the known gender is denoted as $Z^{(u)}$. Moreover, we have a set of visited domains $D^{(u)} \subseteq \{ 1,\dots, N\}$, where we associate domains with numbers for simplicity. The maximum-likelihood estimates are simply the empirical averages
+\begin{align}
+P(X_n=1|Z) = \frac{ 
+| \{ u: Z^{(u)} =Z \} 
+  \cap 
+\{ u: n \in D^{(u)} \} | 
+}{
+| \{ u: Z^{(u)} =Z \}|}
+\end{align}
+This means: we count the number of male and female users, respectively, as well as how many male and female users have visted the domain in question. The ratio of these counts then is nothing but the fraction of male ($Z=0$) or female ($Z=1$) users that have visited a domain. 
+
+\subsection{Implementation}
+
+\paragraph{Batch Mode} We assume the event data is grouped by user id. We  run a single map-reduce computation to group these events by domain. The map phase emits key value pairs of the form $(\text{domain}, 1)$. The reduce phase counts the number of pairs with the same key $\text{\tt reduce}(\text{\tt list}) = \text{\tt list.length}$.
+
+\paragraph{Streaming Mode}
+
+
+
+
+
+\bibliography{MultiCause}
+\bibliographystyle{acm}
+
+\end{document} 

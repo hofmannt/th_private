@@ -1,0 +1,42 @@
+\documentclass{article}
+\usepackage{subcaption}
+\usepackage{braket}
+\usepackage{amsfonts,amsmath}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{graphicx}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\z}{{\mathbf z}}
+
+\author{Thomas Hofmann}
+\title{Training Sequence Models with VAEs}
+
+\begin{document}
+\maketitle
+
+Learning generative models of sequential data is a fundamental problem in machine learning. A popular paradigm uses  recurrent neural network to evolve a state sequence $h_{t}$ and to stochastically generate outputs $p(x_t|h_t)$ in each step, where the (random) $x_t$ is fed back into the  (determinstic) computation of the next state $F(h_{t+1}|h_t,x_t)$. This has been used with success in areas such as language modeling, where $p(x_t|h_t)$ includes a soft-max over a discrete output vocabulary. Note that the observation model plays a dual role here as it (i)  accounts for observation noise and (ii) injects randomness into the state evolution.\\
+
+A standard training procedure uses the log-likelihood of ground-truth sequences $x^*_{1:T}$, which effectively leads to a next-step prediction criterion 
+\begin{align}
+\ell(\theta; x^*_{1:T}) = \log p(x_{1:T}^*; \theta) = \sum_{t=1}^T \log p(x^*_t | x^*_{1:t-1}; \theta) 
+\end{align}
+This suggest to drive the state evolution by ground-truth sequence pre-fixes, i.e.~compute $F(h_{t+1}|h_t, x_t^*)$, which is also known as \textit{teacher forcing}. Note that this ignores the role of randomized output generation for the state evolution and thus leads to a problematic discrepancy: In training the ground-truth pre-fix overwrites the generated outputs, whereas they are fed-back during testing. Let us illustrate this with a simple example. 
+
+\newpage
+
+
+This leads to problems with the now popular family of sequence models, which feed stochastically generated outputs back into the state evolution. If the generated output does not agree with the target output during learning, then  
+
+\newpage
+ 
+
+Teacher forcing: discrepancy between training and testing modes
+
+What target to use? Continue to use ground truth target in next step? \cite{bengio2015scheduled}\\
+Or rather give up likleihood-based objective e.g.~as suggested by \cite{ranzato2015sequence}.
+
+Actor critic approach \cite{bahdanau2016actor}
+
+\bibliographystyle{acm}
+\bibliography{th}
+\end{document}

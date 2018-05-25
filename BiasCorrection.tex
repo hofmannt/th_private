@@ -1,0 +1,35 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts}
+\title{Bias Correction}
+\author{Thomas Hofmann}
+
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\X}{{\mathbf X}}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\I}{{\mathbf I}}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\y}{{\mathbf y}}
+\newcommand{\mU}{{\mathbf U}}
+\newcommand{\mV}{{\mathbf V}}
+\newcommand{\mSigma}{{\mathbf \Sigma}}
+\newcommand{\mS}{{\mathbf S}}
+\newcommand{\diag}{{\text{diag}}}
+\renewcommand{\vec}[1]{{\mathbf #1}}
+
+\begin{document}
+
+\maketitle
+
+Given a universe of users $\mathcal U$, $| \mathcal U|=n$ (total population). Assume there are random subsets $U_i \subseteq \mathcal U$ of size $|U_i|=n_i$ and selection probabilities  $\pi_i(u)$. Each such subset may represent a panel or a group of visitors. Assume we 
+
+\newpage
+
+
+User $u$ or user group $U$ ($|U|=n$) true demographics $\x_u \in \Re^m$ and group demographics
+\begin{align}
+\x_U := \frac{1}{U}  \sum_u \x_u
+\end{align}
+Assume that $u\in U$ are selected from a large population $\mathcal U$ with some unknown selection probability $\pi_u$. 
+
+
+\end{document}

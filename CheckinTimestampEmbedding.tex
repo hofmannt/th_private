@@ -1,0 +1,53 @@
+\documentclass{article}
+\usepackage{amsmath,amssymb}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\y}{{\mathbf y}}
+\renewcommand{\Re}{{\mathbb  R}}
+\setlength\parindent{0pt}
+
+\author{Thomas Hofmann, Carsten Eickhoff, Jing Yang}
+\title{Embeddings for Location Check-ins}
+
+\begin{document}
+\maketitle
+
+\paragraph{Introduction} 
+
+Location check-in data generated in the context of apps like FourSquare usually comes with labels from a place taxonomy and time stamp information. We would like to apply idea from word embeddings, in particular the skip-gram model to predict future check-ins of a user based on the check-in history. \\
+
+We assume that check-ins can be abstractly modeled as tuples $z=(\sigma, \tau, t)$, where $\sigma \in S$ is a first level category, $\tau \in T$ a second level category, and $t \in \{ 0,\dots,23\} = H$ is a time stamp quantized to hourly accuracy.  \\
+
+We distinguish embeddings of contexts $\x_z$ and embeddings of target symbols $\y_z$. The skip-gram model is bilinear, i.e.~
+\begin{align}
+p(z|\zeta) = \frac{\exp[\langle \x_{\zeta}, \y_{z} \rangle] }{\sum_{z'} \exp[\langle \x_{\zeta}, \y_{z'} \rangle]}, \quad z,\zeta \in S \times T \times H
+\end{align} 
+How can we construct these  embeddings in a way that exploits the structure of the tuples $z$?
+
+\paragraph{Taxonomy} 
+
+Output side: We can replace the "flat" soft-max with a hierarchical soft-max, which is natural, if our outputs have a hierarchy. 
+\begin{align}
+p((\sigma,\tau)|\zeta) = p(\sigma | \zeta) p(\tau | \sigma, \zeta)  = 
+\frac{\exp[\langle \x_{\zeta}, \y_{\sigma} \rangle] }{\sum_{\sigma'} \exp[\langle \x_{\zeta}, \y_{\sigma'} \rangle]} 
+\frac{\exp[\langle \x_{\zeta}, \y_{\tau} \rangle] }{\sum_{\tau' \succ \sigma} \exp[\langle \x_{\zeta}, \y_{\tau'} \rangle]} 
+\end{align} 
+The possible saving here is computationally -- the normalization is broken up into two sums of smaller cardinality, as well as with regard to data-efficiency -- 2nd-level categories with little data are hard to reliably identify, but we may still be able to identify the top level category. \\
+
+Input side: We can break-up the embedding. 
+\begin{align}
+\sigma \mapsto \x_\sigma \in \Re^{d_1}, \quad \tau \mapsto \x_\tau \in \Re^{d_2}, 
+\quad (\sigma,\tau) \mapsto \x_{\sigma,\tau} = (\x_{\sigma}^\top, \x_{\tau}^\top)^\top \in \Re^{d_1 + d_2} 
+\end{align}
+This has the advantage that we can couple some dimensions (the first $d_1$) across common 1st-level categories. If we set $d_1=0$, then we recover a model, where the context symbolds are just the 2nd level categories, if we set $d_2=0$, then we have a model, where we ignore the 2nd level catagories and just use the 1st level ones. The above suggestion allows us to investigate models that are in-between.
+
+\paragraph{Time Stamp} The second challenge is in the use of the time information. On the ouput side, a key question is whether it is true that $t$ is independent of the history, given $\tau$, i.e.~has the check-in history additional predictive power in predicting check-in time, if one conditions on the 2nd level category of the check-in? If we make this conditional independence assumption, then we could simply have a model $p(t|\tau)$, which we could train through counting or smoothing (without making use of embeddings). This would be a simple hypothesis to test first.\\
+
+On the input side, we can follow the strategy of "crossing-in" the time information. There are different options: (1) crossing in a coarser version of $t$ (morning, noon, etc.) with the 1st level category (1a) and/or the 2nd level category (1b). (2) crossing in $t \in H$ with the 1st level categories (2a) and/or the 2nd level categories (2b, may be too sparse). \\
+
+Alterantively, one could investigate transformational models. There is a wide range of possibilities here. The very simplest one (that is also easy to implement) is to just encode $t$ as additional dimension(s) in the embedding. For instance, once could use a 1-hot-encoding of quantized time (hourly or time-of-day). This would ignore complex interactions between time and category information of check-ins, but again would be a good point of reference.  
+
+\paragraph{Conclusion}
+
+It is important to make the predictive likelihood comparable across different variants of the model, because this will alllow us to more easily perform model selection. This means, we should always have a model that predicts 2nd level categories and hourly time stamps. We can decide to use the chain rule of probability to make some parts dependent on embeddings and others not. The main benefit is that we will be free to use whatever other model structure we want on the input/context side, while still being able to compare on the same predictive task.
+
+\end{document}

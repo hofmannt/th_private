@@ -1,0 +1,88 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\renewcommand{\th}{{\tilde \theta}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\E}{{\bf E}}
+\newcommand{\w}{{\bf w}}
+\newcommand{\x}{{\bf x}}
+\newcommand{\y}{{\bf y}}
+\newcommand{\z}{{\bf z}}
+\newcommand{\X}{{\bf X}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\Z}{{\bf Z}}
+\newcommand{\Xcal}{{\cal X}}
+\renewcommand{\S}{{\cal S}}
+\newcommand{\Ccal}{{\cal C}}
+\newcommand{\C}{{\bf C}}
+\newcommand{\Zcal}{{\cal Z}}
+\newcommand{\tgamma}{{\stackrel{\gamma}{\longleftarrow}}}
+\newcommand{\mycomment}[1]{}
+\newcommand{\loglike}{{\mathcal L}}
+
+\title{Improved Tensor Decompositions for \\ Embedding Knowledge Bases} 
+
+\author{Thomas Hofmann, ETH Zurich}
+
+\begin{document}
+
+\maketitle 
+
+\paragraph{Tensor Representation.} Knowledge bases can be represented via triples corresponding to facts in subject-predicate-object form. Each triple then consists of two entity arguments and a typed relation. For $N$ entities and $R$ relations, we can summarize a knowledge base in a tensor, $X \in \{0,1\}^{N \times N \times R}$, where $X_{nmr}=1$, if $(e_n,  e_m) \in R_r$. Here $e_n$ and $e_m$ denote entities and $R_r$ a relation.  Notice that in this context, due to the incompleteness of a knwoledge base, an entry "0" is ambiguous in that it may represent an unknown fact as well as an incorrect fact. In contrast, we assume that explicitly established facts (i.e..~an entry of "1" in $X$) are nearly error-free. 
+
+\paragraph{RESCAL.} One way to apply statistical methodology in order to predict missing facts in knowledge bases is to generalize known approaches for matrix factorization that have been used successfully on implicit user data in areas such as recommendations and Web personalization. A popular approach is to decompose the tensor $X$ in the following way: (i) each entity $e_n$ is embedded as a vector in a latent space, $z_n \in \Re^K$, of some dimensionality $K$, (ii) each relation $R_r$ is represented as a bilinear form $\Re^K \times \Re^K \to \Re$, i.e.~a matrix $A^{(r)}$. Then, we get a reconstructed observation tensor via 
+\begin{align}
+\hat x_{nmr} = z_n^\top A^{(r)} z_{m} 
+\end{align}
+which can alternatively be written as a tensor factorization. This method is known as RESCAL \cite{nickel2011three}.
+
+\paragraph{Universal Relations.} Often, there can be a huge number of relations, in particular if these relations are defined directly via surface forms extracted from text (\textit{universal schema} \cite{riedel2013relation}). It is then difficult to estimate a large number of matrices $A^{(r)}$ and -- as there are many statistical dependencies between the different relations -- wasteful to do so independently.  Note that the only coupling that does exist between different relations in RESCAL is indirectly through the shared entity embeddings. The question is then: can we modify the RESCAL model in a way that exploits such dependencies? 
+
+\paragraph{Data and Model Observations.} There are some aspects that need to be taken into account, if we work with relations directly derived from surface forms. First, some surface forms may be used more rarely than others, even when representing the same relation. We thus need to incorproate some form of correction per relation form. Second, the surface forms are composed of words and words come (e.g.~in English or German) with morphology. It seems useful to expoit that information. Third, the typical least squares loss may not be the most appropriate one. Instead one may use a Bernoulli likelihood as an objective. However, in practice the squared error approximation is often favored due to its mathematical and computational simplicity. 
+
+\paragraph{Hierarchcial Bayesian Model.} 
+
+A typical way to improve estimation efficiency in the above setting is through hieriachical Bayesian modeling. Concretely, we think of the relations in terms of a population that share some parts of the model (e.g.~hyperparameters).  
+
+An approach motivated by semantic clustering assumes that there are $S < R$ relation clusters. For each relation cluster $s$, we generate a matrix by sampling $K$ directions uniformly from the $(K-1)$--unit sphere and forming the matrix as the outer product, i.e.:
+\begin{align}
+v_{ds} & \sim \text{Random Direction in $\Re^K$} \quad (d=1,\dots,K) \\
+B^{(s)} & = \sum_{s=1}^K v_{ds} v_{ds}^\top
+\end{align}
+It may be even more straightforward to generate $B^{(s)}$ by independently sampling entries from a standard normal distribtion. After proper normalization, the two distributions should be very similar for large enough $K$.  [More formaly?]
+
+Now, we assume that each relation $R_r$ is assigned to one of the clusters thorugh some unobserved variable $Z_{rs}$. Given those latent assignments, we generate a matrix by corrupting each entry in the corresponding matrix $B^{(s)}$ with additive Gaussian noise, i.e.~we get 
+\begin{align}
+A^{(r)}_{nm} = \alpha_r \sum_s Z_{rs} B^{(s)}_{nm} + N^{(rs)}_{nm}, \quad N^{(rs)}_{nm} \sim {\cal N}(0,\sigma^2)
+\end{align} 
+This simply induces a likelihood function proportional to the Frobenius norm and invsersly proportional to $\sigma^2$. \\
+
+One would now need to learn the matrices $A^{(r)}$, $B^{(s)}$ and assignments $Z$. The scalars $\alpha_r$  could be learned or simply set proportionally to the fraction of positive facts for realtion $R_r$. 
+
+\newpage
+
+
+We may then define the following (abstract) model structure: 
+\begin{align}
+B_{s} & \sim \text{some distribution over bilinear forms}  \\
+\alpha_r & \sim \text{some distribution over re-scaling factors} \\
+A_r & \sim \text{mixture of $B_r$ + noise}
+\end{align}
+[Todo: define meaningful distributions. Derive estimation algorithm(s).] \\
+
+A second (perhaps more exciting) approach could work as follows. The matrices $A_m$ are not derived through copy + noise from a smaller number of matrices $B_r$, but share a set of directions. In this model, we would assume that we have $R$ directions, i.e.~vectors $b_r \in \Re^K$ and each $A_m$ is formed by picking $K$ of these directions 
+\begin{align} 
+A_m \sim \sum_{r=1}^R y_{rm} b_r^\top b_r + \text{noise}, \;\; \text{where}  \;\; \sum_{r=1}^R y_{rm} = K \; (\forall m)
+\end{align} 
+
+\paragraph{Algorithms.} One direction to look for suitable algorithms is to alternate the optimization over entity embeddings and the one over bilinear forms. Then one should look at how to solve (at least approximately) the problem of optimizing $A_m$ for given $x_n$.
+
+\bibliography{ImprovedRelationEmbedding} 
+\bibliographystyle{acm} 
+
+\end{document} 
+

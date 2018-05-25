@@ -1,0 +1,255 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\renewcommand{\th}{{\tilde \theta}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\E}{{\bf E}}
+\newcommand{\w}{{\bf w}}
+\newcommand{\x}{{\bf x}}
+\newcommand{\y}{{\bf y}}
+\newcommand{\z}{{\bf z}}
+\newcommand{\X}{{\bf X}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\Z}{{\bf Z}}
+\newcommand{\Xcal}{{\cal X}}
+\renewcommand{\S}{{\cal S}}
+\newcommand{\Ccal}{{\cal C}}
+\newcommand{\Zcal}{{\cal Z}}
+\newcommand{\tgamma}{{\stackrel{\gamma}{\longleftarrow}}}
+\newcommand{\mycomment}[1]{}
+\newcommand{\loglike}{{\mathcal L}}
+
+\title{Multicausal Model of User Web Behavior}
+\author{Thomas Hofmann, ETH Zurich}
+
+\begin{document}
+
+\maketitle 
+
+\paragraph{QMR-DT Network.} Consider a two-layer noisy-OR Bayesian network, equivalent in structure to the QMR-DT network, discussed in \cite{shwe1991probabilistic,jaakkola1999variational}. We will denote by $X_e \in \{0,1\}$, $e=1,\dots,n$, the observable variables, corresponding to \textit{events} or \textit{behaviors} such as visited domains and by $Z_d \in \{0,1\}$, $d=1,\dots,m$, the latent causes, i.e.~socio-demographic or interest factors  as well as possibly uninterpreted explanatory variables. In the medical language of QMT, $X_e$ corresponds to findings and $Z_d$ to possible diseases. 
+
+\paragraph{Noisy-or Model.} The noisy-or assumption for the causal mechanism can be expresses in the following way\footnote{Here  we introduce a constant dummy variables $Z_{0}=1$ with a corresponding parameter $(1-\theta_{e0})$ to account for the prior probability $P(X_e=0)$, which is the leak probability that $X_e$ is turned on by an unmodelled cause.}
+\begin{align}
+P(X|Z; \phi) = \prod_{e=1}^n P(X_e| Z; \phi), \quad \text{with} \;\; P(X _e=0 | Z; \phi) = \prod_{d=0}^m (1-\phi_{ed})^{Z_{d}} \,.
+\label{eq:noisy-or}
+\end{align}
+Here $\phi_{ed} \in [0;1]$ is the probability that the presence of $Z_d=1$ will cause $X_e=1$. A variable $X_e$ is thus \textit{not} "turned on", if all of the causes fail to activiate it. It is convenient to perform the re-parameterization $\theta_{ed} := -\log (1- \phi_{ed}) \ge 0$, such that we get a simple log-linear form
+\begin{align}
+\log P(X _e=0 | Z; \phi) = \sum_{d=0}^m Z_d \log (1-\phi_{ed}) = -  \sum_{d=0}^m Z_d \theta_{ed} =: - \langle Z, \theta_e \rangle
+\label{eq:log-prob} 
+\end{align}
+Note also that $\phi_{ed}=0 \iff \theta_{ed}=0$, i.e.~the re-parameterization preserves the dependency structure.
+
+\paragraph{Complete Data Model.} 
+
+If we were to observe both, findings $X$ and causes $Z$, then we can define a prior probability on $Z$, e.g.~via a $\pi$-parameterized factorial distribution 
+\begin{align}
+P(Z; \pi) = \prod_{d=1}^m \pi_d^{Z_d} (1-\pi_d)^{1-Z_d} 
+\end{align}
+and then maximize the complete data log-likelihood function over $l$ cases
+\begin{align}
+\loglike(\pi,\theta) = \sum_{i=1}^l \loglike(\pi,\theta; X^i, Z^i)
+\end{align}
+where the per-case log-likelihood has three parts coming from the (i) prior over causes, (ii) negative findings, and (iii) positive findings as follows:  
+\begin{align}
+\label{eq:cond-log-like}
+\loglike(\pi,\theta; X, Z)  & = \loglike^0(\pi; Z) + \loglike^-(\theta; X, Z) + \loglike^+(\theta; X, Z) 
+\end{align}
+with
+\begin{align}
+\loglike^0(\pi; Z) & :=  \sum_{d=1}^m Z_d \log \pi_d + (1-Z_d) \log (1-\pi_d) \nonumber  \\
+\loglike^-(\theta; X, Z) & := -\sum_{e=1}^n (1-X_e)  \langle Z, \theta_{e} \rangle \nonumber \\
+\loglike^+(\theta; X,Z) & := \sum_{e=1}^n X_e \log \left( 1-  e^{-\langle Z, \theta_e \rangle} \right) \nonumber
+\end{align}
+%
+Note that the log-likelihood contributions $\loglike^0(\pi; Z)$ and $\loglike^-(\theta; X, Z)$ are linear in $Z$:
+\begin{align} 
+& \loglike^0(\pi; Z) + \loglike^-(\theta; X, Z)  \nonumber \\
+& = \sum_{d=1}^m Z_d \log \pi_d + (1-Z_d) \log (1-\pi_d) - \sum_{d=0}^m \; \sum_{e: X_e=0}  Z_d \theta_{ed}
+\nonumber  \\
+& = \sum_{d=1}^m Z_d \underbrace{\left( \log \frac{\pi_d}{1-\pi_d} - \sum_{e: X_e=0} \theta_{ed} \right)}_{=:\rho_d}
+ + \underbrace{ \left(  \log (1- \pi_d) - \sum_{e: X_e=0} \theta_{e0} \right) }_{=:c}
+\label{eq:exact-sum}
+\end{align} 
+But again, since typically we have (at least a small number of) positive findings and $\loglike^+ \neq 0$, the general case is more complex. 
+
+\paragraph{Expectation Maximization Algorithm.}
+
+In most practically relevant cases, $Z$ is (at least partially) unobserved. Hence, we should consider the marginal likelihood obtained by summing out the latent causes $Z$
+\begin{align}
+& \loglike(\pi, \theta; X) := \log \sum_{Z} \exp\left[ \loglike(\pi, \theta; X, Z) \right]
+% = \log \sum_{Z} e^{\loglike^0(\pi; Z)} e^{\loglike^-(\theta; X, Z)} e^{\loglike^+(\theta; X,Z)}
+\,.
+\label{eq:marginal-loglike}
+\end{align}
+Although the summation could be performed for $\loglike^0$ and $ \loglike^-$, it is intractable for $\loglike^+$ and thus we look for an alterantive approach to inference and parameter learning. 
+
+One standard approch of finding approximate solutions for marginal likelihood maximization is the expectation maximization (EM) algorithm. Essentially, the EM algorithm replaces the sum over the latent variables $Z$ by their expectations and maximizes the expected complete data log-likelihood $\E_Q \loglike(\pi, \theta; X, Z)$. Here the expectation is with regard to a distribution $Q$ over $Z$. In the simplest case, this distribution will just be the posterior $Q(Z) := P(Z| X; \pi, \theta)$, which is re-computed in the E-step, while the M-step maximizes $\E_Q \loglike$ for the current choice of $Q$. Both steps can be interpreted as maximizing a common objective,
+namely 
+\begin{align}
+\Theta(\pi, \theta, Q; X) = \E_Q \loglike(\pi,\theta; X, Z) - \E_Q \log Q(Z) \,,
+\end{align}
+which can be verified by maximizing $\Theta$ over probability mass functions $Q$ on $\{0,1\}^m$. It can also be shown that $\Theta$  is related to the marginal likelihood via $\loglike(\pi, \theta; X) \ge \Theta(\pi, \theta, Q; X)$, which motivates to use of $\Theta$ as a surrogate objective. 
+
+\paragraph{Variational Approximation.}
+
+Optimizing $\Theta$ for noisy-or networks is not directly feasible. One thus makes a further simplification
+\begin{align}
+\E_Q \left[ \log \left( 1- e ^{- \langle Z, \theta_e \rangle} \right) \right] & \ge \log \left(1- e^{- \langle \E_Q[Z], \theta_{e}\rangle} \right)\,, 
+\end{align} 
+exploiting the concavity of $\log(1+\exp(-x))$ for $x \ge 0$ together with Jensen's inequality.  Define now 
+\begin{align}
+\tilde\Theta(\pi, \theta, Q; X) :=  & \; \Theta(\pi, \theta, Q; X) - \E_Q \loglike^+
++ \sum_{e: X_e=1} \log \left(1- e^{- \langle \E_Q[Z], \theta_{e} \rangle} \right) \,,
+\end{align}
+which swaps out the difficult $\E_Q \loglike^+$ part with an easier to handle lower bound. Note that $\tilde \Theta$ only depends on the first moments $Q_d := \E_Q[Z_d]$ as well as the entropy of $Q$. Obviously, among the probability mass functions over $\{0,1\}^m$ with given first moments, the factorizing distribution is the one that maximizes the entropy. So we can effectively maximize $\tilde \Theta$ with regard to factorial probability distributions $Q(Z) = \prod_{d=1}^m Q_d^{Z_d} (1-Q_d)^{1-Z_d}$ instead arbitrary $Q$ without any further approximation loss. In partiocular, this means we are getting an optimization problem with a variational parameter vector $Q = (Q_1,\dots,Q_m)$, where $1 \ge Q_d \ge 0$. The objective we finally arrive at can be written as follows:
+\begin{align}
+\tilde \Theta (\dots) = & \sum_{d=1}^m Q_d \left(  \log \pi_d - \log Q_d \right)  + (1-Q_d) \left(  \log (1-\pi_d) - \log (1-Q_d)\right) 
+\nonumber \\
+& - \sum_{e: X_e =0} \langle Q, \theta_e \rangle  + \sum_{e: X_e=1}  \log \left(1- e^{- \langle Q, \theta_{e} \rangle} \right)
+\end{align}
+
+\paragraph{Mean-field Stationary Equations.}
+
+We can derive stationary equations -- so called mean-field equations -- for $Q_d$ by computing partial derivatives and setting to zero. 
+\begin{align}
+\nonumber \frac{\partial \tilde\Theta}{\partial Q_d} & = 
+\log \left[ \frac{(1-Q_d)\pi_d}{Q_d (1-\pi_d)}  \right] - \sum_{e: X_e=0} \theta_{ed} + 
+\sum_{e: X_e=1} \frac{e^{-\langle Q, \theta_e \rangle}}{1 - e^{-\langle Q, \theta_e \rangle}} \theta_{ed} \stackrel{!}{=}0 \\
+\iff  Q_d & =  \frac{1}{1 +  \frac{\pi_d}{1-\pi_d} \exp[f(Q)]}
+\end{align}
+where 
+\begin{align}
+f(Q) & := - \sum_{e: X_e=0} \theta_{ed} + 
+\sum_{e: X_e=1} \frac{e^{-\langle Q, \theta_e \rangle}}{1 - e^{-\langle Q, \theta_e \rangle}} \theta_{ed} 
+\end{align}
+We can solve these equations by updating each $Q_d$ as a function of the entire vector $Q$ and iterating thiose updates until convergence.\\[4mm]
+
+[NEEDS TO BE CHECKED AND COMPARED WITH APPENDIX OF JAAKKOLA ET AL]
+
+\paragraph{Parameter Estimation.}
+Once we have found $Q_i$ for each training instance (variational E-step), we can optimize  with regard to the parameters. The solution for $\pi$ can be determined from 
+\begin{align}
+\sum_{i=1}^l \frac{Q_{id}}{\pi_d} - \frac{1-Q_{id}}{1-\pi_d} \stackrel != 0 \iff \pi^*_d = \frac 1l \sum_{i=1}^l Q_{id} 
+\end{align}
+The M-step solution for $\theta$ cannot be computed in closed form. Instead one has to resort to gradient descent techniques, using the partial derivatives  
+\begin{align}
+\nabla_{\theta_e} \tilde \Theta & =  -  \sum_{i=1}^l (1-X_{ie}) Q_{i} + \sum_{i=1}^l X_{ie} Q_{i} \frac{e^{-\langle Q_i, \theta_e \rangle}}{1 - e^{-\langle Q_i, \theta_e \rangle}}  \\
+& = -l \pi^* + \sum_{i}   \frac{X_{ie}}{1 - e^{-\langle Q_i, \theta_e \rangle}} Q_{i}
+\end{align}
+Note that these gradients decouple for different findings $X_e$ as we would expect based on the conditional independence structure of the noisy-or network. 
+
+\paragraph{More General Approach.} The approach presented in \cite{jaakkola1999variational} is more general and introduces variational distributions for every finding node $X_e$ and every instance. The above formulation is somewhat more efficient and worth investigating on its own right. Moreover, \cite{jaakkola1999variational} also suggests to re-introduce some dependencies and not to work with completely factorizing distributions $Q$. Again, this will increase the accuracy of the posterior inference, but at additional computational cost and implementaton complexity. 
+
+
+
+
+\paragraph{Posterior, Negative Findings.} As $X$ is given and $Z$ is unknown for each case, the essential inference problem consists in computing the posterior probability of causes $P(Z|X; \theta)$. Note that following \cite{jaakkola1999variational} and as is obvious from \eqref{eq:cond-log-like}, we can handle negative findings much more efficiently than the positive ones. Let us therefore partition the set of observed variables via  $X^0 := \{ X_e: X_e=0\}$, $X^1 := \{ X_e : X_e=1\}$. Then we can compute the posterior in a two stage manner via Bayes rule
+\begin{align}
+& P(Z | X^0=0; \theta) = \frac{P(Z) \prod_{X^0}P (X_e=0|Z; \theta)}{P(X^0=0;\theta)}, \quad \\
+& P(Z | X; \theta) = \frac{P(Z | X^0=0; \theta) \prod_{X^1} P(X_e=1|Z; \theta)}{P(X^1=1|X^0=0; \theta)}
+\end{align}
+where we have exploited the fact that the variables $X_e$ are condifitionally independent given $Z$. As $\log P(X_e=0; Z; \theta) = \langle Z, \theta_e \rangle$ is a linear form, the computation of  $P(Z | X^0; \theta)$ can be done very efficiently and leads to a factroized form. The difficult part is then in the second stage involving positive findings. Practically, one can for every case first handle the negative findings and translate them back into a new "prior" over $Z$. 
+
+\paragraph{Variational Approximation} Let us apply a variational approximation to account for the effect of the positive findings. We can exploit the concavity of $\log (1-\exp(c+ x))$ for arguments $c + x \le 0 $ with Jensens's inequality
+\begin{align}
+& \log P(X_e=1| Z; \theta) = \log (1- P(X_e=0|Z; \theta)) = \log \left( 1 - \exp \langle Z, \theta_e \rangle \right) \\
+& = \log \left( 1 - \exp \left[ \theta_{e0} + \sum_{d=1}^m Q_{ed} \cdot Z_d \frac{\theta_{ed}}{Q_{ed}} \right] \right) \\
+& \ge  \sum_d Q_{ed} \cdot \log \left( 1 - \exp \left[ \theta_{e0} + \frac{Z_d \cdot \theta_{ed}}{Q_{ed}} \right] \right) \\
+& =  \sum_d  Q_{ed} 
+\left[ Z_{d} \log \left( 1 - \exp \left[ \theta_{e0} + \frac{\theta_{ed}}{Q_{ed}} \right] \right) 
++ (1-Z_d) \log(1-\exp(\theta_{e0}))
+\right]
+\end{align}
+where $Q_e= (Q_{ed})$ is a factorizing variational distribution.  By applying this bound to the log-likelihood \eqref{eq:cond-log-like}, we arrive at a variational log-likelihood. which is a lower bound on the true likelihood for every choice of distributions $Q_e$.
+
+\paragraph{Mean-Field Approximation}  Let us investigate the simplest variational approximation by setting $Q_e=Q$, i.e.~by tying the variational distributions for every finding together.    
+
+
+\newpage
+
+We can hence simplify the log-likelihood  
+\begin{align}
+\label{eq:cond-log-like-simplified}
+& l(\theta; X, Z)  = 
+\sum_{X^1} \log \left( 1-  \exp \langle Z, \theta_e \rangle \right) + \sum_{d=1}^n Z_d \log \pi_d' + (1-Z_d) \log (1 - \pi_d')
+\end{align}
+
+\newpage
+\paragraph{Expectation Maximization Algorithm.}  We would like to learn the parameters $\theta$ from data using the EM algorithm. The key quantity is the expected complete data log-likelihood 
+\begin{align}
+\label{eq:exp-comp-data-loglike}
+L(\theta; Q) = \sum_Z Q(Z) \left[ l(\theta; X, Z) + \log P(Z)  - \log Q(Z) \right] 
+\end{align}
+It is well-known and easy to see that maximizing this quantity over probability distributions $Q$ results in the posterior $Q(Z) = P(Z|X; \theta)$, which corresponds to the expectation step in EM. The maximization step would optimize $L$ for fixed  $Q$ with regard to $\theta$. 
+
+\newpage
+
+
+
+\paragraph{Variational Approximation.} Performing the E-step is not tractable in the general case, hence one is interested in approximations. One way to derive a variational approximation, more specifically, a \textit{mean-field approximation} is to restrict the form of $Q$. As we have seen, negative findings still lead to factorizing posteriors. Hence, we can try to approximate $P(Z|X; \theta)$ by a factorical distribution of the form 
+\begin{align}
+Q(Z) = \prod_{d=1}^m q_d^{Z_d} (1-q_d)^{1-Z_d}, \quad \text{where} \; \; \sum_{d=1}^m q_d =1
+\end{align}
+The constraint can be formally enforced by adding an appropriate Lagrange parameter term to the objective in \eqref{eq:exp-comp-data-loglike}. Differentiating with regard to $q_d$ we get 
+\begin{align}
+\log q_d = \lambda + \log P(Z_d=1) - \!\! \sum_{X_e \in X^-} \theta_e + \sum_{X_e \in X^+} 
+\end{align}
+
+\newpage
+
+
+\paragraph{Variational Approximation} 
+
+As we have seen, computing the posterior that takes negative findings into accounts is very easy. However, it is the positive findings that make the inference problem hard. One way to derive variational approximations that can be used for maximum likelihood estimation is to define a variational log-likelihood function that lower bounds the correct log-likelihood. More specifically, we can exploit concavity of $\log(1-e^{-x})$ and apply Jensens inequality to get 
+\begin{align}
+\log(1-e^{f_e})  \ge
+\end{align} 
+
+
+
+
+\newpage
+
+\begin{align}
+ \log \left( 1-  \exp \sum_{d=0}^m Z_d \, \phi_{ed}  \right) \ge \sum_{d=0}^m Z_d \, \phi_{ed}
+\end{align}
+
+\paragraph{Mean-Field Approximation} 
+
+\newpage
+
+
+
+
+\paragraph{EM Algorithm.} Then we can form the complete data log likelihood via $\tilde l(\theta; X, Z) = l(\theta; X,Z) + \sum_{d=1}^m \log P(Z_I)$. Applying the EM framework, we would like to compute posterior probabilities $P(Z|X; \theta)$ and then optimize the expected complete data log-likelihood with regard to the parameters. However, this becomes intractable in general as the size of the network grows. 
+
+\paragraph{Mean Field Approximation.} 
+
+\section*{Appendix}
+
+\paragraph{Summation Trick.}
+\begin{align}
+\log \sum_Z e^{\langle Z, \rho \rangle +c} 
+& = \log \sum_{Z_1 \in \{0,1\}} \sum_{Z_2  \in \{0,1\}} \dots \sum_{Z_m  \in \{0,1\}}  e^{\langle Z, \rho \rangle + c}  \\ \nonumber
+& = c + \log \sum_{Z_1 \in \{0,1\}} e^{Z_1 \rho_1} \sum_{Z_2 \in \{0,1\}} e^{Z_2 \rho_2} \dots \sum_{Z_m \in \{0,1\}}   e^{Z_m \rho_m}  \\ \nonumber
+& = c + \log \prod_{d=1}^m (1+ e^{\rho_d})  = c + \sum_{d=1}^m \log (1 + e^{\rho_d}).
+\end{align}
+
+\paragraph{Logistic Function in Optimization}
+
+Note that we need to solve equations for $\pi \in [0;1]$ of the type 
+\begin{align}
+\nonumber
+\log \frac{\pi}{1-\pi} = x \iff \pi   = (1-\pi) e^x \iff (1+e^x) \pi = e^x \iff \pi = \frac{e^x}{1+ e^x}
+\end{align}
+
+
+\bibliographystyle{acm}
+\bibliography{Multicausal}
+
+\end{document} 

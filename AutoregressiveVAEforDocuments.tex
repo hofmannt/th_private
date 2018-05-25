@@ -1,0 +1,47 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts}
+\usepackage{tikz-cd}
+\usetikzlibrary{matrix,arrows,decorations.pathmorphing}
+
+\title{Variational Lossy Autoencoder for \\ Document Models}
+\author{Thomas Hofmann}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\E}{{\mathbf E}}
+\newcommand{\z}{{\mathbf z}}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\smapsto}{{\stackrel \sim \mapsto \,}}
+
+\setlength\parindent{0pt}
+
+\begin{document}
+
+\maketitle
+
+\paragraph*{Preamble} This write-up is a reflection on the paper \cite{chen2016variational}. Our goal is to discuss how these ideas can be made useful in the context of generative document models. 
+
+\paragraph*{Autoregressive Observation Models} 
+
+An autoregressive model for text is basically a language model. A language model captures the short range word dependencies within a sentence, in particular its syntactic and semantic regularity. Using such a model in combination with a latent variable model (e.g.~a VAE) will basically enforce that the latent codes $\z$ focus on topical regularities that are not well-captured by the language model as both parts of the model have to be complementary.  This idea is not new as latent topic models have been used in combination with $n$-gram models before, see \cite{gildea1999topic}.\footnote{Although in this approach, the topic model has been trained separately, which is somewhat less interesting.} A similar idea has been pursued in \cite{le2014distributed}, where the document vector is learned in a manner to complement the immediate context words (here in a bag-of-words view). \\
+
+There are different variants that one could investigate. A full model would treat the document as a word sequence $\w = \w_{1:n} = (w_1, \dots, w_n)$ and then define a conditional model, i.e.~with word embeddings $\x_w$. 
+\begin{align}
+p(w | \w_{1:t}, \z) \propto p(w | \w_{1:t}) \exp\left[ \x_w^\top \z \right]
+\end{align}
+Here the document model would basically provide a correction factor on top of the language model (cf.~again \cite{gildea1999topic}).  For simplicity, one could take an existing, pre-trained language model and then force the document model to learn effects that are complementary. Note that if the language model uses  embeddings+softmax, the above formula simplifies. \\
+
+One could also (more speculatively) restrict attention to order-invariant models. In this view, one would define a context $C_t$ around each word $w_t$ (a fixed-size window or a sentence) and use the bag-of-word within $C_t$ as the language model. 
+Then effectiveley, one would break down the context into a short-range context (captured by the autoregressive part) and the long-range context (entire document).  In fact, this would very closely mirror the distributed memory model in \cite[Figure 2]{le2014distributed}, where one would average the word vectors within the window (also like in \cite{larochelle2012neural}) and the concatenate the paragraph vector with this vector. The main difference is that in \cite{le2014distributed} one learns a set of parameters for every document, whereas in VAE approaches as well as in \cite{larochelle2012neural}, the document embeddings are constructed out of word embeddings.
+
+\paragraph{Autoregressive Latent Flows}
+
+Following \cite{kingma2016improving} invertible autoregressive flows are defined as follows:
+\begin{align}
+z_0 = \mu_0 + \sigma_0  \eta_0, \quad z_{t+1} = f(\z_{1:t}) + g(\z_{1:t}) \eta_{t+1}, \quad g \ge 0, \;\; \eta_t \sim \mathcal N(0,\mathbf I)
+\end{align}
+In order to use this for document models, we would need to again move away from a bag-of-words model and model a document as a proper word sequence. (\textit{Requires more thought. Could also be an interesting model of discourse.}) 
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}

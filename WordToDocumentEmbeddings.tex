@@ -1,0 +1,52 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts}
+\usepackage{tikz-cd}
+\usepackage{amsthm}
+\usetikzlibrary{matrix,arrows,decorations.pathmorphing}
+
+\title{Word to Document Embeddings}
+\author{Thomas Hofmann}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\logl}{{\mathcal L}}
+\newcommand{\ZZ}{{\mathbb Z}}
+\newcommand{\NN}{{\mathbb N}}
+\newcommand{\mZ}{{\mathbf Z}}
+\newcommand{\E}{{\mathbf E}}
+\newcommand{\z}{{\mathbf z}}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\mX}{{\mathbf X}}
+\newcommand{\mY}{{\mathbf Y}}
+\newcommand{\y}{{\mathbf y}}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\smapsto}{{\stackrel \sim \mapsto \,}}
+\newcommand{\word}{{\omega}}
+\newcommand{\words}{{\Omega}}
+\newcommand{\context}{{\sigma}}
+\newcommand{\contexts}{{\Sigma}}
+\newcommand{\n}{{n}}
+\newcommand{\mN}{{\mathbf N}}
+\newcommand{\mat}[1]{{\mathbf #1}}
+\newcommand{\lrangle}[1]{{\left\langle \, #1\, \right\rangle}}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+
+
+\setlength\parindent{0pt}
+
+\begin{document}
+
+\maketitle
+
+Given word embeddings $\x_w \in \Re^d$, $w \in \Omega$, $|\Omega|=n$. How can we define a document similarity? Basic idea: word mover distance \cite{kusner2015word}. Implicitly defined via a transportation matrix $\mathbf T \in [0;1]^{n \times n}$. 
+\begin{align}
+D(d,d') = \min_{\mathbf T} \sum_{v,w \in \Omega} T_{vw} \| \x_w - \x_v\|^2, \;\; \text{s.t.}\;\;
+\mathbf T \mathbf 1  = \text{tf}_d, \;\; \mathbf 1 \mathbf T = \text{tf}_{d'}
+\end{align}
+
+It seems this objective is mixing local adjustments with global differences. For instance, if we assume some topic structure, then one distant effect comes from the difference in the weighting of the topics. The other comes from word variations within a topic. 
+
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}

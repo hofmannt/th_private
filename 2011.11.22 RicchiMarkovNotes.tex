@@ -1,0 +1,53 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts}
+
+\begin{document}
+
+\paragraph{Ricci Curvature} Riemannian tensor expressed via Levi-Civita connection $\nabla$
+\begin{align}
+R(u,v)w = \left[ \nabla_u \nabla_v- \nabla_v \nabla_u - \nabla_{[u,v]} \right] w
+\end{align}
+Note that $u,v$ are coordinate vector fields, the Lie bracket term vanishes and Riemannian curvature measures the non-commutativity of the connection. The Ricchi curvature over $T_M \times T_M$ is defined as
+\begin{align}
+\text{Ric}(u,v) = \text{Tr}(F), \quad F: w \mapsto F(w):=  R(u,v) w
+\end{align}
+\cite{ollivier2009ricci} suggests the definition of a \textit{coarse} Ricci curvature over metric spaces with a random walk $m$
+\begin{align}
+\kappa(x,y):=1 - \frac{W_1(m_x,m_y)}{d(x,y)}
+\end{align}
+where $W_1$ is the Wasserstein distance. In geodesic spaces it is sufficient to know $\kappa$ for close points. On a metric measure space one can define a (up to some scaling) canonical random walks using the measure such that -- in the limit of small jumps -- the coarse Ricci curvature equals the standard notion of Ricci curvature. 
+
+
+\paragraph{Ornstein-Uhlenbeck} The OU process is a Wiener process with drift described by the stochastic differential equation
+\begin{align}
+dX(t) = \alpha (\mu - X(t)) dt + s \, dW(t)\,, 
+\end{align}
+for which $\pi = \mathcal N(\mu,\sigma^2 \mathbf I)$ with $\sigma^2 = s^2/(2\alpha)$ is invariant. This solution can be found by solving the corresponding Fokker-Planck equation in the limit of $t \to \infty$. At finite $t$, the deterministic and stochastic parts are given by 
+\begin{align}
+\bar X(t) = X(0) e^{-\alpha t} + \mu \left( 1- e^{- \alpha t} \right), \quad 
+X(t) = \bar X(t) + s \int_0^t  e^{- \alpha (t-\tau)}  d\, W_\tau\,.
+\end{align}
+It is also possible (using the Ito isometry) to analytically compute the covariance function 
+\begin{align}
+\text{Cov}(X(t), X(t+\delta t)) & = \sigma^2 \left( e^{-\alpha \delta t} - e^{-\alpha (2t+\delta t)} \right), \quad  \\
+\text{Var}(X(t)) & =  \sigma^2 \left(1- e^{-2\alpha t} \right) \approx s^2 t \quad \text{for small $t$}
+\end{align}
+Note that the variance does not depend on the initial condition. As the $W_1$ distance between normal distributions with equal variance is the distance between the centers, this implies 
+\begin{align}
+\kappa(x,y) = 1- \frac{\left\| e^{-\alpha \delta t}x - e^{-\alpha \delta t} y \right\|}{\| x- y\|} = 1- e^{-\alpha \delta t}
+\end{align} 
+
+\newpage
+
+
+which can be explicitly solved for a flow time $\delta t$
+\begin{align}
+a
+\end{align}
+
+\bibliographystyle{acm}
+\bibliography{th}
+
+
+
+\end{document}

@@ -1,0 +1,65 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts}
+\usepackage{tikz-cd}
+\usepackage{amsthm}
+\usetikzlibrary{matrix,arrows,decorations.pathmorphing}
+
+\title{Score Matching}
+\author{Thomas Hofmann}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\logl}{{\mathcal L}}
+\newcommand{\ZZ}{{\mathbb Z}}
+\newcommand{\NN}{{\mathbb N}}
+\newcommand{\mZ}{{\mathbf Z}}
+\newcommand{\E}{{\mathbf E}}
+\newcommand{\z}{{\mathbf z}}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\mX}{{\mathbf X}}
+\newcommand{\mY}{{\mathbf Y}}
+\newcommand{\y}{{\mathbf y}}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\smapsto}{{\stackrel \sim \mapsto \,}}
+\newcommand{\word}{{\omega}}
+\newcommand{\words}{{\Omega}}
+\newcommand{\context}{{\sigma}}
+\newcommand{\contexts}{{\Sigma}}
+\newcommand{\n}{{n}}
+\newcommand{\mN}{{\mathbf N}}
+\newcommand{\mat}[1]{{\mathbf #1}}
+\newcommand{\lrangle}[1]{{\left\langle \, #1\, \right\rangle}}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+
+
+\setlength\parindent{0pt}
+
+\begin{document}
+
+\maketitle
+
+Fisher scores for data distribution and unnormalized model distribution 
+\begin{align}
+\psi(\x) = \nabla_\x \log p(\x), \quad 
+\phi(\x; \theta) = \nabla_\x \log q(\x; \theta)
+\end{align}
+Score-based objective
+\begin{align}
+J(\theta) 
+:= \frac 12 \E \left\| \psi(\x) -\phi(\x; \theta) \right\|^2 
+= \frac 12 \sum_i \E  \left( \psi_i(\x) -\phi_i(\x; \theta) \right)^2 
+\end{align}
+Main theorem:
+\begin{align}
+J(\theta) = \E \left[ \partial_i \phi_i(\x;\theta) + \frac12 \partial_i \phi_i^2(\x;\theta) \right] + \text{const.}
+\end{align}
+Proof: Step 1 = expanding squares 
+\begin{align}
+&  \E \| \psi(\x)\|^2 = \text{const}, \\
+& \E \| \phi(\x; \theta) \|^2 
+= \sum_i \E \phi_i^2(\x; \theta)
+= \frac 12 \mathbf I(\theta) = - \frac 12 \mathbf H
+\end{align}
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}

@@ -1,0 +1,148 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\renewcommand{\th}{{\tilde \theta}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\E}{{\bf E}}
+\newcommand{\w}{{\bf w}}
+\newcommand{\x}{{\bf x}}
+\newcommand{\y}{{\bf y}}
+\newcommand{\z}{{\bf z}}
+\newcommand{\X}{{\bf X}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\Z}{{\bf Z}}
+\newcommand{\Xcal}{{\cal X}}
+\renewcommand{\S}{{\cal S}}
+\newcommand{\Ccal}{{\cal C}}
+\newcommand{\C}{{\bf C}}
+\newcommand{\Zcal}{{\cal Z}}
+\newcommand{\tgamma}{{\stackrel{\gamma}{\longleftarrow}}}
+\newcommand{\mycomment}[1]{}
+\newcommand{\loglike}{{\mathcal L}}
+
+\title{Stochastic Variational Approximation for Multi-Causal Models} 
+
+\author{Thomas Hofmann, ETH Zurich}
+
+\begin{document}
+
+\maketitle 
+
+\paragraph{Objective.} 
+
+We want to investigate the method presented in \cite{salimans2013fixed} as an approximation 	technique for inferences and parameter learning in multi-causal models such as the two-layer noisy-or model \cite{shwe1991probabilistic,jaakkola1999variational}. Our main interst is in the application area of user data modeling, where we aim to infer latent user profiles that explain observed behaviors. 
+
+\paragraph{Noisy-Or Model.} 
+
+We start with a two-layer Bayes net with unobserved latent variables $Z_m \in \{0,1\}$, indexed by $m=1,\dots,M$ and observed variables about effects $X_n \in \{0,1\}$, indexed by $n=1,\dots,N$. For notational convenience, we introduce a clamped dummy variable $Z_0=1$ to account for unmodeled causes. To make things more concrete, we assume independent Bernoulli prior distributions on causes with parameter $\pi_m$
+\begin{align}
+p(Z: \pi) = \prod_{m=1}^M p(Z_m; \pi_m) = \prod_{m=1} ^M \pi_m^{Z_m} (1-\pi_m)^{1-Z_m} \,.
+\end{align}
+Our fundamental modeling assumption is that conditional distribution of $X$ given $Z$ are goverened by the noisy-or form:
+\begin{align}
+& p(X|Z; \phi) = \prod_{n=1}^N p(X_n|Z; \phi), \qquad \text{where} \\
+& p(X_n=0|Z; \phi ) = \prod_{m=0}^M (1- \phi_{mn})^{Z_m} \,.
+\end{align}
+As we have $L$ training instances (e.g.~users), we will add superscripts $l=1,\dots,L$ to refer to the specific instance.
+
+\paragraph{Variational Bayes.} 
+
+As a first step, we want to formulate learning in the noisy-or model in the standard form of variational Bayes  \cite{attias2000variational}. To that extent, we assume a fully factorial model with Beta distributions over parameters $\pi$ and $\phi$ as our family of variational distributions. As \cite{salimans2013fixed} works with exponential form distributions, we parameterize all distributions in their canonical form with natural parameters. \\
+
+For the latent causes, we work with the mean-field model 
+\begin{align}
+\log q(Z| \mu) 
+&  = \sum_{l=1}^L \sum_{m=1}^M Z_{lm} \log \mu_{lm} + (1-Z_{lm}) \log (1-\mu_{lm})  
+\\ & = \sum_{l,m} Z_{lm}  \log \left( \frac{\mu_{lm}}{1-\mu_{lm}} \right) + \sum_{l,m} \log (1-\mu_{lm}) 
+%  & = Z^\top \theta^{(1)} - \psi^{(1)}
+\end{align}
+Hence the natural parameters are $\eta^{(1)}_{lm} :=  \log \left( \frac{\mu_{lm}}{1-\mu_{lm}} \right)$.\\
+
+The distribution over $\pi$ is a product of Beta distributions parameterized with natural parameters $(\eta^{(2)}_{m1},\eta^{(2)}_{m2})$ as
+\begin{align}
+\log q(\pi |\eta^{(2)}) = & \sum_{m=1}^M  \eta^{(2)}_{m1} \log \pi_m + \eta^{(2)}_{m2} \log (1-\pi_m) \\
+\nonumber & - \log B(\eta^{(2)}_{m1}+1,\eta^{(2)}_{m2}+1)
+\end{align}
+where $B$ is the Beta-function.\\
+
+Similarly we define a factorial distribution over $\phi$ with parameters $(\eta^{(3)}_{nm1}, \eta^{(3)}_{nm2})$ as follows 
+\begin{align}
+\log q(\phi |\eta^{(3)}) = & \sum_{n=1}^N \sum_{m=1}^M  \eta^{(3)}_{nm1} \log \phi_{nm} + \eta^{(3)}_{nm2} \log (1-\phi_{nm}) \\
+\nonumber & - \log B(\eta^{(3)}_{nm1}+1,\eta^{(3)}_{nm2}+1)
+\end{align}
+
+In total $(\eta^{(1)},\eta^{(2)},\eta^{(3)})$ parametrizes a family of variational distributions in product form, reflecting independences between parameters and latent causes 
+\begin{align}
+q(Z,\pi,\phi | \eta) = q(Z | \eta^{(1)}) \cdot q(\pi | \eta^{(2)}) \cdot q(\phi | \eta^{(3)})
+\end{align}
+ We want to maximize the ELBOW objective with regard to $q(\cdot | \eta) \in {\cal Q}$, i.e.~solve
+\begin{align}
+q^* = \argmax_{\eta} \left\{ \E_{q(\cdot|\eta)} \left[ \log p( (X_l,Z_l)_{l=1}^L, \pi,\phi) \right] + H(q(\cdot|\eta)) \right\}
+\end{align}
+
+\bibliographystyle{acm}
+\bibliography{Variational} 
+
+\end{document}
+
+\maketitle
+
+\paragraph{Fixed Form Variational Bayes}
+\begin{itemize}
+\item $d$ dimensional unnormalized exponential family variational distribution 
+\begin{align}
+q(z; \eta) = \exp\left[ t(z)^\top \eta \right] \nu(z)
+\end{align}
+where $t: {\cal Z} \to \Re^{d+1}$ and $t_{d+1}(z) =1$. By setting $\eta_{d+1}=- \psi(\eta_{1:d})$ with the log partition function  $\psi$ one obtains the standard exponential family. However, it will turn out to be useful to also allow for unnormalized $q$ in intermediate steps of the optimization. 
+\item Parametric optimization problem over the ELBOW 
+\begin{align}
+\hat \eta = \arg\max_\eta \left\{ \E_q[ p(x,z) ] - \log q(z; \eta) \right\} 
+\end{align}
+Tractability depends on whether entropy can be computed analytically (most often the case) and whether expected complete data log-likelihood and its gradient can be computed (analytical, fixed-point, gradient descent solutions). 
+\item As we want to work with unnormailzed distributions, generalize entropy term to 
+\begin{align}
+\tilde H(q) = - \int q(z; \eta) \log q(z; \eta) d \nu(z) + \int q(z; \eta) d \nu(z) 
+\end{align}
+Optimizing with regard to $\eta_{d+1}$ yields 
+\begin{align}
+\eta_{d+1} = \E_{q} \left[ \log p(x,z) - \log q(z; \eta) \right] - \psi(\eta_{1:d})\,.
+\end{align}
+\item Stationary equations for $\eta$. Note first that 
+\begin{align}
+\nabla_\eta q(z; \eta) = q(z; \eta) t(z) 
+\end{align} 
+Then the gradient can easily be computed as 
+\begin{align}
+& \nabla_\eta \left[ \int q(z;\eta) \log \frac{p(x,z)}{q(z: \eta)} d \nu (z) \right] =  \int t(z) q(z; \eta) \log \frac{p(x,z)}{q(z; \eta)} d\nu(z) \nonumber \\
+& = - \int q(z; \eta) \left[ t(z) t^\top(z)\right] \eta \,\, d\nu(z) + \int q(z; \eta) t(z) \log p(x,z) \,\, d \nu(z) \nonumber \\
+& = \E_q\left[  t(z) \log p(x,z) \right] - \E_q\left[ t(z) t^\top(z)\right] \eta \stackrel  != 0 \\
+\iff & \eta = 
+\underbrace{ \E_q\left[ t(z) t^\top(z)\right]^{-1}}_{:= C^{-1}}  
+\underbrace{ \E_q\left[  t(z) \log p(x,z) \right]}_{:= g} 
+\label{eq:fixpoint} 
+\end{align}  
+where we assume that the Fisher information matrix is non-singular. 
+\end{itemize}
+
+\paragraph{Stochastic Approximation.}
+
+Interpret \eqref{eq:fixpoint} as a fixpoint equation. Instead of computing the expectation or approximating to a high degree of accuracy, simply get a noisy, but unbiased estimates as follows: sample $z^* \sim q(z,\eta)$ for the current estimate $\eta$. Then compute the corresponding $C(z)$ and $g(z)$ 
+\begin{align}
+& C_{+}  = (1-\gamma) C + \gamma C(z) g(z), \quad  g_+ = (1-\gamma) g + \gamma g(z)
+\end{align}
+and then update $\eta$ according to 
+\begin{align}
+& \eta_+  = C_{+}^{-1} g_+ = (C + \lambda \hat C)^{-1} (g - \lambda \hat g), \quad \lambda := \gamma/(1-\gamma)
+\end{align} 
+For small step sizes, one can perform a Taylor approximation of $\eta_+$ around $\eta$ 
+\begin{align}
+\eta_+ = \underbrace{C^{-1} g}_{=\eta}  + \lambda \underbrace{C^{-1} }_{\text{pre-conditioner}}  (\underbrace{\hat C \eta  - \hat g}_{\nabla_\eta\text{ELBOW}})  + {\bf O}(\lambda^2)
+\end{align}
+
+
+
+\end{document} 

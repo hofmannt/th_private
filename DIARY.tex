@@ -1,0 +1,51 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{stmaryrd}
+\usepackage{hyperref}
+\usepackage[textheight=592pt, textwidth=380pt]{geometry}
+
+\title{DIARY}
+\author{Thomas Hofmann}
+
+\begin{document}
+
+\subsection*{8-Oct-2017}
+
+\paragraph*{Deep variational Bayes filters: Unsupervised learning of state space models from raw data \cite{karl2016deep}}
+\begin{itemize}
+\setlength{\itemsep}{0.5mm}
+\item The paper tries to not only achieve low reconstruction error for sequences, but also to identify latent space dynamics and to build generative models with higher predictive power. It makes some ``conceptual'' arguments to that extend that are not very exact. For instance, see the argumentation at the end of Section 2. 
+\item The main idea is to make the state transition function stochastic by adding nuissance variables $\beta_t=(v_t,w_t)$. The general notation used is $z_{t+1} = F(z_r, u_t, \beta_t)$. Contrary to other work, the latent state sequence $(z_t)$ is not complementing the deterministic RNN state evolution, but replacing it. 
+\item The rationale behind the partitioning $\beta_t=(v_t,w_t)$ is that in the inference model, $w_{1:T}$ is allowed to depend on $x_{1:T}$, whereas $v_{1:T}$ is not. This is odd as this distinction makes the inference network less powerful, yet has no effect on the generative model (where factorized marginals are used). It appears that the hope is that this may help to avoid local optima. 
+\end{itemize}
+
+\paragraph*{Learning stochastic recurrent networks \cite{bayer2014learning}}
+\begin{itemize}
+\setlength{\itemsep}{0.5mm}
+\item Investigates generalized linear RNNs in which a stochastic variable is mixed in (Eq.~(4))
+\item One basic (but very na\"ive) claim is that it is sufficient to consider i.i.d.~stochastic variables without any dependencies (not even a Markov chain). However, this is based on a very weak density inversion argument that (see end of section 2.2). 
+\item So essentially the RNN is simply augmented by \textbf{i.i.d.~random noise} to form a generative model. \item This particular simple form makes it straightforward to apply \textbf{stochastic backpropagation}.  Both the generative and the inference model evolve their own RNN state sequences (see Figure 2). Training is done via MLE (i.e.~teacher forcing). 
+\item (\textit{The experiments contain a number of data sets and challenges that may be interstring to look at.})
+\end{itemize}
+
+
+\subsection*{7-Oct-2017}
+
+\paragraph*{Generating sequences with recurrent neural networks \cite{graves2013generating}}
+\begin{itemize}
+\setlength{\itemsep}{0.5mm}
+\item Proposes a generative RNN model, where \textbf{stochastic outputs of a RNN are fed-back as inputs} to the next step. One of the main arguments of the paper that in order to be able to recover from poor intermediate generation results, the model needs to have powerful memorization capabilities. 
+\item Distinct features of the architecture include \textbf{stacked LSTM} chains with \textbf{skip connections} to inputs and outputs. Further tricks: gradient clipping.
+\item Use in language modeling: generation of symbols (words or characters) via softmax function.  
+\item The paper goes into much detail on a broad range of experiments.
+\item \textit{This is an influential paper, although the feeding back of outputs as inputs is clearly not a new idea. However, it is re-discovered here in the context of the new style RNN models.} 
+% \item Poor write-up: Eq.~(5) is wrong ($y_t$ on RHS, but not on LHS) 
+\end{itemize}
+
+\bibliographystyle{acm}
+\bibliography{thall}
+
+\end{document}

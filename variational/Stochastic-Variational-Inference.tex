@@ -1,0 +1,59 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\renewcommand{\th}{{\tilde \theta}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\E}{{\bf E}}
+\newcommand{\w}{{\bf w}}
+\newcommand{\x}{{\bf x}}
+\newcommand{\y}{{\bf y}}
+\newcommand{\z}{{\bf z}}
+\newcommand{\X}{{\bf X}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\Z}{{\bf Z}}
+\newcommand{\Xcal}{{\cal X}}
+\renewcommand{\S}{{\cal S}}
+\newcommand{\Ccal}{{\cal C}}
+\newcommand{\Zcal}{{\cal Z}}
+\newcommand{\tgamma}{{\stackrel{\gamma}{\longleftarrow}}}
+\newcommand{\mycomment}[1]{}
+\newcommand{\loglike}{{\mathcal L}}
+
+\title{Stochastic Variational Inference}
+\author{Thomas Hofmann, ETH Zurich}
+
+\begin{document}
+
+\maketitle 
+
+\paragraph{Structure of Models} Global (hyper-)parameters $\alpha$, global parameters $\beta$, local variables $z_n$, observations $x_n$, 
+\begin{align}
+p(x,z,\beta|\alpha) = p(\beta|\alpha) \prod_n p(x_n,z_n|\beta) 
+\end{align}
+
+\paragraph{Exponential Family Assumptions} Further assumptions: probability of $\beta$ given everything else  as well as Probabilities of $z_{ni}$ given everything else are exponential families. This implies $p(x_n,z_n| \beta)$ as well as $p(\beta)$ are exponential.  Moreover it implies the conjugacy of the complete conditional of $\beta$ and its prior. 
+
+\paragraph{ELBOW and Mean-field} 
+\begin{align}
+\log \int p(x,z,\beta) d \beta dz \geq \E_q\left[ \log p(x,z,\beta) \right] - \E_q \left[ \log q(z,\beta) \right]
+\end{align}
+with the choice of variational family 
+\begin{align}
+q(z,\beta) = q(\beta| \lambda) \prod_{n,j} q(z_{nj} | \phi_{nj})
+\end{align}
+Parameterizations are chosen by the form of the respective complete conditional distributions. 
+
+
+%\paragraph{Multicausal Models} What about multicausal models?
+%\begin{align}
+%\log \frac{P(Z_d=1| Z_{-d}, X)}{P(Z_d=0| Z_{-d}, X)} + 
+% = & \sum{e} (1-X_e) \theta_d  + \sum_{e} X_e \log\frac{1-\exp[ \theta_d + const]}{1- \exp[const]}
+%\end{align}
+
+
+
+\end{document} 

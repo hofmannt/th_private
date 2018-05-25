@@ -1,0 +1,40 @@
+\documentclass{article}
+\usepackage{amsmath}
+\title{Text Analytics Workshop: \\ Zurich Technology Hub \& ETHZ}
+\author{Thomas Hofmann \& Carsten Eickhoff \\ ETH Zurich}
+
+\newcommand{\E}{{\mathbf E}}
+\renewcommand{\H}{{\mathcal H}}
+
+\begin{document}
+\maketitle
+
+\paragraph{Background} Text analytics takes unstructured text data as input, typically large corpora of documents, and aims at automatically deriving semantic or actionable information. Typical challenges include retrieval and filtering of information \cite{manning2008introduction}, text categorization \cite{sebastiani2002machine}, multi-document summarization \cite{mcdonald2007study}, Wikification \cite{mihalcea2007wikify}, information extraction \cite{banko2007open}, topic modeling \cite{hofmann1999probabilistic, blei2012probabilistic}, opinion mining and sentiment analysis \cite{pang2008opinion}, all the way to question answering and cognitive computing \cite{modha2011cognitive}. 
+
+\paragraph{Data Analytics Lab} Text mining and machine learning from large text corpora is a core area of expertise in the Data Analytics Lab at ETH Zurich. Based on many years of industry experience (Google), we have developed a cutting-edge system for entity linking \cite{ganea2015probabilistic}, which allows to find mentions of known "things"  in text and to link those mentions to the entities they refer to (e.g.~as represented by their wikipedia page or an entry in a knowledge base). This directly supports indexing document collections by entities and grouping information accordingly. We have a number of ongoing projects in this area, which include co-reference analysis, entity embeddings using deep networks, and automatic fact extraction. We also broadly work on semantic models of texts and documents, generalizing and advancing highly popular models based on word \cite{mikolov2013distributed} and document embeddings \cite{le2014distributed}. This includes language models, compositional models, and models of text coherence. Recently, we have developed a system for sentiment analysis \cite{Deriu2016} which has won the 2016 SemEval challenge \cite{SemEval:2016:task4}. Additional research includes the effective use of crowd sourcing \cite{davtyan2015exploiting} as well as text summarization \cite{li2014interactive}.
+
+\paragraph{Zurich Technology Hub} One of the use cases described in the summary of the Investment Management challenge of the Zurich Technology Hub is the collection of structured and unstructured data for applications such as economic sentiment, policy sentiment, ESG monitoring, etc. In our interpretation, this involves the gathering and analysis of large amounts of  textual contents and semi-structured data from public and proprietary data sources. What is more, the raw data as such will be ineffective to be directly used as the basis for business intelligence and insight generation without further processing through data enhancement, integration, and semantic interpretation, using many of the steps described above under the heading of \textit{text analytics}. We plan on contributing to this challenge through showcasing and assessing suitable text analytics capabilities and innovating over existing approaches. where most promising and valuable in use cases deemed most relevant.  
+
+\paragraph{Workshop Format} We suggest to discuss common interest in order to refine a plan for a research project in this area.  The Data Analytics group can provide overview presentations, for instance:
+\begin{itemize}
+\setlength{\itemsep}{0mm}
+\item Thomas Hofmann: Text analytics through inference and learning.
+\item Aurelien Lucchi: Sentiment classification with deep neural networks.
+\item Octavian Ganea: Entity linking and reference disambiguation.
+\item Carsten Eickhoff: Crowd sourcing in information retrieval. 
+\end{itemize}
+These presentations should be complemented by in-depth presentations about goals and use cases at Zurich and the ZTH.  A final discussion should clarify the most promising direction and result in a concrete project plan. A suggested schedule is as follows: 
+\begin{itemize}
+\setlength{\itemsep}{0mm}
+\item Welcome \& Introductions (15') 
+\item Zurich Technology Hub: Overview Presentations (45')
+\item ETH Data Analytics Lab: Overview \& Technical Presentations (45') 
+\item Discussion \& Next Steps (45')
+\end{itemize}
+
+\newpage
+ 
+
+\bibliography{text}
+\bibliographystyle{acm}
+\end{document}

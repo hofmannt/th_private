@@ -1,0 +1,37 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\title{Topics w/ Paulina}
+\author{Thomas Hofmann\\ ETH Zurich}
+
+\newcommand{\E}{{\mathbf E}}
+\renewcommand{\H}{{\mathcal H}}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\x}{{\mathbf x}}
+
+\begin{document}
+\maketitle
+
+\section{Reading}
+
+\paragraph*{Tree Kernels}
+
+In the context of kernel-based classifiers such as SVMs, one has made use of tree kernels in NLP. The idea is to define labeled substructures as features and to then perform linear classification in the induced feature space. Of course, the emphasis here was the desire to compute such kernels efficiently. Different tree kernels have been proposed, see for instance \cite{culotta2004dependency,moschitti2006efficient}
+
+\paragraph*{When are tree structures necessary for deep learning of representations? \cite{li2015tree}}
+
+\paragraph*{Discriminative Neural Sentence Modeling by Tree-Based Convolution}
+
+\begin{itemize}
+\item Challenge: interaction of features beyond sliding windows of convolutional layers. 
+\item Main idea: extract features from substructures of nodes, then (max-)pool over these substructures to get a fixed width sentence representation. Concretely: use of triangles (parent + left/right child)
+\item The approach shares aspects of tree kernels in that it recurses on tree fragments. However, instead of having discrete symbols associated with the nodes or edges of the fragments, here it is assumed that embeddings are available throughout, i.e.~each node has an associated fixed dimensional vector attached to it. 
+\item Constituency trees: need to use vector representations from pre-trainined RNN (for inner/hidden nodes). This means, one has to first learn a full compositionality model. This is disappointing, since then the only modification is that the classification is done based on features extracted from the whole tree and not just from the features that are propagated to the root node. 
+\item Dependency tree: variable number of childs, but they are typed/labeled, hence parameters are shared not by slot number (as in constituency trees), but by child type. 
+\item Dynamic pooling \cite{socher2011dynamic}, but experiments basically show that global per dimension pooling is close to optimal. 
+\end{itemize}
+
+\bibliographystyle{acm}
+\bibliography{Paulina}
+
+\end{document}

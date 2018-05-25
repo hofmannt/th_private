@@ -1,0 +1,109 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm,bbm}
+\usepackage{color,graphicx}
+\usepackage[autostyle]{csquotes}  
+\graphicspath{{./figures/}}
+
+\newcommand{\indep}{\rotatebox[origin=c]{90}{$\models$}}
+\renewcommand{\Re}{{\mathbb R}}	
+\newcommand{\E}{{\mathbf E}}	
+\newcommand{\x}{{\mathbf x}}	
+\newcommand{\z}{{\mathbf z}}	
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\definecolor{Red}{rgb}{0.9,0.1,0.1}
+\newcommand{\textred}[1]{{\color{Red} #1}}
+\newcommand{\textbred}[1]{{\color{Red}\bf #1}}
+\newcommand{\mV}{{\mathbf V}}
+\newcommand{\mSigma}{{\boldsymbol \Sigma}}	
+\newcommand{\mGamma}{{\boldsymbol \Gamma}}	
+
+\newtheorem{example}{Example}
+
+
+\title{
+	Emergence of Behaviors 
+}
+\author{
+	Thomas Hofmann \\[1mm] Department of Computer Science, ETH Zurich \\ thomas.hofmann@inf.ethz.ch
+}
+
+\begin{document}
+
+\maketitle 
+
+\section{Motivation} 
+
+Learning complex behaviors involving strategic planing and foresight is a fundamental problem in artificial intelligence.  In the walled gardens of complete-information  games such as Go and Chess, super-human computer players  typically rely on search strategies and heuristics to explore and evaluate possible game continuations, be it in the spirit of $\alpha\beta$-search \cite{schaeffer1989history,campbell2002deep,hsu2004behind} or by using stochastic tree search \cite{silver2017mastering,silver2017alphazero}. Computers solve these problems so well, because the action space of possible moves is co-designed with the game objective in a way that challenges tactical and strategic thinking, yet does not require major steps of abstraction. While advances in machine perception have allowed to go beyond strategy games and to push the limits in arcade game playing \cite{mnih2013playing} as well as in acquiring manipulation and locomotion skills \cite{schulman2015high,heess2015learning,levine2016end}, the challenges of the real world in which living beings operate are different in nature. 
+
+It seems to be a fundamental trait of the real world to allow for organization at different scales and levels of abstraction, which build on top of each other, and where each offers its own means of control and planning. Patterns of neural activity drive contractions in muscles. Coordinated muscular action results in movement of limbs. Further coordination of limbs leads to locomotion. Creating sensorimotor feedback loops allows for reactive and goal-directed behavior. Inference and reasoning enables navigating from $A$ to $B$, while values and ethics determine how we live our lives. Intelligent beings have to learn to play different games, governed by different rules, and requiring specific skill sets and experiences to be mastered. The emergence of new forms of organization at the next higher level depends on appropriately constraining the degrees of freedom available at the level below:
+\begin{quote} 
+\textit{Emergent properties are not something added, but rather a reflection of something restricted and hidden via ascent in scale due to constraints propagated from lower-level dynamical processes. (T.~Deacon, \cite[p.~205]{deacon2011incomplete})}
+\end{quote}
+We thus ask the question: how can we take these imprecise and informal intuitions and turn them into actual computational models that can be integrated into classical settings such as reinforcement learning \cite{sutton1998reinforcement}?
+
+\section{Relevant Work}
+
+\paragraph{Macros \cite{korf1983learning}} The first idea towards abstract actions is to sequence micro-actions into larger units or \textit{macros}. Instead of re-planing common action sequences again and again down to every minuscule detail, planning can then proceed by composing such macros, which -- because of their possibly varying length -- will also alter the time scale at which a macro-agent will operate. This idea is natural and prior work includes the use of macro operators for incrementally solving combinatorial AI puzzles such as Rubik's cube \cite{korf1983learning}. \\[2mm]
+\textit{Discussion: Macros are used for very specific combinatorial puzzles here and are completely pre-specified.}
+
+\paragraph{Blind Subplan Execution \cite{vezhnevets2016strategic}} The idea of \textit{learned} macros has been implemented via a modern (deep network) architecture in \cite{vezhnevets2016strategic}. Here essentially at every step a (probabilistic) sequence of actions is learned (encoded as a matrix $t \times n$, where $t$ is the time horizon and $n$ is the number of actions), which represents the plan. In addition a randomized stopping is performed by learning a $t$ vector of stopping probabilities. During the execution of the plan, the agent does not process observations (computational savings). So basically, the agent has to learn when is a suitable time to blindly execute a plan and for long to follow it in order to initiate the re-planing. There are also details on how to perfom the re-planing in a way that the overall policy remains fully differentiable. \\[2mm]
+%
+\textit{Discussion: The design of a differentiable archtecture that can learn macros is ``sleek", however the main limitation comes from the fact that there is no capability to react (even in simple ways) to observations, while in plan execution mode. So the deep learning ``sophistications" hide in a way the conceptual na\"ivety of the approach. } 
+
+
+
+\newpage
+
+
+\paragraph{Abstract Actions \cite{singh1992scaling}} However, macros are limited as they are performed in an open-loop sense. i.e.~executed determinstically in sequence. They lack  the ability to be run in a closed loop and deal with stochasticity in the environments or initial state. What is needed is not a fixed macro, but a partial strategy, which has the ability to reach a relevant sub-goal from a reasonably large set of starting states and with sufficient resilience with regard to the randomness in the environment. In this spirit,  \cite{singh1992scaling} defines an abstract action as expressing ``intentions of achieving useful environment states". This highlights the two-fold difficulty associated with abstract actions: (1) They have to be feasible in the sense that there should be a control policy that can fulfill these ``intentions" with reasonable success rates. It does not make sense to form abstractions that can not be realized. (2) The states they aim to reach should be improvements relative to the ultimate goal pursued by the agent. They should allow the agent to make a (big) step in the right direction, otherwise they would not be ``useful". Initial progress towards delivering on this ambitious program has been relatively limited, e.g.~by looking at solving multiple MDPs that decompose into shared subtasks \cite{singh1992scaling}. However, it is obvious that task decompositions are particularly relevant in a multitask setting, where subtasks can be reused. 
+
+
+\paragraph{Agent Hierarchies \cite{dayan1993feudal}} Another well-known approach in the same spirit is feudal reinforcement learning \cite{dayan1993feudal}, which models policy learning via a  hierarchy of agents. An agent at each intermediate level interfaces with a subordinate and a superordinate agent. The superordinate manager provides higher level tasks and rewards, which the agents needs to break-up into smaller tasks with an appropriate goal-reward structure, which are then delegated to the subordinate level. Lower level agents are insulated from higher level tasks under the responsbility of the managing agent. In cases, where abstractions are readily available, this may lead to a simple hierarchical planning problem. The proof of concept given is  a simple maze problem on a $2$-dimensional lattice. 
+\begin{example}
+The goal is to get to  a target location in a maze. Use a quadtree approach to partition the grid maze into contiguous subgrids. Now intermediate agents can request actions from their subordinates: movements in directions NSEW or search target within current region. The intermediate goal setting is trivial as one simply piggy-backs on top of the spatial coarsening of the grid. 
+\end{example}
+
+\paragraph{Options \cite{mannor2004dynamic}} Options abstract useful partial policies into abstract actions. An option usually is defined to consist of an activiation condition, a (local) policy, and a termination condition. \cite{mannor2004dynamic} propose to learn options by invoking a clustering algorithm over states (dynamically during learning). Learn how to move between all pairs of neighboring states -- these are the constreucted new options. Many details of how to do this are very heuristic. The option policy is learned by using experience replay to estimate state transitions and with DP to reach suitable border states. 
+
+\paragraph{\cite{kulkarni2016hierarchical}}
+
+\paragraph{\cite{vezhnevets2016strategic}}
+
+\paragraph{\cite{florensa2017stochastic}}
+
+\section{Ideas}
+
+\begin{itemize}
+\item The notion of a state is often useless and leads to completely misled research. For instance, to encode the position of an agent on a map as a state learns relative to a fixed map, which is -- with very few, if any, exceptions -- not a relevant problem. What matters more is the local state of the world, say the spatial neighborhood. 
+\end{itemize}
+
+
+\newpage
+
+\paragraph{Coarsening of States}
+
+\paragraph{Scaling-up Backups}
+
+
+
+\paragraph{Hierachy of Agency}
+
+One well-known approach is feudal reinforcement learning \cite{dayan1993feudal}, which models policy learning via a  hierarchy of agents. An agent at each intermediate level interfaces with a subordinate and a superordinate agent. The superordinate manager provides higher level tasks and rewards, which the agents needs to break-up into smaller tasks with an appropriate goal-reward structure, which are then delegated to the subordinate level. Lower level agents are insulated from higher level tasks under the responsbility of the managing agent. In cases, where abstractions are readily available, this may lead to a simple hierarchical planning problem.
+\begin{example}
+In route planing with road networks, one may want to distinguish different types of roads. For simplity, let us assume there is an inter-city network of highways and many local road networks. Then it would be natural to break down the overall planning process into one performed at the highway level and one at the local level. 
+\end{example}
+
+
+
+\newpage
+ 
+
+
+
+\bibliographystyle{acm}
+\bibliography{th}
+\end{document}
+

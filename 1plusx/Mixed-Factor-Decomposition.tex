@@ -1,0 +1,55 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\renewcommand{\th}{{\tilde \theta}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\E}{{\bf E}}
+\newcommand{\w}{{\bf w}}
+\newcommand{\x}{{\bf x}}
+\newcommand{\y}{{\bf y}}
+\newcommand{\z}{{\bf z}}
+\newcommand{\X}{{\bf X}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\Z}{{\bf Z}}
+\newcommand{\Xcal}{{\cal X}}
+\renewcommand{\S}{{\cal S}}
+\newcommand{\Ccal}{{\cal C}}
+\newcommand{\C}{{\bf C}}
+\newcommand{\Zcal}{{\cal Z}}
+\newcommand{\tgamma}{{\stackrel{\gamma}{\longleftarrow}}}
+\newcommand{\mycomment}[1]{}
+\newcommand{\loglike}{{\mathcal L}}
+
+\title{Mixed Factor Decomposition} 
+
+\author{Thomas Hofmann, ETH Zurich}
+
+\begin{document}
+
+\maketitle 
+
+\paragraph{Matrix Decomposition.} Standard matrix decomposition with a weighted squared error term and Frobenius norm regularization yields an approximation of the binary data matrix with entries $a_{nm}$ via  $\hat a_{nm} := y_n^\top x_m $, where $y_n$ are latent domain profile vectors and $x_m$ are latent user profile vectors of the same dimensionality. That is, we seek latent profile vectors that minimize 
+\begin{align}
+L(X,Y) = \sum_{n,m} w_{nm} ( a_{nm} - y_n^\top x_m)^2 
++ \lambda \left( 	\sum_n C_n \| y_n\|^2  + \sum_m C_m \| x_m\|^2 \right) 
+\end{align}
+While yielding models of high recommendation or prediction accuracy, the inferred profile vectors are non-interpretable. 
+
+\paragraph{Regression Approach.} Another approach is to think of latent profiles as a suitable joint data representation for both, domains and users, on top of which to perform supervised learning, i.e.~by regressing from $y_n$ or $x_m$ to interpretable dimensions such as socio-demographic attributes. Here, we predict each profile dimension, based on which we then can perform ranking or prediction.  In particular, this can be used to transfer statistical (e.g.~from Alexa) or tags/labels (e.g.~about interests)  available for domains to users. 
+
+\paragraph{Semantic Pinning.} How can we find a more homogenous model that spans both worlds? It would be nice to work in the model that has the largest predictive power, i.e.~the direct matrix factorization approach and to impose constraints in a way that makes the resulting dimensions in the latent profile vectors interpretable, e.g.~in terms of known socio-demographic dimensions. Ideally, this would happen at the cost of no -- or a compensable (more dimensions) -- degradation. First example: interest categories. If we want to associate a particular interest category with a latent dimension, then we effectively define $\{0,1\}$ targets on some domain profiles $y_n$, e.g.~$y^*_{nd} \in \{0,1\}$. If we have statistical information about audiences on the domain level, then we can impose this through real-valued targets $y^*_{nd} \in [0;1]$. In the simplest case, we would just add soft-penalties 
+\begin{align}
+\tilde L(X,Y) = L(X,Y) + \rho \sum_{(n,d) \in {\cal Q}} (y_{nd} - y_{nd}^*)^2\,,
+\end{align}
+where we sum over pairs $(n,d)$ for which we have supervised information  about domain attributes. As we take $\rho \to \infty$, we effecitvely just impute the target values into the domain profiles. 
+
+In the ALS algorithm, these would only matter in the recomputation step for $Y$. It seems not difficult to deal with these constraints. This way, we could "semantically pin" some dimensions (for some $d$), while others could just be optimized in a free manner. 
+ 
+
+
+\end{document} 
+

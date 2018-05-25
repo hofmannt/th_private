@@ -1,0 +1,346 @@
+\title{SAGA - bound on function values}
+\author{Aurelien Lucchi, Hadi Daneshmand, Thomas Hofmann}
+
+\documentclass[12pt]{article}
+
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}  % used for nice looking tables
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage[margin=0.5in]{geometry}
+
+\newcommand{\comment}[1]{}
+
+\newcommand{\g}{{\bf g}}
+\newcommand{\vectornorm}[1]{\left|\left|#1\right|\right|}
+\newcommand{\sqnorm}[1]{\left|\left|#1\right|\right|^2} 
+\newcommand{\w}{{\bf w}}
+\newcommand{\wstar}{{\bf w^*}}
+\newcommand{\wt}{{\bf w_t}}
+\newcommand{\wT}{{\bf w_T}}
+\newcommand{\wavg}{{\bf \bar{w}_T}}
+\newcommand{\wavgn}{{\bf \bar{w}_n}}
+\newcommand{\wavgb}{{\bf \bar{w}_T^{\prime}}}
+\newcommand{\wsuffixavg}{{\bf \bar{w}_T^{\alpha}}}
+\newcommand{\h}{{\bf h}}
+\renewcommand{\u}{{\bf u}}
+\newcommand{\x}{{\bf x}}
+\newcommand{\xstar}{{\bf x^*}}
+\newcommand{\y}{{\bf y}}
+\newcommand{\z}{{\bf z}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\R}{{\mathcal R}}
+\newcommand*\diff{\mathop{}\!\mathrm{d}}
+\renewcommand{\L}{{\mathcal L}}
+\newcommand{\Hbar}{\bar{H}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\begin{document}
+\maketitle
+
+\noindent Lipschitz continuous gradients (upper quadratic bound), unbiasedness 
+\begin{align}
+& f(\w) - \E f(\w^{+}) \ge  \eta \| \nabla f(\w) \|^2  - \frac{\eta^2  L }{2}\E  \| g_i\|^2
+\end{align}
+One can exploit strong convexity to further bound the first term on the RHS
+\begin{align}
+\| \nabla f(\w) \|^2 \le 2 \mu \delta f(\w) 
+\end{align}
+Moreover 
+\begin{align}
+\E \| g_i(\w)\|^2 \leq 4L  \delta f(\w)  + 2 \E \|\alpha_i - \nabla f_i(\wstar)\|^2
+\end{align}
+So that one gets 
+\begin{align}
+\E \delta f(\w^{+})  \le \left( 1 - 2 \eta \mu + 4 \eta^2 L \right) \delta f(\w^{}) + 2 \E \|\alpha_i - \nabla f_i(\wstar)\|^2
+\end{align}
+If the variance correction was optimal, the last term would vanish and 
+\begin{align}
+\max_\eta \underbrace{\left\{  1-2\mu \eta + 4 \eta^2 L \right\}}_{\rho(\eta)} \iff \eta^* = \frac{ \mu }{4L} 
+\Longrightarrow \rho^* =  1 - \frac{\mu^2}{2L} + \frac{\mu^2}{4L} = 1 - \frac{\mu^2}{4L}
+\end{align}
+Even in the simple analysis, we get an additional factor $\mu$ that is not good!
+
+\noindent Compare this to the original proof 
+\begin{align}
+  \E \| \delta \w^+ \|^2 \le (1- \eta \mu) \| \delta \w\|^2 + (2\eta - 4\eta^2L) \delta f(\w) - 2 \eta^2 \E\|...\|^2
+\end{align}
+If now again, we ignore the last term and bound suboptimality via 
+\begin{align}
+\delta f(\w) \le \frac L2 \| \delta \w\|^2
+\end{align}
+so that we get 
+\begin{align}
+  \E \| \delta \w^+ \|^2 \le (1- \eta \mu) \| \delta \w\|^2 + (\eta L - 2\eta^2 L^2) \| \delta \w\|^2 - 2 \eta^2 \E\|...\|^2
+\end{align}
+and thus 
+\begin{align}
+\eta^* =  \frac{1-\frac \mu L }{4 L}
+\end{align}
+We can also approximate this by dropping the $-\mu$ term and get in essence 
+\begin{align}
+\eta = 
+\end{align}
+
+\newpage
+
+
+
+\paragraph{Assumptions} Consider $f$ to be $\mu$-strongly-convex and differentiable with L-Lipschitz-continuous gradients, then $\forall \w \in \mathbb{R}^d$,
+\begin{equation}
+\sqnorm{\w - \wstar} \leq \frac{2}{\mu} \left( f(\w) - f(\wstar) \right)
+\end{equation}
+
+\begin{equation}
+\sqnorm{\nabla f(\w)} \geq 2 \mu ( f(\w) - f(\wstar) )
+\label{eq:strong_convex}
+\end{equation}
+
+%\begin{equation}
+%f(\w) - f(\wstar) \leq \frac{L}{2} \sqnorm{\w - \wstar}
+%\end{equation}
+
+\begin{equation}
+f(\w) \leq f(\w') + (\w-\w')^T \nabla f(\w') + \frac{L}{2} \sqnorm{\w-\w'} \;\; \forall \w' \in \mathbb{R}^d
+\label{eq:smooth}
+\end{equation}
+
+\begin{equation}
+\E \sqnorm{\nabla f_i(\w) - \nabla f_i(\wstar)} \leq 2L (f(\w) - f(\wstar))
+\label{eq:bound_variance_f}
+\end{equation}
+
+\paragraph{SAGA}
+
+We here the following SAGA update:
+\begin{equation}
+\w_{t+1} = \w_t - \eta g_i(\w_t),
+\end{equation}
+where $g_i(\w) = \nabla f_i(\w) - \alpha_i + \E_i \alpha_i $.\\
+
+We start by proving two lemmas that will be used to establish the desired bound.
+
+\begin{lemma}
+\label{lemma:bound_f}
+\begin{equation}
+f(\w_{t+1}) \leq f(\w_t) - \eta \sqnorm{\nabla f(\w_t)} + \frac{\eta^2 L}{2} \E \sqnorm{g_i(\w_t)}
+\label{eq:bound_f}
+\end{equation}
+\end{lemma}
+\begin{proof}
+
+Using $\w = \w_{t+1}$ and $\w' = \w_t$ in Eq.~\ref{eq:smooth}, we get:
+\begin{equation}
+f(\w_{t+1}) \leq f(\w_t) - \eta \nabla g_i(\w_t)^T \nabla f(\w_t) + \frac{\eta^2 L}{2} \sqnorm{g_i(\w_t)}
+\end{equation}
+
+Taking the expectation over $i$ concludes the proof.
+\end{proof}
+
+\begin{lemma}
+\begin{align}
+\sqnorm{g_i(\w)} \leq (1+\beta) \E \sqnorm{\nabla f_i(\w) - \nabla f_i(\wstar)} + (1+\beta^{-1}) \E \sqnorm{\alpha_i - \nabla f_i(\wstar)}
+\label{eq:bound_variance}
+\end{align}
+\end{lemma}
+\begin{proof}
+See nSAGA.
+\end{proof}
+
+\begin{lemma}
+Let $\delta f(\w_{t+1}) := f(\w_{t+1}) - f(\wstar)$. Then
+\begin{align}
+\delta f(\w_{t+1})
+&\leq \delta f(\w_{t}) + \left( L^2 \eta^2 (1+\beta) - \eta \mu \right) \delta f(\w_{t})
++ \frac{L}{2} \eta^2 (1+\beta^{-1}) \E \sqnorm{\alpha_i - \nabla f_i(\wstar)}
+\label{eq:bound_f}
+\end{align}
+\end{lemma}
+\begin{proof}
+Starting from Lemma~\ref{lemma:bound_f}
+\begin{align}
+\delta f(\w_{t+1})
+&\leq \delta f(\w_{t}) - \eta \sqnorm{\nabla f(\w_t)} + \frac{L}{2} \eta^2 \E \sqnorm{g_i(\w_t)} \nonumber \\
+&\stackrel{Eq.~\ref{eq:bound_variance}}\leq \delta f(\w_{t}) - \eta \sqnorm{\nabla f(\w_t)} + \frac{L}{2} \eta^2 ((1+\beta) \E \sqnorm{\nabla f_i(\w_t) - \nabla f_i(\wstar)} \nonumber \\
+&+ (1+\beta^{-1}) \E \sqnorm{\alpha_i - \nabla f_i(\wstar)}) \nonumber \\
+&\stackrel{Eq.~\ref{eq:bound_variance_f}}\leq \delta f(\w_{t}) + \left( L^2 \eta^2 (1+\beta) - \eta \mu \right) \delta f(\w_{t})
++ \frac{L}{2} \eta^2 (1+\beta^{-1}) \E \sqnorm{\alpha_i - \nabla f_i(\wstar)}
+\end{align}
+
+\end{proof}
+
+Recall $\E \sqnorm{\alpha_i - \nabla f_i(\wstar)} \leq \Hbar$ (see nSAGA). We define the following Lyapnunov function
+\begin{align}
+\L(\w, H) := \delta f(\w) + S\alpha \Hbar.
+\end{align}
+
+\begin{theorem}
+For $c \in (0; 1]$ and $\alpha \in [0;1]$, the following bound holds
+\begin{equation}
+\L(\w_{t+1}, H_{t+1}) \leq (1-\rho) \L(\w_t, H_t), \rho := c \eta \mu
+\end{equation}
+
+\end{theorem}
+
+\begin{proof}
+
+First note that $\E \Hbar_{t+1} = \left(\frac{n-1}{n} \Hbar_t + \frac{2L}{n} \delta f(\w_t) \right)$. Combining this equality with Eq.~\ref{eq:bound_f}, we get the following bound on $\Delta := \L(\w_{t+1}, H_{t+1}) - \L(\w_t, H_t)$:
+
+\begin{align}
+\Delta &\leq
+\left( L^2 \eta^2 (1+\beta) - \eta \mu \right) \delta f(\w_{t}) + \frac{L}{2} \eta^2 (1+\beta^{-1}) \E \sqnorm{\alpha_i - \nabla f_i(\wstar)} \nonumber \\
+&+ S\alpha \left( - \frac{1}{n} \Hbar + \frac{2L}{n} \delta f(\w_t) \right) \nonumber \\
+&= \left[ L^2 \eta^2 (1+\beta) - \eta \mu \right] \delta f(\w_{t}) + \left[ \frac{L}{2} \eta^2 (1+\beta^{-1}) - \frac{S\alpha}{n} \right] \Hbar + \left[ \frac{2LS \alpha}{n} \right] \delta f(\w_t)
+\end{align}
+
+We now check under what conditions $\Delta := \L(\w_{t+1}, H_{t+1}) - \L(\w_t, H_t) \leq -\rho \L(\w_t, H_t)$
+
+We start with the terms in the first and last rectangular brackets. Recall that we need to show $\delta f(\w_{t+1}) - \delta f(\w_t) \leq -\rho \delta f(\w_t)$.
+\begin{align}
+& \left[ L^2 \eta^2 (1+\beta) - \eta \mu  + \frac{2LS\alpha}{n} \right] \delta f(\w_t) \stackrel{!}\leq -c\mu \eta \delta f(\w_t) \nonumber \\
+& \stackrel{\times 1/\mu \eta L}\Longrightarrow \left[ \frac{L}{2\mu} (1+\beta) \eta - \frac1L \right] + \frac{2S\alpha}{n\eta\mu} \leq \frac{-c}{L} \nonumber \\
+& \Longrightarrow \frac{L}{2\mu} (1+\beta) \eta \leq \frac1L - \frac{2S\alpha}{n\eta\mu} - \frac{c}{L} \nonumber \\
+& \stackrel{S:=\eta n S'}\Longrightarrow \frac{L}{2\mu} (1+\beta) \eta \leq \frac1L - \frac{2S'\alpha}{\mu} - \frac{c}{L}
+\end{align}
+
+Note that if $S'=\frac{\mu}{L}$ then $\eta \leq O(\frac{\mu}{L^2})$.\\
+
+
+We now consider the term in the second rectangular bracket. We need
+\begin{align}
+& \left[ \frac{L}{2} \eta^2 (1+\beta^{-1}) - \frac{S\alpha}{n} \right] \stackrel{!}\leq - \rho S\alpha \nonumber \\
+& \stackrel{\times 1/S}\Longrightarrow \left[ \frac{L}{2S} \eta^2 (1+\beta^{-1}) - \frac{\alpha}{n} \right] \leq - c \eta \mu \alpha \nonumber \\
+& \stackrel{S:=\eta n S'}\Longrightarrow \frac{1}{n} \left[ \frac{L}{2S'} \eta (1+\beta^{-1}) - \alpha \right] \leq - c \eta \mu \alpha \nonumber \\
+& \stackrel{\times n/\eta}\Longrightarrow \frac{L}{2S'} (1+\beta^{-1}) - \frac{\alpha}{\eta} \leq - c n \mu \alpha \nonumber \\
+& \Longrightarrow \frac{\alpha}{\eta} \geq c n \mu \alpha + \frac{L}{2S'} (1+\beta^{-1}) \nonumber \\
+& \Longrightarrow \eta \leq \frac{\alpha}{c n \mu \alpha + \frac{L}{2S'} (1+\beta^{-1})}
+\end{align}
+
+%Note that if $S'=\frac{\mu}{L}$ then $\eta \leq O(\frac{\mu}{L^2})$.
+%If $S'=\mu$ then $\eta \leq O(\frac{\mu}{L})$.\\
+
+With $S'=\frac{\mu}{L}$, $\beta=1$ we get
+\begin{align}
+\eta &\leq \min \left\{ 
+\frac{\mu(1 - c - 2\alpha)}{L^2},
+\frac{\alpha}{c n \mu \alpha + \frac{L^2}{\mu}} \right\} \nonumber \\
+\end{align}
+
+\end{proof}
+
+
+
+
+
+\comment{
+\vspace{1cm}
+\paragraph{Old stuff}
+
+Using $\eta = \frac1L$, the first term becomes:
+$$\left[ \frac{L}{2} \eta^2 (1+\beta) - \eta \right] = \left[ \frac{1}{2L} (1+\beta) - \frac1L \right] = \left[ \frac{\beta - 1}{2L} \right] \stackrel{!}\leq -\frac{a}{L} \Longrightarrow \beta \leq -2a + 1 -4 \alpha$$
+
+We then use strong-convexity to show
+\begin{align}
+\left[ \frac{L}{2} \eta^2 (1+\beta) - \eta \right] \sqnorm{\nabla f(\w_t)} + \frac{2LS \alpha}{n} \delta f(\w_t)
+&\leq \left(-\frac{a \mu}{L} + \frac{2LS \alpha}{n} \right) \delta f(\w_t) \stackrel{!}\leq - c \mu \frac{1}{L}
+\end{align}
+
+Second term $\left[ \frac{L}{2} \eta^2 (1+\beta^{-1}) - \frac{S\alpha}{n} \right] \leq - \rho S\alpha$
+
+Using $S = \frac{\eta n}{L}$ yields:
+\begin{align}
+& \;\;\;\;\; \left[ \frac{L}{2} \eta^2 (1+\beta^{-1}) - \frac{\alpha \eta}{L} \right] \leq - \rho S\alpha = -c \eta^2 \mu \alpha \frac{n}{L} \nonumber \\
+& \Longrightarrow \left[ \frac{L}{2} (1+\beta^{-1}) - \frac{\alpha}{L\eta} \right] \leq -c \alpha K, \;\;\;\; K := \frac{n\mu}{L} \nonumber \\
+& \Longrightarrow  - \frac{\alpha}{L\eta} \leq -c \alpha K - \frac{L}{2} (1+\beta^{-1}) \nonumber \\
+%& \Longrightarrow  \frac{\alpha}{L\eta} \geq c \alpha K - \frac{L}{2} (1+\beta^{-1}) \nonumber \\
+& \Longrightarrow  \eta \leq \frac{\alpha}{L(c \alpha K - \frac{L}{2} (1+\beta^{-1}))} = \frac{\alpha}{c \alpha n \mu - \frac{L^2}{2} (1+\beta^{-1})}
+\end{align}
+}
+
+\comment{
+\begin{align}
+\delta f(\w_{t+1})
+&\leq \delta f(\w_{t}) - \eta \sqnorm{\nabla f(\w_t)} + \frac{L}{2} \eta^2 ((1+\beta) \E \sqnorm{\nabla f_i(\w_t) - \nabla f_i(\wstar)} \nonumber \\
+&+ (1+\beta^{-1}) \E \sqnorm{\alpha_i - \nabla f_i(\wstar)}) \nonumber \\
+&\leq \delta f(\w_{t}) - \eta \sqnorm{\nabla f(\w_t)} + \frac{L^2}{2} \eta^2 (1+\beta) \delta f(\w_{t}) \nonumber \\
+&+ \frac{L}{2} \eta^2 (1+\beta^{-1}) \E \sqnorm{\alpha_i - \nabla f_i(\wstar)} \nonumber
+\end{align}
+
+Recall $\E \sqnorm{\alpha_i - \nabla f_i(\wstar)} \leq \Hbar$. We define the following Lyapnunov function $\L(\w, H) := \delta f(\w_{t}) + S\alpha \Hbar$.
+
+We write $\Delta := \L(\w^+, H) - \L(\w, H)$. We get
+\begin{align}
+\Delta &\leq - \eta \sqnorm{\nabla f(\w_t)} + \frac{L^2}{2} \eta^2 (1+\beta) \delta f(\w_{t}) + \frac{L}{2} \eta^2 (1+\beta^{-1}) \E \sqnorm{\alpha_i - \nabla f_i(\wstar)} \nonumber \\
+&+ S\alpha \left( - \frac{1}{n} \Hbar + \frac{2L}{n} \delta f(\w_t) \right) \nonumber \\
+&= - \eta \sqnorm{\nabla f(\w_t)} + \frac{L^2}{2} \eta^2 (1+\beta) \delta f(\w_{t}) + \left( \frac{L}{2} \eta^2 (1+\beta^{-1}) - \frac{S\alpha}{n} \right) \Hbar + \frac{2LS \alpha}{n} \delta f(\w_t)
+\end{align}
+
+Group the first two terms:
+\begin{align}
+- \eta \sqnorm{\nabla f(\w_t)} + \frac{L^2}{2} \eta^2 (1+\beta) \delta f(\w_{t}) \leq
+\left( \frac{L^2}{2} \eta^2 (1+\beta) - \eta \mu \right) \delta f(\w_{t})
+\end{align}
+
+Condition on $\rho$ is too restrictive, need to keep the variance terms together.
+}
+
+{\small
+\bibliographystyle{splncs}
+\bibliography{sgd}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% OLD STUFF
+\comment{
+\paragraph{Option 1} Start with bound on iterates:
+
+\begin{align}
+\sqnorm{\w_{t+1} - \w^*} &= \sqnorm{\w_t - \eta \nabla f(\w_t) - \w^*} \nonumber \\
+&= \sqnorm{\w_t - \w^*} - 2 \eta (\w_t - \w^*)^T \nabla f(\w_t) + \eta^2 \sqnorm{\nabla f(\w_t)} \nonumber \\
+&\leq (1 - \eta\mu) \sqnorm{\w_t - \w^*} - 2 \eta (f(\w_t) - f(\wstar)) + 2 \eta^2 L (f(\w_t) - f(\wstar)) \nonumber \\
+&= (1 - \eta\mu) \sqnorm{\w_t - \w^*} - 2 \eta (1 - \eta L) (f(\w_t) - f(\wstar))
+\end{align}
+
+Using strong-convexity and Lipschitz:
+\begin{align}
+\frac2L (f(\w_{t+1}) - f(\wstar))
+&\leq (1 - \eta\mu) \sqnorm{\w_t - \w^*} - 2 \eta (1 - \eta L) (f(\w_t) - f(\wstar)) \nonumber \\
+&\leq \frac{2(1 - \eta\mu)}{\mu} (f(\w_t) - f(\w^*)) - 2 \eta (1 - \eta L) (f(\w_t) - f(\wstar)) \nonumber \\
+&= \left( \frac{2(1 - \eta\mu)}{\mu} - 2 \eta (1 - \eta L) \right) (f(\w_t) - f(\w^*))
+\end{align}
+
+We thus get:
+\begin{align}
+(f(\w_{t+1}) - f(\wstar))
+&\leq L \left( \frac{(1 - \eta\mu)}{\mu} - \eta (1 - \eta L) \right) (f(\w_t) - f(\w^*))
+\end{align}
+Need $\rho := L \left( \frac{(1 - \eta\mu)}{\mu} - \eta (1 - \eta L) \right) < 1$...
+
+
+\paragraph{Gradient Descent}
+Use Taylor expansion and upper bound $L$ on the Hessian
+
+Our starting point is the basic inequality
+\begin{align}
+f(\w_{t+1}) & = f(\w_t - \eta \nabla f(\w_t)) \nonumber \\
+&\leq f(\w_{t}) - \eta \langle \nabla f(\w_t), \nabla f(\w_t) \rangle + \frac{L}{2} \eta^2 \sqnorm{\nabla f(\w_t)} \nonumber \\
+%&\leq f(\w_{t}) - \eta \left(\mu + \frac{L^2}{2} \eta \right) (f(\w_t) - f(\wstar))
+\label{eq:basic_eq}
+\end{align}
+
+Plug-in $\eta=\frac1L$ and subtract $f(\wstar)$ on both sides,
+\begin{align}
+f(\w_{t+1}) - f(\wstar)
+&\leq (f(\w_{t}) - f(\wstar)) - \eta \sqnorm{\nabla f(\w_t)} + \frac{L}{2} \eta^2 \sqnorm{\nabla f(\w_t)} \nonumber \\
+&= (f(\w_{t}) - f(\wstar)) - \frac{1}{2L} \sqnorm{\nabla f(\w_t)} \nonumber \\
+&\leq (f(\w_{t}) - f(\wstar)) - \frac{\mu}{L} (f(\w_{t}) - f(\wstar)) \nonumber \\
+&= (f(\w_{t}) - f(\wstar)) (1 - \frac{\mu}{L})
+\label{eq:basic_eq}
+\end{align}
+}
+
+\end{document}

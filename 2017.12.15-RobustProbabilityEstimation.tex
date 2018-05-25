@@ -1,0 +1,60 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm,bbm}
+\usepackage{color,graphicx}
+\graphicspath{{./figures/}}
+
+\newcommand{\indep}{\rotatebox[origin=c]{90}{$\models$}}
+\renewcommand{\Re}{{\mathbb R}}	
+\newcommand{\E}{{\mathbf E}}	
+\newcommand{\x}{{\mathbf x}}	
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\definecolor{Red}{rgb}{0.9,0.1,0.1}
+\newcommand{\textred}[1]{{\color{Red} #1}}
+\newcommand{\textbred}[1]{{\color{Red}\bf #1}}
+\newcommand{\mV}{{\mathbf V}}
+\newcommand{\mSigma}{{\boldsymbol \Sigma}}	
+\newcommand{\pTrue}{{{\mathbb T}^*}}
+\newcommand{\pAny}{{\mathbb T}}
+\newcommand{\pEmp}{{\hat{\mathbb T}_n}}
+
+\title{
+	Robust Model Fitting for Count Data
+}
+\author{
+	Thomas Hofmann
+}
+
+\begin{document}
+
+\maketitle 
+
+Threre has been a recent theory developed for robust parameter estimation in supervised learning settings that impoves over the standard empirical risk minimization by taking the variance of the estimator into account \cite{namkoong2016stochastic,namkoong2017variance}. Our goal is to elucidate and deepen this approach for the case of estimating probability mass functions over large state spaces. This is particularly interesting for applications in areas such as natural language processing (topic models, word embeddings), computational biology, and recommender systems.\\
+
+\paragraph{Setting} 
+We are interested in estimating a risk function over a finite (but large) state space $\Omega$, $|\Omega|=m$, equipped with an unknown probability mass function $\pTrue$ from which we can sample i.i.d.~$X_t \sim \pTrue$. Assume that we draw samples $(X_1,\dots,X_n)$, which are summarize in an empirical distribution $\pEmp$ (aka.~sufficient statistics). Now assume that we have a probabilistic model $\theta$ such that $\theta \mapsto \mathbb P_\theta$ and a loss function $\ell$ then, we would like to minimize the expected risk,
+\begin{align}
+\mathcal R(\theta) = \E_{\pTrue}[\ell(\mathbb P_\theta(x)], \quad \text{e.g.} \;\; \ell(p) = \log p
+\end{align} 
+This is typcially done via empirical risk minimization (MLE being a special case thereof), where the expectation is defined with regard to $\pEmp$ instead of $\pTrue$. However, it may be advantageous to allows for a modification of the empirical probabilities and to consider a $\chi^2$-ball around $\pEmp$
+\begin{align}
+\mathcal T_{\rho} := 
+\left\{  
+	\pAny: \sum_{x: \pEmp(x)>0} \frac{(\pEmp(x) - \pAny(x))^2}{\pEmp(x)}  \le 2 \rho
+\right\}
+\end{align} 
+
+\paragraph{Zero Probabilities}
+How to optimally put probability mass put outside of $\text{supp}(\pEmp)$:
+\begin{align}
+& \arg\min \frac 12 \sum_x  \frac{(\pEmp(x) - \pAny(x))^2}{\pEmp(x)} , \quad \text{s.t. } \pAny(\text{supp}(\pEmp)) = 1- \rho  \\
+% & \frac{\pEmp(x) - \pAny(x)}{\pEmp(x)} 
+& 1 - \frac{\pAny(x)}{\pEmp(x)} \stackrel != \text{const} \iff \pAny = (1-\rho) \pEmp
+\end{align}
+So the most effective way to move probability mass away is by re-scaling. 
+
+\bibliographystyle{acm}
+\bibliography{th}
+\end{document}
+

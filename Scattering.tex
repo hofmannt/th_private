@@ -1,0 +1,20 @@
+\documentclass{article}
+\usepackage{amsmath,amssymb}
+\begin{document}
+
+\begin{itemize}
+\item Learn signal representations that are (1) invariant (under certain group actions), (2) stable (under certain small local, i.e.~diffeomorphic operations).
+\item Modulus of Fourier transform is translation invariant, e.g.~shift in time just leads to a phase shift 
+\begin{align}
+\widehat{ f(\cdot -a)}(\omega) = e^{-i a\omega} \hat f(\omega)
+\end{align}
+\item An interesting class of functions/signals  can be described via 
+\begin{align}
+f(x) = e^{i \omega \cdot x} \theta(x)
+\end{align}
+Here, if we shift the signal proportional to $x$, $\tau(x) = sx$, $f_\tau(x) = f(x-\tau(x))$, $|s|<1$, then the $|\hat{\cdot}|$ operator is Lipschitz in $| \omega|$, which can be arbitrarily large. 
+\item This sensitivity of the Fourier transform to such distortions can be counteracted by using localized functions (wavelet) instead. 
+\end{itemize}
+
+
+\end{document}

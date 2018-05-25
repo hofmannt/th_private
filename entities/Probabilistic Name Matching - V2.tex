@@ -1,0 +1,136 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{multicol}
+\usepackage{array}
+\usepackage{color}
+
+%\usepackage{mdframed}
+%\usepackage{mathtools}
+
+\title{Probabilistic Name Matching}
+\author{Thomas Hofmann}
+
+\begin{document}
+\maketitle
+
+\subsection*{Informal Problem Statement}
+Given a document with explicit (partial) entity-links. Increase the linking coverage by identifying all named mentions of the linked entities in the document. 
+
+\subsection*{Formal Problem Statement}
+
+We model a document $d$ as a sequence of tokens (no document stucture): $d = w_1,w_2,\dots,w_l$, where each $w_i$ represents a word. We are given non-overlapping token spans $t_1,\dots,t_m$ each defining a contiguous sub-sequence  of tokens.  We denote $t_j := [a_j:b_j]$, where $a_j$ ($1 \leq a_j \leq l$) is the index of the first and $b_j$ ($a_j \leq b_j \leq l$) the index of the last token in the span. 
+
+With each token span, we are given an entity as specified by a link to wikipedia (or other canonical entity pages), i.e.~we have pairs $\{(t_i,e_j): 1 \leq j \leq m \}$, where entities $e_i$ are identified in some id system such as freebase mids. Denote by $E: = \{ e_j: 1 \leq j \leq m\}$ the set of referenced entities. We would like to identify all additional (unlinked) mentions of the entities in $E$, i.e.~additional token spans that reference elements in $E$. 
+
+\subsection*{Generating Candidate Token Spans} 
+
+As a first step we heuristically identify candidate token spans. Since we are only interested in mentions of a small set of entities, namely those in $E$, we only look for candidate matches of names $n$ that can possibly refer to at least one entity $e \in E$
+. To that extent we assume that we have a  probabilistic entity-to-name map, i.e.~probabilities $p(n|e)$ {\color{blue} (Shouldn't it be $p(e|n)$ here ? I guess we are interested in the set of all candidate entities for a name, conditioning on the fact that the name already appears in the text.)}, possibly pruned at some threshold $\theta$ for the sake of sparseness. Formally, we look for all token spans $n$ (not intersecting with the known token spans) such that $p(n|e) \geq \theta$  with $e \in E$ and then add a candidate $(n,e)$. Note that we may have a situation, where the same token span can be used as a name for multiple entities in $E$, in which case we will generate multiple candidates. {\color{blue} (Future question: How do we decide if a name $n$ refers to an entity or not? For example, a person's name like "Tom Depp" might not be related to any wikipedia page, but we might errorneus build a candidate ("Depp", wikipedia/Johhny\_Depp))}
+
+Each name-entity pair $(n,e)$ generated above could be a valid reference, but due to the ambiguity of names it could also be that $n$ indeed represents an entity mention, yet that the referenced entity is not $e$. We thus make use of a probabilistic name-to-entity map to understand the ambiguity in the interpretation of the name represented by $n$. Specifically we look at the following likelihood ratio of the probabilities associated with a random mention $M$\footnote{Here we use a programming style notation to refer to random variables associated with a compound event such as a mention.}
+\begin{align}
+l(n,e) & := \frac{p(M.ent = e | M.name = n)}{\sum_{e' \neq e} p(M.ent = e' | M.name = n)}
+\\ & = \frac{p(M.ent = e | M.name = n)}{1-p(M.ent = e | M.name = n)} \nonumber
+\end{align}
+
+{\color{blue} (I think the 1 from the above denominator is in fact \\ $p(M$ represents an entity $|M.name = n) = p(\exists M.ent | M.name=n) =$ \\ $ \sum\limits_{e'} p(M.ent =e' | M.name=n)$ which I believe is not always 1 - it can be computed from the Google index data we plan to use. But if this last probability is $<0.5$, shouldn't we suppose that name n is not corresponding to any entity ?)}
+
+\subsection*{Filtering Candidate Token Spans: Formal Derivation} 
+
+The question is: what should be an appropriate rejection threshold for eliminating the candidate $(n,e)$ due to lack of confidence (or high degrees of ambiguity)?  We could require $l(n,e) > 1$ in order to make sure that the probability that the name $n$ refers to $e$ -- in a context-independent manner -- is greater than the probability that it does not refer to $e$ (i.e.~is greater than $1/2$). \\
+{\color{blue} (I would say that, in a context-independent manner, the above approach is a bit too restrictive. I am thinking of the following algorithm:\\
+- Compute $p(M$ represents an entity $|M.name = n) = p(\exists M.ent | M.name=n) = \sum\limits_{e'} p(M.ent =e' | M.name=n)$ as described above. If this value is $< 0.5$, then we should probably discard this name as not representing any entity mention.\\
+- If the above value is $> 0.5$, then let $C_n$ the set of all entities $e$ that appear in candidate pairs (n,e). These entities from $C_n$ should be sorted by $l(n,e)$ and the maximum scored one should be chosen as the referenced entity.\\
+)} 
+
+However, the marginal probabilities in the name-to-entity map do not take into account that $e$ is known to be mentioned in the context of the current page, which is the case by assumption since $e \in E$. So we would need to compute probabilities $p(M.ent =e | M.name=t, M.doc.E)$, where $M.doc.E$ is a random variable referring to the set of entities explicitly linked from the document in which the random mention $M$ occurs. Bascially, we would expect the link probability to increase {\color{blue} (comparing with context-independent probabilties)} for entities $e \in M.doc.E$ and to decrease for those $e' \not\in M.doc.E$. Formally, we can model this through Bayes' rule, where the name-to-entity map models the unconditional, prior probabilities and the random variables $M.doc.E$ and the implied events $e \in M.doc.E$ or $e \not\in M.doc.E$ consitute additional evidence to condition on. Making a simplifying conditional independence assumption\footnote{Namely that  $ p(M.doc.E | M.ent=e, M.name=n) =  p(M.doc.E | M.ent=e)$} we arrive at 
+\begin{align}
+& p(M.ent =e | M.name=t, M.doc.E)  \\
+& \propto  p(M.ent =e | M.name=t) p(M.doc.E | M.ent=e) \,. \nonumber
+\end{align}
+
+{\color{blue} (The exact formula includes also $p(M.doc.E | M.name)$ which I suppose is considered as a constant)}
+
+Now, if we ignore cross-dependencies between explicit links for different entities (which is incorrect, but yields significant simplifications), we get the product form over binary indicator events
+\begin{align}
+p(M.doc.E | M.ent=e) & = \prod_{e' \in M.doc.E} p(e' \in M.doc.E | M.ent=e) 
+\\ & \cdot \prod_{e' \not \in M.doc.E} p(e' \not\in M.doc.E | M.ent = e) \,. \nonumber
+\end{align}
+This looks complicated, but in order to apply Bayes rule as above, we only need to factor out the part that really depends on $e$ and absorbe the rest into a multiplicative constant. Using a similar argument above for the independence of events for different entities\footnote{More precisely here: the occurrence of one entity $e$ in the document does not change the probability that some other entities $e'$ is explicitly linked off the page.} we can use the following simplifications
+\begin{align}
+p(e' \in M.doc.E | M.ent=e) & = p(e' \in M.doc.E), \quad \text{and}\\
+p(e' \not\in M.doc.E | M.ent=e) & = p(e' \not\in M.doc.E), \quad \text{for $e \neq e'$} \nonumber
+\end{align}
+and define a multiplicative constant as 
+\begin{align}
+C(E) := \prod_{e' \in E} p(e' \in E) \cdot \prod_{e' \not \in E} p(e' \not\in E)
+\end{align}
+so that 
+\begin{align}
+p(M.doc.E | M.ent=e) & = C(M.doc.E) \\
+\times & \begin{cases}
+\frac{p(e \in M.doc.E | M.ent=e)}{p(e \in M.doc.E)} & \text{if $e \in M.doc.E$} \\
+\frac{p(e \not\in M.doc.E | M.ent=e)}{p(e \not\in M.doc.E)} & \text{if $e \not\in M.doc.E$} 
+\end{cases} \nonumber
+\end{align}
+%This formal derivation yields a very intuitive result: For entities that are explicitly linked off a page, the probability of being referenced again will increase by a factor that is a ratio of the conditional and marginal probabilities, assuming that this ratio in general is indeed $>1$. For entities not explicitly linked off the page, the ratio will in general be $<1$.
+
+\subsection*{Filtering Candidate Token Spans: Practicalities} 
+
+What does that mean more practically? Let us focus on the first case, the correction for entities that are actually linked-off the page (as we expect the second effect to be less significant). The marginal probabilities in the denominator are relatively easy to determine by counting
+\begin{align}
+p(e \in M.doc.E) \approx \frac{|\{d: e \in d.E\}|}{|\{d\}|}
+\end{align}
+which is simply the document frequency (in terms of explicit linking) of each entity. It can be approximated based on the corpus. A complementary formula can be used for $p(e \not\in M.doc.E)$. 
+
+The probability in the numerator is somewhat harder to estimate. It is the probability that if an entity was mentioned in a document somwhere (random mention $M$), it would be linked off of that document somewhere (else, typically earlier). If publishers would follow the rule that each occurring entity would be linked-off at least once, then this probability would simply be $1$. However, publishers may not follow that rule strictly, so $p(e \in M.doc.E | M.ent=e)$ may be less than $1$. Some entities, say abstract concepts or less important entities, may not be linked to at all, although they appear on a page. Then this probability can be signfificantly less than $1$, even approaching $0$ for entities that are not linked by anyone. Since we are not trying to resolve references to entities not linked off a document, we have no good way of estimating these quantities. We will simply use a heuristic value, say a constant $0 < R \leq 1$ and optimize it based on some extrinsic evaluation of the overall system quality. For entities $e \not\in E$ the probability in the numerator is the probability that an entity is mentioned on the page, yet not linked-off, so that probability is simply $1-R$, if we make the same simplifications as above and assume that the probability does not depend on the specific entity.   
+ 
+Let us plug everything back together, looking at the special case (for better illustration) of where there is exactly one entity $e \in E = M.doc.E$ associated with a mention name $M.name=n$ and all other possible references are entities $e' \not\in M.doc.E$. Then the posterior probability for this unique $e$ becomes
+\begin{align}
+p(M.ent=e | M.name=n, e\in M.doc.E=E) =  \frac{\frac R{1-R} \cdot p(n|e)}{\sum_{e' \neq e} p(n|e') \frac{p(e \in E)}{p(e' \not\in E)}}
+\label{eq:posterior-approx}
+\end{align}
+{\color{blue} (Shouldn't the above be $p(e|n)$ and $p(e'|n)$ as from eq (2) ?)}\\
+
+\par {\color{blue} (Also, just to make it more clear for me, is it true that here and in (2) the sum in the denominator includes also $e'$ that are not in E, but have $p(e'|n)$ over a treshold?)}
+
+
+The formula for cases where there are multiple such entities $e$ is similar. We can use \eqref{eq:posterior-approx} to compute a confidence score (as it represents an approximation of the posterior probability) and threshold it at a desired confidence level. {\color{blue} (Or, as said above, we can use this formula to rank all candidate entities for a name, pick the highest scored entity and, if its score is high enough, choose it as the winning entity; otherwise, simply say that the name does not correspond to any entity (from E).)}
+
+ Note that the multiplicative constant $\frac{R}{1-R}$ can just be folded into the confidence thresholding for practical purposes. {\color{blue} (This means that our system should vary just the treshold and not include R at all.)}
+
+
+\subsection*{Ambiguties in Token Span Segmentation}
+
+Some ambiguity in interpreting names comes from alternative ways of forming token spans in the first place. In order to address this, we employ the following heuristic. Denote by $n^-$ the single token to the left of a span (name candidate) $n$ and $n^+$ the single token to the right of $n$. We consider all sub-spans of $n^-,n,n^+$ which are not sub-spans of $n$ as additonal candidates $(n,*)$ 
+, where $*$ represents the fact that these token spans are not associated with any specific entity. By definition, each of these candidates will either include $n^-$ or $n^+$ or both. 
+
+ Example: "Anne Frank" is linked-off the page and $n=$"Frank" is a mention candidate name identified elsewhere on the page. Let us assume that the subsequent token $n^+=$"Miller". Then we want to consider the possibility that the correct mention is actually $n'=$"Frank Miller". Consdering the name "Frank" as a mention of "Frank Miller" will yield a far too low probability as we have not taken into account the more specific name by subotimal token span selection. 
+ 
+A principled way of dealing with token span segmentation is quite involved as many spans may overlap in complex ways. Here we take a myopic local view in which we simply take all overlapping spans $(n,*)$ as identified above and look up entities $e'$ that have at least a $\theta$-probability to be referred to by the name $n$. Then we simply add these pairs $(n,e')$ to the candidate set as defined above. This effectively means that the sum in the denominator in \eqref{eq:posterior-approx} will be augmented by additional (non-negative) terms, which will reduce the posterior probability for $e \in E$ as we would expect intuitively.  
+
+{\color{blue} (Several questions here:\\
+Let's suppose that we assigned the candidate $(n,n^+ ; e')$ for the name $n,n^+$ .\\
+- I tend to not agree that the sum in the denominator of 8 will be increased. In the denominator of (8), $p(e'|n)$ might be 0 even if $p(e' | n,n^+)$ is very high (because n alone might not be a name for e').\\
+- what happens if $e'$ is not in E or not an entity at all (like here, Frank Miller might not be representing a wikipedia entity, but it is still a name of a different person)? The denominator of (8) should include all entities different than e, regardless of whether they are in E or not, which probably answers the first part of the question, but makes this last approach a bit confusing for me. \\
+- Shouldn't we evaluate, in this case, $p(M.ent =e | M.name=n, M.doc.E, n+, n-)$ as a function of $p(M.ent =e | M.name=n)$, $p(M'.ent = e' | M'.name=(n,n^+))$ and $p(\exists M'.ent | M'.name=(n,n^+)) = \sum\limits_{e''} p(M'.ent =e'' | M'.name=(n,n^+))$ ? If you think this might be a good direction, I could try to formalize it more.\\
+)}
+
+\newpage
+{\color{blue}
+\subsection*{Evaluation system}
+In order to evaluate our system's annotations, we can first use the following simple approach:\\
+- take a training set of webpages P. For each page $p\in P$, a set of mentions $M_p = (name,ent)$ is given. Let $text_p$ be the raw text from the page and let $E_p$ be the set of entities from $M_p$, namely $entities(M_p)$. \\
+- for each page $p\in P$, run our automated annotation system on ($text_p$, $E_p$) and compute a set of annotations $A_p$ containing pairs $(name,ent)$. Define as true positives $tp=A_p \cap M_p$ and as false negatives $fn=M_p \setminus A_p$. These would give us the recall by summing over all pages $p\in P$. However, computing the precision (deciding if an annotation from $A_p$ is a false positive) is a bit more tricky, so we'll try to approximate it. \\
+
+\par For approximating the precision of the system we will use the following approach: \\
+- let $S_p$ be the set of all token spans $[a,b]$ (as described at the beginning of the paper) that represent names of people or real world entities that are written entirely using upper case letters. More formally, $[a,b]\in S_p$: \\
+$\bullet$ all tokens $w_i$ with $i\in [a\ldots b]$ start with an upper case letter. \\
+$\bullet$ $w_{a-1}$ and $w_{b+1}$ start with a lower case letter (to guarantee that this token span is in the middle of an English sentence)\\
+$\bullet$ there is no other character than space in $text_p$ between any tokens $w_i$ and $w_{i+1}$ with $i\in \{a-1 \ldots b\}$\\
+- for each token span $[a,b] \in S_p$ - consider the entity (if it exists) $e\in E_p$ with the highest $p(e | [a,b])$ that is above a fixed treshold $\theta'$(these probabilities will be taken from the Google corpus). Let $X_p$ the set of all these entities paired with their token spans from page p. The assumption we are making here is that $E_p \subset entities(X_p)$ and $X_p$ is the maximum set of mentions from page p that refer to English names of people, events $\ldots$ that are written just with uppercase letters.\\
+- run our automated annotation system on ($text_p$, $E_p$) and compute, like before, a set of annotations $A_p$ containing pairs  $(name,ent)$, but discarding from it all names that do not have all their tokens starting with uppercase letters. Define as true positives $tp=A_p \cap X_p$ and as false positives $fp=A_p \setminus X_p$. These would give us an approximation of the precision by summing over all pages $p\in P$. 
+}
+ 
+\end{document}

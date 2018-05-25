@@ -1,0 +1,93 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\title{Mean-Field Equations for Categorical Variables}
+\author{Thomas Hofmann, ETH Zurich}
+
+\begin{document}
+
+\noindent 
+Setting and notation: 
+\begin{itemize}
+\item evidence nodes $X=(X_n)$, $n=1,\dots,N$
+\item latent profiles nodes $Z=(Z_m)$, $m=1,\dots,M$
+\item partitioning into $k=1,\dots,K$ categorical variables
+\begin{align*}
+I = \{1,\dots,M\} , \quad I_k \subseteq I, \quad \bigcup_{k=1}^K I_k = I, \quad \sum_{k=1}^K |I_k| = M
+\end{align*}
+\end{itemize}
+
+\noindent
+Define the mean-field objective (with Lagrange multipliers) for categorical variables
+\begin{align}
+\tilde\Theta(\pi, \theta, Q; X) :=  & 
+\sum_{n=1}^N X_n \log \left(1- e^{- \langle Q, \theta_{n} \rangle} \right)  
+- \! \sum_{n} (1-X_n) \langle Q,\theta_n \rangle \nonumber
+\\ & 
++ \sum_{m=1}^M q_m \log \frac{\pi_m}{q_m}  
++ \sum_{k=1}^K  \lambda_k  \left( \sum_{m \in I_k}  q_m  - 1 \right)
+\end{align}
+Compute the derivatives and set to zero for $q_m$ with $m \in I_k$. 
+\begin{align}
+\frac{\partial \tilde\Theta}{\partial q_m} = &  
+\sum_{n} (1-X_{n}) \theta_{nm} +  \sum_{n} X_n \theta_{nm} \frac{e^{-\langle Q, \theta_n \rangle}}{1 - e^{-\langle Q, \theta_n \rangle}} 
+\nonumber \\
+& - \log q_m + \log \pi_m + \lambda_k 
+ \stackrel{!}{=}0 
+\end{align}
+Hence equivalently 
+\begin{align}
+q_m = \lambda_k \pi_m 
+\prod_n \exp\left[(1-X_{n}) \theta_{nm} + X_n \theta_{nm} \frac{e^{-\langle Q, \theta_n \rangle}}{1 - e^{-\langle Q, \theta_n \rangle}}  \right]
+\end{align}
+Note that the choice of the Lagrange multiplier can be directly read of as 
+\begin{align}
+\lambda_k^{-1} = \sum_{l \in I_k} \pi_l
+\prod_n \exp\left[(1-X_{n}) \theta_{nl} + X_n \theta_{nl} \frac{e^{-\langle Q, \theta_n \rangle}}{1 - e^{-\langle Q, \theta_n \rangle}}  \right]
+\end{align}
+
+\end{document}
+
+
+\begin{align}
+\end{document}
+\\
+\iff  q_d & =  \frac{1}{1 +  \exp[f_d(Q)]} 
+\end{align}
+where 
+\begin{align}
+f_d(Q) & := -\log \frac{\pi_d}{1-\pi_d} + \sum_{e} (1-X_e) \theta_{ed} - 
+\sum_{e} X_e \frac{e^{-\langle Q, \theta_e \rangle}}{1 - e^{-\langle Q, \theta_e \rangle}} \theta_{ed} 
+\end{align}
+
+\textbf{Derivation:}
+\begin{align*}
+	\frac{\partial \tilde{\Theta}}{\partial q_d} = \log \left[ \frac{(1-q_d)\pi_d}{q_d (1-\pi_d)}  \right] - \sum_{e} (1-X_{e}) \theta_{ed} + 
+\sum_{e} X_e \theta_{ed} \frac{e^{-\langle Q, \theta_e \rangle}}{1 - e^{-\langle Q, \theta_e \rangle}}  \stackrel{!}{=}0 \\
+\log \left[ \frac{(1-q_d)}{q_d } \right] + \log \left[ \frac{\pi_d}{(1 - \pi_d)} \right] - \sum_{e} (1-X_{e}) \theta_{ed} + 
+\sum_{e} X_e \theta_{ed} \frac{e^{-\langle Q, \theta_e \rangle}}{1 - e^{-\langle Q, \theta_e \rangle}} \stackrel{!}{=}0 \\
+ \log \left[ \frac{(1-q_d)}{q_d } \right] \stackrel{!}{=} \underbrace{- \log \left[ \frac{\pi_d}{(1 - \pi_d)} \right] + \sum_{e} (1-X_{e}) \theta_{ed} - \sum_{e} X_e \theta_{ed} \frac{e^{-\langle Q, \theta_e \rangle}}{1 - e^{-\langle Q, \theta_e \rangle}}}_{f_d(Q)} \\
+\frac{(1-q_d)}{q_d } \stackrel{!}{=} e^{f_d(Q)} \\
+1 \stackrel{!}{=} q_d \cdot (e^{f_d(Q)} + 1) \\
+\frac{1}{1 + e^{f_d(Q)}} \stackrel{!}{=} q_d
+\end{align*}
+
+\pagebreak
+\paragraph{Adding Lagrangian Constraints:}
+Modelling m-valued categorical variables is equivalent as modelling m asymmetric binary variables when constraints are
+added. Let's assume we have only one hidden variable which corresponds to gender, which therefore results in 2 binary
+variables. To derive the new update step for $q_d$ we first have to augment equation 1 as follows:
+
+\begin{align}
+	\tilde\Theta_{\lambda} :=  \tilde \Theta + \lambda(1 - \sum_{\{q_d\}} q_d)
+\end{align}
+
+\textbf{New Fixpoint Derivation:}
+\begin{align*}
+	\frac{\partial \tilde{\Theta}_{\lambda}}{\partial q_d} = \frac{\partial \tilde{\Theta}}{\partial q_d} - \lambda \stackrel{!}{=}0 
+\end{align*}
+
+
+\end{document} 

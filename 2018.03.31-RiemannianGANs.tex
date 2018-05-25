@@ -1,0 +1,73 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm,bbm}
+\usepackage{color,graphicx}
+\usepackage[autostyle]{csquotes}  
+\graphicspath{{./figures/}}
+
+\newcommand{\indep}{\rotatebox[origin=c]{90}{$\models$}}
+\renewcommand{\Re}{{\mathbb R}}	
+\renewcommand{\P}{{\mathbb P}}	
+\newcommand{\E}{{\mathbf E}}	
+\newcommand{\mI}{{\mathbf I}}	
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\title{
+	Riemannian GANs
+}
+\author{
+	Gary B\'ecigneul \& Thomas Hofmann \\[1mm] Department of Computer Science, ETH Zurich
+}
+
+\begin{document}
+
+\maketitle 
+
+
+\paragraph{Learning Metrics} Following \cite{lebanon2002learning}, we can associate a probability density function with a metric $g$ of a Riemannian manifold $\mathcal M$ via its inverse volume element 
+\begin{align}
+p_g(x) := \exp\left[ - \frac 12 \log \det g(x) - \log Z_g \right], \quad Z_g:= \int_{\mathcal M}  \exp\left[ - \frac 12 \log \det g(x) \right]\; dx \,.
+\end{align}
+It is then straightfoward to use the corresponding log-likelihood function as a utility measure for learning $g$, i.e.~$g \rightarrow \max \{ \ell(g) :=  \E_p\left[ \log p_g(X) \right]\}$, where $p$ denotes the data distribution. The general idea is to prefer metrics which warp the space in a way such that distances become shorter in areas of high data density.
+
+
+\paragraph{Conformal Metrics} Let us focus on metrics conformal to $\Re^n$, i.e.~$g(x) = \lambda^2(x) \, \mI$ such that  $\det g = \lambda^{2n}$. Note that this family of metrics directly controls the differential volume elements via the scalar function $\lambda: \mathcal M \to \Re_+$, while preserving angles locally.  Let us equivalently use  $f= -n \log \lambda: \Re \to \Re^n$ so that we get a simple Gibbs form
+\begin{align}
+p_f(x) := \exp\left[ f(x) - \log Z_f \right] , \quad Z_f := \int e^{f(x)} \; dx\,.
+\end{align}
+
+\paragraph{Variational Inequality} In order to approximate $\log Z_f$, one can introduce a generative model $q$ and use Jensen's inequality to define a contrast between true and variational distribution 
+\begin{align}
+\log Z_f \ge  \E_q\left[f\right]  + H(q) 
+\quad  \Longrightarrow \quad  
+\ell(f) \, \le \, \ell(f,q) :=  \E_p[f] -  \E_q\left[f\right]   - H(q) \,.
+\label{eq:contrast}
+\end{align}
+%
+The approximation error introduced by Jensen's inequality can be written as a KL-divergence 
+\begin{align}
+\ell(f,q) - \ell(f) = \text{KL}(q||p_f) = \E_q\left[ \log q - \log p_f \right]  \ge 0\, .
+\end{align}
+which is zero if and only if $q = p_f$ or, equivalently, $\log q = f + \text{const}$. \\
+
+
+\paragraph{WGAN} Maximizing $\ell(f,q)$  over 1-Lipschitz functions $f$ is exactly equivalent to  the Wasserstein GAN objective written in the Kantorovich-Rubinstein dual form \cite[Eq.~(2)]{arjovsky2017wasserstein}. Hence, learning the WGAN discriminator $f$ can be equivalently thought of as learning a metric conformal to $\Re^n$ with $\lambda = \exp[-f/n]$. \\
+
+The difference betwen Eq.~\eqref{eq:contrast} and the dual Wasserstein objective is in the way, the generative model enters, as there is an additional entropy term $H(q)$,
+\begin{align}
+q \; \stackrel{\max}{\longrightarrow }\; \E_q \left[ f - \log q \right]\,.
+\end{align}
+Of course, one can drop $H(q)$  from Eq.~\eqref{eq:contrast} and work with a coarser bound. 
+
+\paragraph{Comments}
+
+\begin{itemize}
+\item I have tried to reconstruct  and distill the argument to the bare minimum.
+\item I am a bit confused by what the rest ``means". You refer to maximizing with respect to both paraneter vectors at some point, but that has to be a min-max. Are you saying that if one does GD of the WGAN objective w.r.t.~the generator that this is Riemannian GD with regard to the objective in Eq.~(16) of your write-up. Maybe you can try to make your case clearer.
+\item What about the entropy term? Does that not show up in your derivation? 
+\end{itemize}
+\bibliographystyle{acm}
+\bibliography{th}
+\end{document}
+

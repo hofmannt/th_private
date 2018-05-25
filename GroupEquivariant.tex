@@ -1,0 +1,63 @@
+\documentclass{article}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\author{Thomas Hofmann}
+\title{Group Equivariance}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\ZZ}{{\mathbb Z}}
+\newcommand{\mat}[1]{{\mathbf #1}}
+\newcommand{\X}{{\mathcal X}}
+\newcommand{\Y}{{\mathcal Y}}
+\renewcommand{\vec}[1]{{\mathbf #1}}
+
+\begin{document}
+\maketitle
+
+\paragraph{Group actions} We are interested in learning representations (aka.~deep learning) over an input domain $\X$, which in addition to being suitable as a part of a prediction mechanism, also respects some assumed (or known) invariances and symmetries in the data. One way to formalize this is to model data transformations via \textit{actions} of a \textit{group} on the input domain, i.e.~a group action $T$ is defined via a mapping $T: G \times \X \to \X$, $(g,x) \mapsto T_g x$. It needs to satisfy $T_e = id$ for the neutral element and be compatibel with the group operation $\circ$ such that $T_{(g \circ h)}x = T_g (T_h x)$.
+
+\textit{Example}: translations of a one-dimensional signal. Each element $g$ is characterized by an offset $\triangle_g \in \Re$ such that $T_g x(t) = x(t+ \triangle_g)$. Obviously, $T_{g \circ h} x(t) = T_{g} T_h x(t) = x(t + \triangle_g + \triangle_h)$. 
+
+\textit{Example}: Assume that $\X$ is a semantic embedding space and that $G$ represents possible semantic transformations (e.g.~the application of a modifier to a noun phrase). Then, if we assume that each modifier has an inverse (which can be formally introduced, even if these are not used in language), we can model semantic transformations as group actions.  
+
+\paragraph{Linear Representations} The simplest type of actions allow for \textit{linear representations}, i.e.~they can be modeled via linear functions/algebra. So for some vector space $\X$, a linear representation $\rho$ is a mapping 
+\begin{align}
+\rho: G \to GL(\X), \quad \text{such that} \quad \rho(g \circ h) = \rho(g) \rho(h) 
+\end{align} 
+which basically means that we can interpret $T_g x$ as a matrix vector product in $\X$ and $T_{g \circ h}$ as a matrix-matrix product. 
+
+\paragraph{Feature Maps} Representation learning usually models a complex functions via layers of simpler transformations. Let us thus consider such a mapping $\Phi: \X \to \Y$ (which in learning will be parameterized in some form). We can now consider an action (seperate or identical) of the group $G$ on both spaces. We would like to restrict $\Phi$ in a way that it somehow respects the group actions $T^\X$ and $T^\Y$. This leads to the concept of \textit{equivariance}, where one requires 
+\begin{align}
+\Phi(T^X_g x) = T^\Y_g \Phi(x) 
+\end{align}
+which basically states that we can represent the action of $G$ on $\X$ through a (possibly different) action defined on the image of $\Phi$. 
+
+\paragraph{Actions on Feature Maps}
+There is a canonical way to induce group actions on images of feature maps, namely by setting 
+\begin{align}
+L_g \Phi(x) := T^\Y_g \Phi(x) = \Phi \left( g^{-1}(x)\right) 
+\end{align}
+This definition can be extended from the input space $\X$ to operate directly on the group itself, which is what we encounter when we stack feature maps in deep networks. So we can also think of $L_g \Phi$ as being a transformed feature map defined on $G$, $L_g \Phi(h) = \Phi\left(g^{-1} \circ h \right)$
+
+
+
+\paragraph{ConvNets}
+
+Standard groups relevant for signal and image processing are: (i) translation group on an integer grid or a continuous field. (ii) translation plus rotations (e.g.~by multiples of $\pi/2$  on an integer grid), group p4, plus reflection: group p4m.\footnote{For planar groups see also: \\\url{caicedoteaching.files.wordpress.com/2012/05/burns-fletcher-zell.pdf}}
+
+ConvNets can be re-interpreted in the above view: correlation (or convolution) is an equivariant map for the translation group. The notion of correlations can be generalized to arbitrary groups (not just translation grpups) as follows: 
+\begin{align}
+[x \star \psi](g) = \sum_{h \in G'} x(h) \psi(g^{-1} h)
+\end{align}
+where $G' = \ZZ^2$ in the first layers and -- possibly -- $G'=G$ in deeper layers. 
+
+\paragraph{Equivariant Phrase Embeddings}
+
+Can we use G-convolutions in the context of word embeddings? It is desirable that semantic transformations are easily interpretable, e.g.~in the simplest case as translations. We can apply the equivariance conecpt as follows: we think of modifiers as forming a group $G$ (formally, we can assume that there is a neutral modifier and inverse modifiers, even if they are not typically used in language). $G$ acts on expressions (phrases or partial parses) by changing their meaning. We would like to find a linear representation for the elements in $G$ that would then act on the $\Phi$-induced embedding of expressions. For instance, we can work with matrices operating on homogenized embedding vectors. So in order to compute $\Phi(g^{-1} \circ x)$, we would compute $L_{g} \Phi(x)  $. 
+
+Somwhow we would need to assume more about the group structure of the modifiers. It seems weird to just think of them as translations. 
+
+Can we break the arbitraryness of the embedding dimensions by using a convolution with the permutation group? Hard to compute G-convolutions directly? 
+
+\bibliographystyle{acm}
+
+\end{document}

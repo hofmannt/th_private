@@ -1,0 +1,191 @@
+\documentclass{article}
+\usepackage{amsfonts,amsmath}
+\usepackage{hyperref}
+\title{Hyberbolic Embeddings}
+\author{Thomas Hofmann, Octavian Genea, Gary Becigneul\\[2mm] Department of Computer Science, ETH Zurich}
+
+\newcommand{\mat}[1]{{\mathbf #1}}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\hyperspace}{{\mathcal X}}
+\newcommand{\z}{{\mathbf z}}
+\renewcommand{\Re}{{\mathbb R}}
+
+\begin{document}
+\maketitle
+
+\subsection*{Hyperbolic Spaces}
+
+\paragraph{Riemannian manifold.} The hyperbolic space of dimension $n \geq 2$ is a fundamental object in Riemannian geometry. It is (up to isometries) uniquely characterized as a complete, simply connected Riemannian manifold with  constant negative sectional curvature (w.l.o.g.~equal to $-1$) \cite{martelli2014hyperbolic}. The other two spaces of constant sectional curvature are $\Re^n$ (curvature $0$) and the hyper-sphere $S^n$ (curvature $1$).  
+
+\paragraph{Models.} Hyperbolic spaces have two main (conformal) models \cite{anderson2006hyperbolic}: the Poin\-car\'e half space model $\mathbb H^n := \{x \in \mathbb \Re^n: x_n >0\}$, and the Poincar\'e disk model $\mathbb D^n = \{ x \in \mathbb \Re^n: \| x\| <1\}$, which are often insightful to work in. As models of a Riemannian manifolds, it is fundamental to define their metric tensor, which is typically done relative to the metric tensor $g^E$ in the embedding space $\Re^n$. We have for $\mathbb D^n$ and $\mathbb H^n$, respectively
+\begin{align}
+g^{\mathbb D}_x = \left( \frac 2 {1- \|x\|^2}\right)^2 g_x^E, \quad \text{and} \quad 
+g^{\mathbb H}_x=  \frac 1{x_n^2}  g_x^E\,.
+\end{align}
+In both cases, the Euclidean metric is changed by a simple scalar field, hence the models are \textit{conformal} (i.e.~angle preserving), yet distort distances. 
+
+It is illuminating to identify the straight lines (geodesics) in these models: In $\mathbb H^2$ these are all vertical lines parallel to the $x_2$ axis as well as half circles with midpoints on the $x_1$ axis. In $\mathbb D^2$ these are all lines through the origin as well as all circular arcs that are orthogonal to $\partial \mathbb D^2$.
+
+\subsection*{Embeddings}
+
+[TBD]
+
+\subsection*{Cones}
+
+\paragraph{Cones from the exponential map.} 
+We are interested in generalizing the notion of a convex cone to hyperbolic spaces.  In a vector space, a convex cone $S$ (at the origin) is a set that is closed under positive linear combinations
+\begin{align}
+v_1, v_2 \in S  \quad \Longrightarrow \alpha v_1 + \beta v_2 \in S \quad  (\forall \alpha, \beta >0) \,.
+\end{align}
+The key idea in generalizing this is to make use of the exponential map at a point $x \in M$ (where $M$ is a model for the hyperbolic space)
+\begin{align}
+\exp_x: T_xM  \to M,\quad T_xM  =\; \text{tangent space at $x$}
+\end{align}
+We can now take any cone in the tangent space $S \subseteq T_xM$ at a fixed point $x$ and translate it into a set $\frak S_x$, which we call the $S$-cone at $x$, via 
+\begin{align}
+\frak S_x := \exp_x \left[ S \right] \,.
+\end{align}
+In order for that to work in this simple manner, it needs to be the case that $M$ is complete as a metric space (Hopf-Rinow theorem), which is the case for hyperbolic spaces. This guarantees that $M$ is geodesically complete.
+
+
+\paragraph{Arc-Length Parameterizations}
+
+Let us first  work out the arc-length parameterization of geodesics in $\mathbb H^2$. We start by vertical lines $\gamma$ with $\gamma(0) = (x_1,x_2)$
+\begin{align}
+\dot\gamma = (0, \dot \gamma_2), \;\;
+\| \dot \gamma\| = \dot \gamma_2  \stackrel != \gamma_2
+\quad \Longrightarrow \quad \gamma_2 = x_2 \exp, \quad 
+\gamma(t)  = (x_1, e^t x_2)
+\end{align}
+\noindent We also need a parameterization of half-circles (or arcs). Starting with the standard parameterization for a radius $r$ half-circle at the origin 
+\begin{align}
+\gamma(\theta) = r (\sin \theta, \cos \theta),\;\; \theta \in (-\tfrac \pi 2 ; \tfrac \pi 2), \;\;
+\frac{d\gamma}{d\theta} = r(\cos\theta, -\sin\theta),
+\;\; \left\|\frac{d\gamma}{d\theta} \right\| = r\,.
+\end{align}
+In $\mathbb H$, we can obtain an arc-length parameterization via $\theta: (-\infty;\infty) \to (-\tfrac \pi2; \tfrac \pi 2) $. Using the chain rule
+\begin{align}
+\left\| \dot \gamma \right\|  =  \dot\theta \left\|  \frac{d\gamma}{d \theta}\right\| 
+= r  \dot\theta  \stackrel != \gamma_2 = \cos\theta
+\quad \Longrightarrow  \quad 
+\theta = 2 \arctan \left(\tanh\left(  \frac t{2r} \right) \right) \,.
+\end{align}
+
+\paragraph*{Angular Cones} 
+
+We are interested in special types of cones. Fix a point $x \in \mathbb H^2$, where due to isometry we can assume w.l.o.g~that $x_1=0$.  We first require that $(0,-1) \in S \subseteq T_x\mathbb H^2$. Note that this tangent vector generates the axis-oriented geodesic.  We also use this vector (that we can canoncically identify across the tangent bundle) as a point of reference to measure angles across tangent spaces. We thus associate with a tangent vector $v$ the angle
+\begin{align}
+\phi(v) = \arccos(-v_2/\|v\|) \,.
+\end{align}
+Then we can define an angular cone with width $2\psi \ge 0$ as 
+\begin{align}
+S^\psi := \{ v: |\phi(v)| \le \psi \}, \quad \frak S^\psi_x := \exp_x(S^\psi)
+\end{align}
+
+\paragraph*{Nested Angular Cones} 
+
+We are interested in defining a cone width function $\psi(x_2)$ such that the resulting angular cones form a nested structure as follows
+\begin{align}
+\forall x,x': \quad x' \in \frak S^{\psi(x_2)}_x  \; \Longrightarrow \; \frak S^{\psi(x'_2)}_{x'} 
+\subseteq \frak S^{\psi(x_2)}_x 
+\end{align}
+Obviously, it suffices to consider tangent vectors on the face (conic border) of $S$. In $\mathbb H^2$ these are the unit vectors $v_1$ and $v_2$ with angle $-\psi$ and $\psi$, respectively, with regard to $(0,-1)$. In order to apply the results from before, we calculate the radius of the geodesic leaving $x$ with angle $\psi$ to be $r = \tfrac{x_2}{\sin \psi}$. We can also compute the midpoint $z=(z_1,0)$ as
+\begin{align}
+z_1 = x_1 - r \cos \psi = x_1 - x_2 \cot \psi ,
+\end{align}
+and thus
+\begin{align}
+\gamma_1(\theta) & = z_1 + r \cos \theta = x_1 + x_2  \tfrac{\cos\theta - \cos\psi}{\sin \psi}, \quad 
+\gamma_2(\theta) = r \sin \theta = x_2 \tfrac{\sin\theta}{\sin \psi}  \,.
+\end{align}
+
+\bibliographystyle{acm}
+\bibliography{th}
+
+\end{document}
+
+The key property of the former is the closure property for rays
+\begin{align}
+V \subseteq \Re^n \text{ is a cone}  \quad \Longrightarrow \quad  (v \in V \Longrightarrow \alpha v \in V, \; \forall \alpha >0)
+\end{align}
+In vector spaces, given a cone $V$, we can define a cone at $z$, via $V+z$. How can we generalize this to an hyperbolic cone $\frak S_z$ located at some $z$? \\
+
+\noindent We will require the following
+\begin{itemize}
+\item Whenever $x \in \frak S_z$, then the entire half ray that connects $x$ and $z$ should be in $\frak S_z$ as well. Note that straight lines are geodesics, which can also be described by the exponential map at $z$. Denote by $v_x \in T_z \mathbb H$ the tangent vector mapped by the exponential map to the geodesics connecting $z$ and $x$, then 
+\begin{align}
+x \in \frak S_z \quad \Longrightarrow \quad \exp(t v_x) \in \frak S_z \quad (\forall t>0)
+\end{align}
+
+
+
+\item $\frak S_z$ contains the special (i.e.~Euclidean straight) ray from $z$ towards the real axis (in $\mathbb H$) or the unit circle (in $\mathbb D$) is contained in a cone, i.e.
+\begin{align}
+z = r + is \quad \Longrightarrow \quad \{ z': r + is', 0<s'<s\} \subseteq \frak S_z \subseteq \mathbb H
+\end{align}
+\item If two rays $l_1, l_2 \in \frak S_z$, then all rays ``between'' them are also in $\frak S_z$. To make this precise let $v_1$ and $v_2$ be the respective tangent vectors at $T_z \mathbb H$, i.e.~$l_1 = \exp(\Re_+ v_1)$ and $l_2 = \exp(\Re_+ v_2)$. Then for any convex combination
+\begin{align}
+v = \alpha v_1 + (1-\alpha)v_2 \quad \Longrightarrow \quad \exp(tv) \in \frak S_z \quad (\forall t>0)
+\end{align}
+\end{itemize}
+
+\bibliographystyle{acm}
+\bibliography{th}
+
+\end{document}
+
+\newpage
+
+
+
+In order to turn this into a definition for a cone, we want to avoid further use of vector space structure, and instead think of the rays that define the border of a cone. For reasons that will become obvious, we require that each cone contains the (special) ray starting at $z$ that is parallel to the imaginary axis (half-space model) or a spoke segement (disk model). 
+
+\newpage
+
+We can thus define a cone $\frak S(z)$ by picking two rays starting at $z$ and defining the cone to be the space enclosed by the two. Here, we define the `intrerior' to be the space that contains the imaginary axis. 
+
+\newpage
+
+
+
+
+
+That says that, if a point $x$ is in the cone located 
+
+\newpage
+
+ The same definition can be used in the hyperbolic case by replacing the notion of a Euclidean line by a hyperbolic line. \\
+
+
+\newpage
+ 
+
+We follow \cite{nickel2017poincar} and use the Poincar\'e model of hyperbolic spaces, i.e.~$\frak B^d := \{ x \in \Re^d: \| x\| <1\}$. The Riemannian metric tensor of the resulting manifold is the product of the Euclidean metric $g_*$ and a simple isotropic scalar field, i.e.
+\begin{align}
+g_x = \left( \frac{2}{1-\|x\|^2} \right)^2 g_*
+\end{align}
+which induces a distance function that can be calculated to be 
+\begin{align}
+d(x,y) = \cosh^{-1}\left(1+ 2 \frac{\| x-y\|^2}{(1-\|x\|^2) \cdot (1-\|y\|^2)} \right) \,.
+\end{align}
+Obviously, the Euclidean distances get stretched without bound as one approaches the border $\partial \frak B^d$ of $\frak B^d$, which is the unit sphere. 
+
+As a special case let us compute the distances for points $x,x'$ with norm $r=\|x\|$ and $r'=\|x'\|$ that are on the same spoke, assuming $0 < r' \le r < 1$. Then 
+\begin{align}
+d(x,x') = \ln \left( \frac{1+r}{1-r} \cdot \frac{1-r'}{1+r'} \right) = 2 \left( \tanh^{-1}(r) - \tanh^{-1}(r') \right)
+\end{align}
+
+
+\subsection*{Order Embeddings in Hyperbolic Spaces}
+
+Each point $x$ defines (canonically) a section $\frak S_x$ that is symmetric around the spoke passing through $x$ who's  border is given by the union of all geodesic lines that are tangents to the hyper-sphere with radius $\|x\|$.  Geometrically, all geodesics through $x$ are circular arcs with the same radius and because of the symmetry, each arc is cut in half at $x$. Moreover, if $x,x'$ are on the same spoke as above, then $\frak S_x \subseteq \frak S_{x'}$, i.e.~as we move along a spoke outwards, the section corresponding to the point shrinks. In the limit of $r \to 1$, $S_x$ is just $x$ itself. Note further that if $y \in \frak S_x - \{x\}$, then $\|y\|< \|x\|$. \\
+
+We can use the above construction of a cone\footnote{The geodesics take the role of straight lines, can this construction be shown more formally to a cone.} to define a canonical (i.e.~isotropic, symmetric) partial order on $\frak B^d$ as follows
+\begin{align}
+x \succeq y \quad \iff y \in \frak S_x
+\end{align}
+This relation is indeed reflexive, antisymmetric, and transitiv, i.e.~a partial order. 
+
+
+
+

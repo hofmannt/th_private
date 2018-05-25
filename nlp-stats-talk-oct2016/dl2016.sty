@@ -1,0 +1,83 @@
+\usepackage[latin1]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+% \usepackage{wasysym}
+\usepackage{bm}
+\usepackage{color,graphicx}
+\usepackage{tikz}
+% \usetikzlibrary{arrows,positioning,shapes,snakes}
+
+% \usepackage{../tex/latex/ifdraft}
+% \usepackage{../tex/latex/animate}
+% \usepackage{../tex/latex/pause}
+\definecolor{Blue}{rgb}{0.3,0.3,0.9}
+\definecolor{Red}{rgb}{0.9,0.1,0.1}
+
+\newcommand{\argmax}{\operatornamewithlimits{argmax}}
+\newcommand{\argmin}{\operatornamewithlimits{argmin}}
+\newcommand{\transpose}{\mathsf{T}}
+\newcommand{\tr}{\mbox{tr}}
+\def\Um{\mathbf{U}}
+\def\Vm{\mathbf{V}}
+\def\Zm{\mathbf{Z}}
+\def\Wm{\mathbf{W}}
+\def\Rb{\mathbb R}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\Fclass}{{\mathcal F}}
+\newcommand{\Flin}{{\Fclass}_{\text{lin}}}
+\newcommand{\E}{{\mathbf E}}
+
+% Define table of contents page
+\newcommand{\inserttableofcontents}{
+
+\begin{frame}
+\frametitle{Table of Contents}
+\tableofcontents[currentsection]
+\end{frame}
+
+}
+
+% Title style
+\setbeamerfont{frametitle}{series=\bfseries}
+
+% Paragraph style
+\usefonttheme[onlymath]{serif}
+\setlength{\parskip}{\medskipamount}
+\setlength{\parindent}{0pt}
+
+% Define emphasis style
+\renewcommand{\emph}[1]{{\color{Blue}\bf #1}}
+\newcommand{\myred}[1]{{\color{Red}\bf #1}}
+\newcommand{\myblue}[1]{{\color{Blue}\bf #1}}
+\newcommand{\textred}[1]{{\color{Red}\bf #1}}
+\newcommand{\textblue}[1]{{\color{Blue}\bf #1}}
+\definecolor{hilitec}{rgb}{0.3,0.3, .8}
+\newcommand{\hilite}[1]{\emph{\color{hilitec}#1}}
+\renewcommand{\Re}{{\mathbb{R}}}
+
+% Define headings style
+\newcommand{\heading}[1]{{\color{blue}#1}}
+
+% Citation style
+\newcommand{\mycite}[1]{{\footnotesize\color{gray}#1}}
+
+% Image citation style
+\newcommand{\imgcite}[1]{{\footnotesize\color{gray}#1}\vspace{-0.3cm}}
+
+% Footline style
+\useoutertheme{umbcfootline}
+\setfootline{{\tiny {\color{gray}Institute for Machine Learning,
+      ETHZ \hspace{0.4cm} Deep Learning: \insertsection/\insertsubsection
+      \hfill \insertframenumber/\inserttotalframenumber}}}  
+
+\newcommand{\explain}[1]{
+  {\renewcommand{\baselinestretch}{1.0}
+    \scriptsize %footnotesize 
+    \begin{minipage}{\linewidth}
+      {#1}
+    \end{minipage}
+    \normalsize
+  }
+}
+

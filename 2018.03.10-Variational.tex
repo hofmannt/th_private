@@ -1,0 +1,64 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm,bbm}
+\usepackage{color,graphicx}
+\graphicspath{{./figures/}}
+
+\newcommand{\indep}{\rotatebox[origin=c]{90}{$\models$}}
+\renewcommand{\Re}{{\mathbb R}}	
+\newcommand{\E}{{\mathbf E}}	
+\newcommand{\x}{{\mathbf x}}	
+\newcommand{\z}{{\mathbf z}}	
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\definecolor{Red}{rgb}{0.9,0.1,0.1}
+\newcommand{\textred}[1]{{\color{Red} #1}}
+\newcommand{\textbred}[1]{{\color{Red}\bf #1}}
+\newcommand{\mV}{{\mathbf V}}
+\newcommand{\mSigma}{{\boldsymbol \Sigma}}	
+\newcommand{\mGamma}{{\boldsymbol \Gamma}}	
+
+
+\title{
+	Variational Inference  \\ {\normalsize THE MINIMUM }
+}
+\author{
+	Thomas Hofmann \\[1mm] Department of Computer Science, ETH Zurich \\ thomas.hofmann@inf.ethz.ch
+}
+
+\begin{document}
+
+\maketitle 
+
+\paragraph{EM Algorithm} Latent variable models define a probability distribution over observables $\x$ by specifying a complete data model $p(\x,\z)$ and then integrating out latent variables, $p(\x) = \int p(\x,\z) \, d\z$. The complete model is typically given  in a ``forward" direction as $p(\x,\z) = p(\z) p(\x|\z)$. It is often difficult to perform the required integration in high dimensions. The landmark paper \cite{dempster1977maximum} thus proposes a variational apporach via lower bound approximations
+\begin{align}
+\log \int p(\x,\z) \, d\z = \log \int \frac{p(\x,\z) q(\z)}{q(\z)} \, d\z \ge \int q(\z) \log \frac{p(\x,\z)}{q(\z)}  \, d\z= \langle \log p(\x,\z) \rangle_q + H(q)\,.
+\label{eq:elbow}
+\end{align}
+Here $q \in \mathcal Q$ can be any latent variable distribution belonging to some variational family $\mathcal Q$. 
+
+Taking the supremum of the evidence lower bound (ELBO) yields $q^*(\z) = p(\z|\x)$. In the best case, the ELBO will thus approximate the marginalization by a posterior average, which introduces a non-recoverable loss. As suggested in \cite{dempster1977maximum} one can maximizew the ELBO in an alternating fashion, leading to the famous expectation maximization algorithm.
+
+
+\begin{itemize}
+\item \cite{paiseley12variational}:
+\end{itemize}
+
+
+
+\newpage
+
+
+Whenever that loss is tolerable, we can go one step further and design constrained families $\mathcal Q$ over which to optimize the bound, possibly introducing further approximation errors. Note that optimizing or improving the ELBO with regard to $q$ will make use of the complete data model, i.e.~will depend on a choice of parameters. Similarly, the choice of $q$ will determine the lower-bound substitute on the log-likelihood function. Alternating these steps is at the heart of the Expectation-Maximization algorithm \cite{dempster1977maximum,mclachlan2007algorithm}.
+\begin{subequations}
+\begin{align}
+\text{E-step}: & \; q \leftarrow \argmax \; \langle \log p(\x,\z; \theta) - \log q(\z)\rangle_q  \\
+\text{M-step}: & \; \theta \leftarrow \argmax  \; \langle \log p(\x,\z; \theta) \rangle_q 
+\end{align}
+\end{subequations}
+ 
+\bibliographystyle{acm}
+\bibliography{th}
+\end{document}
+

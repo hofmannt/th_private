@@ -1,0 +1,1613 @@
+\documentclass{beamer}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{multicol}
+\usepackage{array}
+\usepackage{mdframed}
+\usepackage{mathtools}
+
+\mode<presentation>
+
+\title{\LARGE Structured  Prediction}
+\author{\Large Thomas Hofmann\\[1mm] {\footnotesize \texttt{thomas.hofmann@inf.ethz.ch}}}
+\institute{Department of Computer Science, ETH Z\"urich\\[2mm] 
+Google Engineering Center, Z\"urich}
+\date{Computer Science Colloquium \\[1mm] University of Basel, November 28, 2013}
+
+\usecolortheme{lily}
+\setlength{\leftmargini}{1pt}
+\input{macros}
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Google Zurich Plug}
+
+\includegraphics[width=\textwidth]{graphics/GoogleZurich.png}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Motivation \& Overview }
+\frame{\sectionpage}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Overview}
+
+\begin{enumerate}
+\item $\highblue{\mathbf \Rightarrow}$ Motivation \& Overview 
+\begin{itemize}
+\item Applications of Structured Predicition
+\item Structured Prediction (Challenges) at Google
+\begin{itemize}
+\item Click-Through Prediction 
+\item Embedded {\bf mini talk on Entity Linking} 
+\end{itemize}
+\end{itemize}
+\item Large Margin Model
+\begin{itemize}
+\item Structured prediction SVM  
+\item Margins \& loss functions for structured prediction  
+\end{itemize}
+\item Oracle-based Algorithms 
+\begin{itemize}
+\item Cutting plane methods 
+\item Subgradient-based approaches 
+\item Frank-Wolfe algorithm 
+\end{itemize}
+\item {\it Decomposition-based Algorithms}
+\item Conclusion \& Discussion
+\end{enumerate}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Structured Prediction}
+
+Generalize supervised machine learning methods to deal with \highblue{structured outputs} and/or with multiple, \highblue{interdependent outputs}.
+
+\begin{minipage}{0.45\textwidth}
+Structured objects such as sequences, strings, trees, labeled graphs, lattices, etc.
+\end{minipage}
+\hspace*{5mm}
+\begin{minipage}{0.45\textwidth}
+\includegraphics[width=\textwidth]{graphics/Sketch01.png}
+\end{minipage}
+
+\begin{minipage}{0.45\textwidth}
+Multiple response variables that are interdependent = collective classification
+\end{minipage}
+\hspace*{5mm}
+\begin{minipage}{0.45\textwidth}
+\centering
+\includegraphics[width=0.7\textwidth]{graphics/Sketch02.png}
+\end{minipage}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Jiggsaw Metaphor}
+
+Holistic prediction $\neq$ independent prediction of pieces\\[5mm]   
+\begin{minipage}{0.41\textwidth}
+\centering
+\includegraphics[width=\textwidth]{graphics/Jiggsaw.png}
+\end{minipage}
+\hspace*{1mm}
+\begin{minipage}{0.07\textwidth}
+\centering
+\includegraphics[width=\textwidth]{graphics/Rightarrow.png}
+\end{minipage}
+\hspace*{1mm}
+\begin{minipage}{0.41\textwidth}
+\centering
+\includegraphics[width=\textwidth]{graphics/MalagaPuzzle.png}
+\end{minipage}
+\vspace*{5mm}
+
+It is not just about solving one instance of a puzzle, but learning how to solve a whole class of puzzles.
+\vspace*{15mm}
+\begin{flushright}
+\tiny inspired by Ben Taskar's tutorial
+\end{flushright}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Natural Language Processing}
+
+\begin{itemize} \setlength{\itemsep}{6pt}
+\item PoS tagging, named entity detection, language modeling 
+\item Syntactic sentence parsing, dependency parsing 
+\item Semantic parsing
+\end{itemize}
+\vspace*{3mm}
+
+\begin{minipage}{0.40\textwidth}
+\centering
+\includegraphics[width=\textwidth]{graphics/NLP-sketch.png}
+\end{minipage}
+\begin{minipage}{0.06\textwidth}
+\hspace*{1mm}
+\end{minipage}
+\begin{minipage}{0.50\textwidth}
+\tiny 
+\vspace*{-5mm}
+\begin{itemize}
+\item B. Taskar, D. Klein, M. Collins, D. Koller, and C. Manning, Max-Margin Parsing, EMNLP, 2004 %184
+\item R. McDonald, K. Crammer, F. Pereira, Online large-margin training of dependency parsers. ACL 2005 % 455
+\item H. C. Daume III, Practical Structured Learning Techniques for Natural Language Processing, Ph.D. Thesis, Univ. Southern California, 2006 % 61
+\item R. McDonald, K. Hannan, Kerry, T. Neylon, M. Wells, J. Reynar,  Structured models for fine-to-coarse sentiment analysis, ACL 2007  % 164
+\item B. Roark, M. Saraclar, M. Collins: Discriminative n-gram language modeling. Computer Speech \& Language 21(2): 373-392, 2007 % 127
+% \item P. Blunsom, Structured ClassiÞcation for Multilingual Natural Language Processing, Ph.D. Thesis, Univ. Melbourne, 2007 % 5
+\item Y. Zhang, S. Clark, Syntactic processing using the generalized perceptron and beam search, Computational Linguistics 2011.
+\item C. Cherry, G. Foster, Batch tuning strategies for statistical machine translation, NAACL 2012. %33
+\item L. S. Zettlemoyer, M. Collins, Learning to Map Setences to Logical Form: Structured classification with probabilistic categorial grammars, arXiv, 2012 % 211
+% \item T. Koo, Advances in Discriminative Dependency Parsing, Ph.D. Thesis, MIT, 2010. % 4 
+\end{itemize}
+\end{minipage}
+
+\end{frame} 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Information Retrieval }
+
+\begin{itemize} \setlength{\itemsep}{6pt}
+\item Learning to rank, e.g.~search engines 
+\item Multidocument summarization 
+\item Whole page clickthrough prediction 
+\item Entity linking and reference resolution
+\end{itemize}
+\vspace*{10mm}
+
+\begin{minipage}{0.40\textwidth}
+\centering
+\includegraphics[width=\textwidth]{graphics/Summarization-Coverage.png}
+\end{minipage}
+\begin{minipage}{0.06\textwidth}
+\hspace*{1mm}
+\end{minipage}
+\begin{minipage}{0.50\textwidth}
+\tiny 
+\begin{itemize}
+\item Y Yue, T. Finely, F. Radlinski, T. Joachims: A support vector method for optimizing average precision. SIGIR 2007
+\item L. Li et al: Enhancing diversity, coverage and balance for summarization through structure learning, WWW 2009.
+\item T. Berg-Kirkpatrick, Taylor, D. Gillick, D. Klein: Jointly Learning to Extract and Compress, ACL. 2011
+\item R. Sipos, P. Shivaswamy, T. Joachims: Large-margin learning of submodular summarization models, ACL 2012
+\end{itemize}
+\end{minipage}
+
+\end{frame} 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Computer Vision}
+
+\begin{itemize}  \setlength{\itemsep}{6pt}
+\item Image segmentation 
+\item Scene understanding 
+\item Object localization \& recognition 
+\end{itemize}
+\vspace*{6mm}
+
+\begin{minipage}{0.40\textwidth}
+\centering
+\includegraphics[width=\textwidth]{graphics/localization.png}
+\end{minipage}
+\begin{minipage}{0.06\textwidth}
+\hspace*{1mm}
+\end{minipage}
+\begin{minipage}{0.50\textwidth}
+\tiny 
+\begin{itemize}
+\item T. Caetano \& R. Hartley, ICCV 2009 Tutorial on Structured Prediction in Computer Vision
+\item M. P. Kumar, P. Torr, A. Zisserman, Efficient Discriminative Learning of Parts-based Models, ICCV 2009.
+\item  C. H. Lampert,  M. B. Blaschko, T. Hofmann: Efficient Subwindow Search: A Branch and Bound Framework for Object Localization, PAMI 2009
+\item A. G.  Schwing, T. Hazan, M. Pollefeys, R. Urtasun: Efficient structured prediction for 3D indoor scene understanding, CVPR 2012
+\item A. Patron-Perez, M. Marszalek, I. Reid, A. Zisserman: Structured learning of human interactions in TV shows, PAMI 2012
+\end{itemize}
+\end{minipage}
+
+\end{frame} 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Computational Biology}
+
+\begin{itemize}  \setlength{\itemsep}{6pt}
+\item Protein structure \& function prediction  
+\item Gene finding, structure prediction (splicing)
+\end{itemize}
+\vspace*{6mm}
+
+\begin{minipage}{0.40\textwidth}
+\centering
+\includegraphics[width=\textwidth]{graphics/biology1.png}\\
+\includegraphics[width=\textwidth]{graphics/biology2.png}
+\end{minipage}
+\begin{minipage}{0.06\textwidth}
+\hspace*{1mm}
+\end{minipage}
+\begin{minipage}{0.50\textwidth}
+\tiny 
+\begin{itemize}
+\item Y. Liu, E. P. Xing, and J. Carbonell, Predicting protein folds with structural repeats using a chain graph model, ICML 2005
+\item  G. R\"atsch and S. Sonnenburg, Large Scale Hidden Semi-Markov SVMs, NIPS 2006. 
+\item  A. Sokolov and A. Ben-Hur, A Structured-Outputs Method for Prediction of Protein Function, In Proceedings of the 3rd International Workshop on Machine Learning in Systems Biology, 2008. 
+\item  K. Astikainen et al., Towards Structured Output Prediction of Enzyme Function, BMC Proceedings 2008, 2 (Suppl. 4):S2 
+\item  G. Schweikert et al, mGene: Accurate SVM-based gene finding with an application to nematode genomes, Genome Res. 2009 19: 2133-2143
+\item N. G\"ornitz, C. Widmer, G. Zeller, A. Kahles, S. Sonnenburg, G. R\"atsch: Hierarchical Multitask Structured Output Learning for Large-scale Sequence Segmentation, NIPS 2011
+\end{itemize}
+\end{minipage}
+
+\end{frame} 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Structured Prediction at Google}
+\frame{\sectionpage}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Click-Trough Prediction}
+\includegraphics[width=\textwidth]{graphics/ClickThrough.png}
+\begin{itemize}
+\item Probability of click on one element (e.g.~advert, result) depends on page context
+\item Structured prediction: generate optimal whole page layout
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Generalized Second Prize Auction}
+\includegraphics[width=1.0\textwidth]{graphics/Auction.png}
+\begin{itemize}
+\item CTR prediction influences both, ranking and pricing of ads
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Production System: Logistic Regression}
+\begin{itemize}
+\item initial training: many months of logs data = O(trillion) events
+\item continuously updated in an on-line fashion, streaming data paradigm
+\item stochastic gradient ascent on likelihood function
+\begin{align*}
+\theta^{(t+1)} = \theta^{(t)} + \eta \nabla l (x^{(t)})
+\end{align*}
+\item adapted L1 regularization (follow the regularized leader): enforce zero parameters 
+\item lots of details: learning rates, multiple models, compression, feature hashing, subsampling negative examples, É
+\item cf.~{\it \small McMaham et al 2013, Ad Click Prediction: a View from the Trenches}
+\end{itemize}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Knowledge Graph}
+\includegraphics[width=1.05\textwidth]{graphics/KnowledgeGraph.png}
+\end{frame}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Freebase}
+\includegraphics[width=1.05\textwidth]{graphics/Freebase.png}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Knowledge Graph: Example}
+\includegraphics[width=1.05\textwidth]{graphics/Relationships.png}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Ambiguity of Names}
+\includegraphics[width=1.05\textwidth]{graphics/Names.png}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Entity Linking}
+\begin{itemize}
+\item Disambiguate every mention (=entity reference)  on the Web. 
+\item Link token spans in documents to knowledge graph entities
+\end{itemize}
+\includegraphics[width=1.05\textwidth]{graphics/Linking.png}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Identify Canoncial Pages}
+\begin{itemize}
+\item Collect all canonical pages for an entity (part of human curation process) 
+\end{itemize}
+\includegraphics[width=1.05\textwidth]{graphics/Canonical.png}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Mining for Names}
+\begin{itemize}
+\item Extracting entity name (candidates) from anchors  found on Web pages pointing to canonical page 
+\end{itemize}
+\includegraphics[width=1.05\textwidth]{graphics/Anchors.png}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Converting Relations into Statistical Dependencies}
+\includegraphics[width=1.05\textwidth]{graphics/Dependencies.png}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Joint Inference / Prediction}
+\begin{itemize}
+\item Each mention restricted to candidate set via name detectors
+\item Resolve all entity mentions jointly, exploiting known dependencies
+\item Weakly supervised learning
+\end{itemize}
+\includegraphics[width=1.0\textwidth]{graphics/Linked.png}
+\end{frame}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Large Margin Model}
+\frame{\sectionpage}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Structured Prediction}
+\begin{itemize}  \setlength{\itemsep}{6pt}
+\item Input space $\Xcal$, output space $\Ycal$ 
+\item $|\Ycal|=m$ can be large due to combinatorics
+\begin{itemize} 
+\item e.g.~label combinations, recursive structures
+\end{itemize}
+\item Given training data $(x_i,y_i) \in \Xcal \times \Ycal$, $i=1,\dots,n$
+\begin{itemize}
+\item drawn i.i.d.~from unknown distribution ${\cal D}$
+\end{itemize}
+\vspace*{2mm}
+\item Goal: find a \highblue{mapping $F$}
+\begin{align*}
+F: \Xcal \to \Ycal 
+\end{align*}
+\vspace*{-5mm}
+\begin{itemize}
+\item with a small prediction error
+\begin{align*} 
+\text{err}(F) = {\bf E}_{\cal D} \left[ \triangle(Y,F(X)) \right] 
+\end{align*}
+\item relative to some \highblue{loss function} $\triangle: \Ycal \times \Ycal \to\Re_0^+$, \\
+with $\triangle(y,y)=0$ and $\triangle(y,y') >0$ for $y \neq y'$.
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Examples: Loss Functions}
+\begin{itemize}  \setlength{\itemsep}{8pt}
+\item Multilabel prediction 
+\begin{itemize}
+\item $\Ycal = \{-1,1\}^k$
+\item $\triangle(y,y') = \frac 12 (k - \langle y, y' \rangle)$ (Hamming loss)
+\end{itemize}
+\item Taxonomy classification 
+\begin{itemize}
+\item $\Ycal = \{1,\dots,k\}$, $k$ classes arranged in a taxonomy 
+\item $\triangle(y,y') = \text{tree distance between $y$ and $y'$}$  
+\item cf.~\cite{Cai04,Binder12}
+\end{itemize}
+\item Syntactic parsing
+\begin{itemize}
+\item $\Ycal = \{\text{labeled parse trees}\}$
+\item $\triangle(y,y') = \text{\# labeled spans on which $y$ and $y'$ do not agree}$
+\item cf.~\cite{Taskar04}
+\end{itemize}
+\item Learning to rank  
+\begin{itemize}
+\item $\Ycal = \{\text{permutations of set of items}\}$
+\item $\triangle(y,y') = \text{mean average precision of ranking $y'$ vs.~optimal $y$}$ 
+\item cf.~\cite{Yue07}
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Multiclass Prediction}
+
+\begin{itemize} \setlength{\itemsep}{6pt}
+\item Apply standard multiclass approach to $\Ycal$ with $|\Ycal|=m$. 
+\item Define $\Ycal$-family of \highblue{discriminant functions} $\highblue{f_y}: \Xcal\to \Re$, $y \in \Ycal$
+\item Prediction based on winner-takes-all rule 
+\begin{align*} 
+F(x) =\argmax_{y \in \Ycal} \, f_y(x)
+\end{align*}
+\item Typical: \highblue{linear} discriminants with weight vector $w_y \in \Re^d$ and 
+\begin{align*}
+f_y(x) := \langle \phi(x), w_y \rangle
+\end{align*}
+\vspace*{-4mm}
+	\begin{itemize}
+	\item shared input representation via feature map $\phi: \Xcal \to \Re^d$
+	\end{itemize}
+\item Trained via one-vs-all or as a single 'machine'
+\item References: \cite{Rifkin04,Weston99,Crammer02,Lee04}
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Multiclass Prediction $\prec$ Structured Prediction}
+
+\begin{itemize} \setlength{\itemsep}{6pt}
+\item What happens as $m > n$ ? 
+	\begin{itemize} 
+	\item Not enough training data to even have a single example for every output. 
+	\end{itemize}
+\item  Taking outputs as atomic entities without any internal structure does not enable \highblue{generalization across outputs}
+	\begin{itemize} 
+	\item There is no learning, only memorization of outputs.
+	\end{itemize}
+\item Need to go beyond the standard multiclass setting and enable learning across $\Xcal \times \Ycal$. Two lines of thought:
+\item \highblue{Feature-based Prediction}: extract features from inputs \& outputs, define discriminant functions with those features
+\item \highblue{Factor-based Prediction}: decompose output space into variables and identify factors $[${\it not covered in depth here}$\,]$
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Feature-based Prediction}
+
+\begin{itemize} \setlength{\itemsep}{6pt}
+\item \highblue{Joint feature maps}
+\begin{align*}
+\psi: \Xcal \times \Ycal \to \Re^d \,,\quad k_\psi((x,y),(x'y')) := \langle \psi(x,y), \psi(x',y') \rangle
+\end{align*}
+to extract features from input-output pairs.  
+\item
+Canonical construction by crossing features extracted separately from inputs and outputs
+\begin{align*}
+\psi = \phi_{\Xcal} \times \phi_{\Ycal}: \Xcal \times \Ycal \to \Re^{d_x\cdot d_y}\,, \quad \psi(x,y) := \phi_\Xcal(x) \times \phi_\Ycal(y)\,.
+\end{align*}
+\vspace*{-5mm}
+\begin{itemize}
+\item Can be more selective about features crossed (subsets).
+\item Other constructions (beyond crossing) are possible.
+\end{itemize}
+\item
+When using inner products one gets the compelling factorization 
+\begin{align*}
+k_\psi((x,y),(x',y')) = k_{\phi^\Xcal}(x,x') \cdot k_{\phi^\Ycal}(y,y') \,.
+\end{align*}
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Example: Label Sequence (HMM) \cite{Altun03}}
+
+\begin{itemize}\setlength{\itemsep}{6pt}
+\item 
+Hidden Markov Models: $\Xcal = (\Re^d)^l$, $\Ycal = \{1,\dots,k\}^l$, where 
+\begin{itemize}
+\item $l:$ length of sequence
+\item $k:$ cardinality of hidden variable
+\item $d:$ dimensionality of observations 
+\end{itemize}
+\item First feature template: local observations
+\begin{align*}
+\psi^1_{c} (x,y) = \sum_{t=1}^l  {\bf 1}[y^t=c] \cdot \phi(x^t) 
+\end{align*}
+\vspace*{-3mm}
+\begin{itemize}
+\item adding up all observations that are assigned to same class $c \in \{1,\dots k \}$ 
+\end{itemize}
+\item Second feature template: pairwise nearest neighbor interactions
+\begin{align*}
+\psi^2_{c,\bar c} (x,y) = \sum_{t=1}^{l-1}  {\bf 1}[y^t=c] \cdot {\bf 1}[y^{t+1}=\bar c]
+\end{align*}
+\vspace*{-3mm}
+\begin{itemize}
+\item counting number of times labels $(c,\bar c)$ are neighbors
+\end{itemize}
+\end{itemize}
+ 
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\begin{frame}
+%\frametitle{Example: Optimizing Ranking \cite{Yue07}}
+%
+%\begin{itemize}\setlength{\itemsep}{6pt}
+%\item Kandall's tau:
+%\begin{align*} 
+%\tau  = \frac{\text{\# concord.~pairs - \# discord.~pairs}}{\text{\# all pairs}}
+%= 1 - \frac{2 \cdot \text{\# discordant pairs}}{\text{\# all pairs}}
+%\end{align*}
+%\item Output ranking encoded via pairwise ordering 
+%\begin{align*}
+%\Ycal =  \{-1,1\}^{k \times k}, \quad 
+%y^\prec_{ij} = \begin{cases} 1 & \text{if $i\prec j$} \\ -1 & \text{otherwise} \end{cases}
+%\end{align*}
+%\item 
+%Combined feature function
+%\begin{align*}
+%\psi(x,y) = \sum_{i<j} y_{ij} [ \phi(x_i) - \phi(x_j) ] 
+%\end{align*}
+%Bipartite case $C^+(x) \cup C^-(x) = \{1,\dots,k\}$, relev./non-relev.~items 
+%\begin{align*}
+%\psi(x,y) = \sum_{i\in C^+(x)} \sum_{j \in C^-(x)} y_{ij} [ \phi(x_i) - \phi(x_j) ] 
+%\end{align*}
+%\end{itemize}
+% 
+%\end{frame}
+%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Example: Learning Alignments \cite{Joachims09CACM}}
+
+\begin{itemize}\setlength{\itemsep}{6pt}
+\item Input: two annotated (protein) sequences $x = (s_a, s_b)$. 
+\item Output: alignment $y$ between two sequences $x$
+\item Joint features:\\[4mm]
+\includegraphics[width=0.8\textwidth]{graphics/ProteinAlignment.png}
+\item
+Types of features: combinations of amino acid, secondary structure, solvent accessibility; sliding window; PSI-BLAST profile scores;
+\end{itemize}
+ 
+\end{frame}
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Multiclass + Output Features = Structured Predction}
+
+\begin{itemize} \setlength{\itemsep}{6pt}
+\item Generalize multiclass prediction and define linear discriminants 
+\begin{align*}
+\text{multiclass}  \rightarrow f_y(x; w) := f(x,y; w) = \langle \psi(x,y), w \rangle \leftarrow \text{structured}
+\end{align*}
+\item Parameter sharing across outputs (with same features)   
+\item Recover feature-less multiclass by defining  ($1$ out of $m$ encoding)
+\begin{align*}
+\langle \phi_\Ycal(y), \phi_\Ycal(y') \rangle = \delta_{y y'}
+\end{align*}
+i.e.~feature vectors involving different classes $y,y'$ are orthogonal.
+\item Allows to incorporate prior knowledge into multiclass problems
+	\begin{itemize}
+	\item Hierarchical classification - encode class taxonomy
+	\item Entity reference resolution - encode prior entity names and types  
+	\end{itemize}
+\item Requires single 'machine' formulation as weight vectors are not separated $\rightarrow$ \highblue{How can we generalize SVMs?}
+\end{itemize}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Binary Support Vector Machine}
+Convex Quadratic Program (primal)  
+\begin{align*}
+(w^*, \xi^*) = &  \argmin_{w, \xi \geq 0} {\cal H}(w,\xi) := \frac \lambda 2 \langle w, w \rangle  + \frac 1n \| \xi\|_1\\
+\nonumber & \; \text{subject to}\quad y_i \langle w, \phi(x_i) \rangle \geq 1 - \xi_i \quad (\forall i)
+\end{align*}
+\begin{itemize}  \setlength{\itemsep}{6pt}
+\item Examples $(x_i,y_i) \in \Xcal \times \{-1,1\}$, $i=1,\dots,n$
+\item Feature map $\phi: \Xcal \to \Re^d$
+\item Weight vector $w \in \Re^d$
+\item Slack variables $\xi_i \geq 0$
+\item Regularization parameter $\lambda \in \Re^+$
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Margin-rescaled Constraints}
+For each instance $(x_i,y_i)$ define $m:=|\Ycal|$ constraints via
+\begin{align*}
+f(x_i,y_i; w) - f(x_i,y; w) \geq \highblue{\triangle(y_i,y)} - \xi_i \quad (\forall y \in \Ycal)
+\end{align*}
+\begin{itemize}  \setlength{\itemsep}{6pt}
+\item Require correct output $y_i$ to be scored higher than all incorrect outputs $y \neq y_i$ by a margin
+\item Adjust target margin for incorrect outputs to be $\triangle(y_i,y)$
+\item Provides an upper bound on the empirical loss via
+\begin{align*}
+\xi_i^* & = \max_{y} \{ \triangle(y_i,y) - [f(x_i,y_i; w) - f(x_i,y;w)] \\
+& \geq \triangle(y_i,\hat y) - \underbrace{[ f(x_i,y_i; w) - f(x_i, \hat y; w)]}_{\leq 0 \;\text{for $\hat y$}}   
+\geq \triangle(y_i,\hat y) 
+\end{align*}
+where $\hat y_i := \argmax_y f(x_i,y;w)$ is the predicted output
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Slack-rescaled Constraints}
+For each instance $(x_i,y_i)$ define $m:=|\Ycal|-1$ constraints via
+\begin{align*}
+f(x_i,y_i; w) - f(x_i,y; w) \geq 1- \frac{\xi_i}{\highblue{\triangle(y_i,y)}} \quad (\forall y \in \Ycal - \{y_i\})
+\end{align*}
+\begin{itemize}  \setlength{\itemsep}{6pt}
+\item Require correct output $y_i$ to be scored higher than all incorrect outputs $y \neq y_i$ by a margin
+\item Penalize margin violations proportional to $\triangle(y_i,y)$
+\item Provides an upper bound on the empirical loss via
+\begin{align*}
+\xi_i^* & = \max_{y} \{ \triangle(y_i,y) - \triangle(y_i,y)  [f(x_i,y_i; w) - f(x_i,y;w)] \} \\
+& \geq  \triangle(y_i, \hat y) - \underbrace{\triangle(y_i,\hat y)}_{\geq 0}  \underbrace{[ f(x_i,y_i; w) - f(x_i, \hat y; w)]}_{\leq 0}  \geq \triangle(y_i,\hat y) 
+\end{align*}
+where $\hat y_i := \argmax_y f(x_i,y;w)$ is the predicted output
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Softmargin, Illustration}
+
+\begin{minipage}{0.3\textwidth}
+Geometric sketch 
+\end{minipage}
+\begin{minipage}{0.65\textwidth}
+\includegraphics[width=1.7\textwidth]{graphics/margin.png}
+\end{minipage}
+
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Structured Prediction SVM}
+Convex Quadratic Program (primal)  
+\begin{align*}
+(w^*, \xi^*) = &  \argmin_{w, \xi \geq 0} {\cal H}(w,\xi) := \frac \lambda 2 \langle w, w \rangle  + \frac 1n \| \xi\|_1\\
+& \; \text{subject to} \quad \langle w, \highblue{\delta\psi_i(y)} \rangle \geq \highblue{\triangle(y_i,y)} - \xi_i \quad (\forall i, \highblue{\forall y \in \Ycal- \{y_i\}}) \\
+\text{binary:  }& \text{\!\![ subject to} \quad \langle w, \highblue{y_i \phi(x_i)} \rangle \geq \highblue{1} \hspace*{11mm} - \xi_i \quad (\forall i) \hspace*{15mm} ]
+\end{align*}
+where $\delta\psi_i(y) := \psi(x_i,y_i) -\psi(x_i,y)$.
+\vspace*{3mm}
+
+\begin{itemize}  \setlength{\itemsep}{6pt}
+\item Examples $(x_i,y_i) \in \Xcal \times \Ycal$, $i=1,\dots,n$
+\item Feature map $\psi: \Xcal \times \Ycal \to \Re^d$
+\item Weight vector $w \in \Re^d$
+\item Slack variables $\xi_i \geq 0$, regularization parameter $\lambda \in \Re^+$
+\item Generalizes multiclass SVM \cite{Crammer02}
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{RepresenterTheorem}
+
+\begin{itemize}
+\item 
+Denote by ${\cal H}$ and RKHS on $\Xcal \times \Ycal$ with kernel $k$. A sample set ${\cal S} =\{(x_i,y_i): i=1,\dots,n\}$ is given. Furthermore let ${\cal C}(f; {\cal S}')$ be a functional that depends on $f$ only through its values on the augmented sample ${\cal S}' := \{ (x_i,y): (x_i,y_i) \in {\cal S} \}$. Let $\Lambda$ be a strictly monotonically increasing function. Then the solution of the optimization problem $\hat f ({\cal S}) := \argmin_{f \in {\cal H}} {\cal C}(f, {\cal S}) + \Lambda(\|f\|_{{\cal H}})$ can be written as 
+\begin{align*}
+\hat f (\cdot)  = \sum_{i, y} \beta_{iy} k(\cdot, (x_i,y))
+\end{align*}
+\item Linear case 
+\begin{align*}
+\hat w = \sum_{i, y} \beta_{iy} \psi(x_i,y)
+\end{align*}
+\item {\it \small See: T.~Hofmann, B.~Sch\"olkopf, A.J.~Smola, Kernel methods in machine learning, The Annals of Statistics 2008.} 
+\end{itemize}
+
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Deriving the Wolfe Dual (1)}
+
+Lagrangian 
+\begin{align*}
+{\cal L}(\dots)
+= & \frac \lambda 2 \| w\|^2 + \frac 1n \| \xi \|_1 
+ -\!\! \sum_{i,y \neq y_i} \!\alpha_{iy} \left[ \langle \delta\psi_i(y), w\rangle -\! \triangle(y_i,y) + \xi_i  \right]
+- \langle \xi, \hat \xi \rangle
+\end{align*}
+Gradient components
+\begin{align*}
+& \nabla_\xi {\cal L} = \frac 1n - \hat \xi - \sum_{y} \alpha_{\bullet y} \stackrel{!}{=} 0
+\; \Rightarrow \;  0 \leq \sum_y \alpha_{iy} \leq \frac 1n \quad (\forall i)
+\\
+& \nabla_w {\cal L} = \lambda w - \sum_{i,y \neq y_i} \alpha_{iy} v_{iy} \delta\psi_{i}(y)  \stackrel{!}{=} 0
+\; \Rightarrow  w^*(\alpha) =\frac 1\lambda \sum_{i,y \neq y_i}  \alpha_{iy} \delta\psi_{i}(y)
+\end{align*}
+Re-writing in matrix notation as $w(\alpha)^* = Q\alpha$ with
+\begin{align*}
+Q := (Q_{r,iy}) \in \Re^{d \times n(m-1)}, \quad \text{with} \quad Q_{\bullet,iy} := \frac 1\lambda \delta\psi_i(y)
+\end{align*}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Deriving the Wolfe Dual (2)}
+
+Plugging-in solution and exploiting known inequalities  
+\begin{align*}
+& \min_{\alpha \geq 0} h(\alpha) := \frac 12 \|Q \alpha\|^2 - \langle \alpha, \highblue{\triangle} \rangle
+\quad \text{s.t.} \;\; n \highblue{\sum_{y}} \alpha_{iy} \leq 1 \; (\forall i) \\
+& \hspace*{7mm} \text{binary:   } [ \; \frac 12 \| \tilde Q \alpha \|^2 - \langle \alpha, \; {\bf 1}\rangle
+\quad \text{s.t.} \;\; \hspace*{8.7mm} n \alpha_{i} \leq 1\; (\forall i)\;]
+\end{align*}
+\begin{itemize} \setlength{\itemsep}{6pt}
+\item Quantity: $ n\cdot m$ dual variables instead of $n$
+\item Quality: structure of dual is very similar
+\item Constraints only couple variables in blocks $\{\alpha_{iy}: y \in \Ycal- \{y_i\}\}$ 
+\item Natural factorization of $\alpha \in \Re^{n(m-1)}_{\geq 0} = 
+\underbrace{\Re^{(m-1)}_{\geq 0} \times \dots \times \Re^{(m-1)}_{\geq 0}}_{n \text{ times}}$
+\item $\alpha/n$ is a probability mass function $\alpha_{iy_i} := 1 - n \sum_{y \neq y_i} \alpha_{i y}$
+\item What is a support vector? pair $(i,y)$ with active constraint
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Linear Case: Representer Theorem}
+
+Looking at the solution $w^*$ we see that 
+\begin{align*}
+w^* & 
+= \sum_{i} \sum_{y \neq y_i} \alpha_{iy} \delta\psi_i(y) 
+= \sum_{i} \sum_{y \neq y_i} \alpha_{iy} [ \psi(x_i,y_i) - \psi(x_i,y) ] \\ &
+= \sum_{i} \underbrace{\left( \sum_{y \neq y_i}  \alpha_{iy} \right)}_{:=\beta_{iy_i}}  \psi(x_i,y_i) 
++ \sum_{i} \sum_{y \neq y_i} \underbrace{(-\alpha_{iy})}_{:=\beta_{iy}} \psi(x_i,y) \\ & 
+= \sum_{i,y} \beta_{iy} \psi(x_i,y)
+\end{align*}
+as it should be according to the representer theorem.
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Oracle-Based Algorithms}
+\frame{\sectionpage}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{The Challenge}
+
+SVMstruct  QP
+\begin{align*}
+(w^*, \xi^*) = &  \argmin_{w, \xi \geq 0} {\cal H}(w,\xi) := \frac \lambda 2 \langle w, w \rangle  + \frac 1n \| \xi\|_1\\
+& \text{with} \quad (w,\xi) \in \bigcap_{iy} \Omega_{iy}, \quad i=1,\dots,n, \; y \in \Ycal -\{y_i\}\\
+& \text{where} \quad \Omega_{iy} := \{ (w,\xi): \langle w, \delta\psi_i(y) \rangle \geq \triangle(y_i,y) - \xi_i\} 
+\end{align*}
+\vspace*{-4mm}
+\begin{itemize}  \setlength{\itemsep}{6pt}
+\item Structure of QP is not changed, but number of constraints can be vastly increased relative to binary classification
+\begin{itemize}
+\item e.g.~if $\Ycal$ is vector of binary labels so that $\Ycal = \{-1,1\}^l$ and $m = 2^l$
+\end{itemize}
+\item Scalable algorithms for this challenge? 10 years of research!
+\end{itemize}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Perceptron Learning}
+\frame{\subsectionpage}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Structured Prediction Perceptron}
+
+\begin{itemize}  \setlength{\itemsep}{6pt}
+\item \highblue{Michael Collins 2002}, Discriminative training methods for hidden markov models: Theory and experiments with perceptron algorithms \cite{Collins02}
+\item Perceptron learning avoids the challenge by only focussing on the worst output at a time
+\begin{itemize}
+\item instead of enforcing constraints over all possible incorrect outputs
+\end{itemize}
+\item Standard perceptron algorithm with the following modifications
+\begin{itemize}
+\item Compute prediction
+\begin{align*}
+\hat y_i := F(x_i) = \argmax_{y} \langle w, \psi(x_i,y) \rangle
+\end{align*}
+\item Perform update according to 
+\begin{align*}
+w \leftarrow \begin{cases}
+w + \psi(x_i,y_i) - \psi(x_i,\hat y)  = w + \delta\psi_i(\hat y) & \text{if $\hat y \neq y_i$} \\
+w & \text{otherwise}
+\end{cases}
+\end{align*}
+\item Novikoff's theorem and mistake bound can be generalized
+\end{itemize}
+\end{itemize}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Separation Oracles}
+\begin{itemize}  \setlength{\itemsep}{6pt}
+\item One idea of the perceptron algorithm turns out to be key: identify the output with the \highblue{most violating} margin constraint
+\item We call such a sub-routine a \highblue{separation oracle}
+\begin{align*}
+\text{Perceptron}           \;\;&	\hat y_i \in \argmax_{y} f(x_i,y; w)\\
+\text{Margin re-scaling} \;\;&	\hat y_i \in \argmax_{y} \{ \triangle(y_i,y) - f(x_i,y_i; w) + f(x_i,y; w) \} \\
+\text{Slack re-scaling}   \;\;&	\hat y_i \in \argmax_{y} \{ \triangle(y_i,y) [1- f(x_i,y_i; w) + f(x_i,y; w)] \}
+\end{align*}
+\item Dependent on the method, the separation oracle is used to identify 
+\begin{itemize}  \setlength{\itemsep}{6pt}
+\item violated constraints (successive strengthening)
+\item update directions for the primal (subgradient) 
+\item variables in the dual (SMO) 
+\item update directions for the dual (Frank-Wolfe)
+\end{itemize} 
+\end{itemize}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\begin{frame}
+%\frametitle{Large Margin Algorithms - Taxonomy \& History}
+%\includegraphics[width=\textwidth]{graphics/taxonomy.png}
+%\end{frame}
+%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Successive QP Strengthening}
+\frame{\subsectionpage}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Successive QP Strengthening}
+\begin{itemize}  \setlength{\itemsep}{6pt}
+\item Create sequence of QPs that are relaxations of {\it SVMstruct}.  
+\item Feasible domain 
+$\Omega =  \bigcap_{iy} \Omega_{iy} \cap (\Re^d \times \Re^n_{\geq 0})$
+\item Relaxed QP: same objective, yet $\hat\Omega \supset \Omega$
+\vspace*{2mm}
+\begin{itemize}  \setlength{\itemsep}{4pt}
+\item optimal solution $(\hat w, \hat \xi)$ for relaxed QP will have ${\cal H}(\hat w, \hat \xi) \leq {\cal H}(w^*,\xi^*)$, but possibly $(\hat w, \hat \xi) \in \hat \Omega - \Omega$.   
+\item goal: fulfill remaining constraints with tolerance $\epsilon$, $(\hat w,\hat\xi+\epsilon) \in \Omega$
+\item why? this would give ${\cal H}(\hat w, \hat \xi+\epsilon) = {\cal H}(\hat w, \hat \xi) + \epsilon \geq {\cal H}(w^*, \xi^*)$.
+\end{itemize}
+\item Construct strict sequence of increasingly stronger relaxations via
+\begin{align*}
+\Omega(0) = \Re^d \times \Re_{\geq 0}^n, \quad 
+\Omega(t+1) := \Omega(t) \cap \Omega_{i\hat y} 
+\end{align*}
+where $(i,\hat y)$ is a constraint selected at step $t$ fulfilling
+\begin{align*}
+\argmin_{(w,\xi) \in \Omega(t)} {\cal H}(w,\xi) \not\in \Omega^\epsilon_{i\hat y}, \quad
+\Omega^{\epsilon}_{iy} := \{ (w,\xi): (w,\xi+\epsilon) \in \Omega_{iy} \}
+\end{align*}
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Strengthening via Separation Oracle}
+\includegraphics[width=0.4\textwidth]{graphics/cut01.png}
+\hspace*{6mm} $\to$ \hspace*{6mm} 
+\includegraphics[width=0.4\textwidth]{graphics/cut02.png}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Strengthening via Separation Oracle}
+\begin{itemize} \setlength{\itemsep}{6pt}
+\item Loop through all training examples (in fixed order) 
+\item Call separation oracle for $(x_i,y_i)$ 
+\item Concretely for margin re-scaling
+\begin{align*}
+\hat y_i \in \argmax_{y} \{ \triangle(y_i,y) - f(x_i,y_i; w) + f(x_i,y; w) \} 
+\end{align*}
+will identify (one of) the most violating constraint(s) for given $i$, provided there are such constraints
+\item  We can easily check, whether violation is $>\epsilon$. 
+\item Termination at step $T$, if no such constraints exist for $i=1,\dots,n$.
+\vspace*{5mm}
+\item Significance: can ensure $T \leq O(n/\epsilon^2)$ or (with mild conditions) even $T \leq O(n/\epsilon)$. No dependency on $|\Ycal|$!
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Strengthening via Separation Oracle; Example ($n=1$)}
+\begin{itemize} 
+\item<1-> 
+\begin{minipage}[t]{0.67\textwidth}
+Step 0: $ (\hat w, \hat \xi)  = \argmin_{\Omega(0)} {\cal H}(w,\xi) = (0,0)$
+\end{minipage}
+\item<2-> 
+\begin{minipage}[t]{0.67\textwidth}
+Step 1: $(\hat w, \hat \xi)  = \argmin_{\Omega(1)} {\cal H}(w,\xi)$, where 
+\begin{align*}
+& \hat y   \in \argmax_y \triangle(y_1,y),
+\\ & \Omega(1)  = \Omega(0) \cap \Omega_{1 \hat y}
+\end{align*}
+\end{minipage}
+\item<3-> 
+\begin{minipage}[t]{0.67\textwidth}
+Step 2: $(\hat w, \hat \xi)  = \argmin_{\Omega(2)} {\cal H}(w,\xi)$, where 
+\begin{align*}
+& \hat y   \in \argmax_y \triangle(y_1,y) - \langle \delta\psi_1(y), \hat w\rangle \\
+& \Omega(2)  = \Omega(1) \cap \Omega_{1 \hat y}
+\end{align*}
+provided that $\Omega^\epsilon_{iy} \cap \Omega(1) \neq \emptyset$.
+\end{minipage}
+\item<4-> 
+\begin{minipage}[t]{0.67\textwidth}
+Step 3: $(\hat w, \hat \xi)  = \argmin_{\Omega(3)} {\cal H}(w,\xi)$, where ...
+\end{minipage}
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Cutting Planes}
+\frame{\subsectionpage}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Improved Cutting Planes: Motivation}
+\begin{itemize}\setlength{\itemsep}{6pt}
+\item Successive strengthening (as above) is expensive
+\begin{itemize} 
+\item only one constraint (for one example) gets added in each step
+\item requires re-optimization (= solving a QP) after each such step
+\item can warm-start, but still...
+\end{itemize}
+\item How about, we compute all oracles in parallel 
+\begin{align*}
+\hat y = (\hat y_1, \dots, \hat y_n) \in \Ycal^n
+\end{align*}
+\item Derive a strengthening from that $\Omega(t+1) = \Omega(t) \, \cap \Omega_{\hat y} $ 
+\item Naively could set $\Omega_{\hat y} := \bigcap_i \Omega_{i \hat y_i}$
+\begin{itemize}
+\item ... but how would that  give us improved termination guarantees?
+\item ... how can we avoid blow-up in number of constraints?
+\end{itemize}
+\item Instead summarize into a single linear constraint with a single shared slack variable $\zeta\geq 0$. Fulfill margin \highblue{on average} 
+\begin{align*}
+\sum_{i=1}^n \langle \psi_i(\hat y_i), w \rangle \geq \sum_{i=1}^n \triangle(y_i, \hat y_i) - \zeta
+\end{align*}
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Improved Cutting Planes: Algorithm}
+\begin{itemize} \setlength{\itemsep}{6pt}
+\item \cite{Joachims09} show that the QP containing all such average constraints for all combinations ${\bf y} \in  \Ycal^n$ is solution equivalent to SVMstruct, if one identifies $\zeta = \| \xi_i \|_1$. \\
+\framebox[1.0\width][l]{
+\begin{minipage}[t]{0.32\textwidth}
+\vspace*{-5mm}
+\begin{align*}
+& \min_{w, \xi} \frac\lambda 2 \langle w, w\rangle + \highblue{\tfrac{1}{n} \|\xi\|_1} \quad \text{s.t.} \\
+& \langle \delta\psi_i(y), w\rangle \geq \triangle(y_i,y) - \highblue{\xi_i} \;\\
+& (\forall i, y\in \Ycal) \sim n \cdot m
+\end{align*}
+\end{minipage}
+}
+\fbox{
+\begin{minipage}[t]{0.40\textwidth}
+\vspace*{-5mm}
+\begin{align*}
+& \min_{w, \zeta} \frac\lambda 2 \langle w, w\rangle + \highblue{\zeta} \quad \text{s.t.}  \\
+& \highblue{\textstyle\sum_{i}} \langle \delta\psi_i(y), w\rangle \geq \highblue{\textstyle\sum_{i}} \triangle(y_i,y) \!-\!\highblue{\zeta} \\
+& (\forall y \in \Ycal^n) \sim m^n
+\end{align*}
+\end{minipage}
+}
+\item \cite{Joachims09} also provide $O(1/\epsilon)$-bounds on the number of epochs 
+\begin{itemize}
+\item overall runtime $O(n/\epsilon)$ (in the linear case), not counting oracle
+\end{itemize}
+\item Dual QP optimization
+\begin{itemize}
+\item one variable for each selected (average constraint), highly sparse 
+\item complexity of $O(n^2)$; with reduced rank approx.~$O(nr + r^3)$ 
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Improved Cutting Planes: Experiments}
+Experiments from \cite{Joachims09}\\[4mm]
+\centering\includegraphics[width=0.95\textwidth]{graphics/nslack.png}
+\begin{itemize}
+\item \# calls to separation oracle 2-3x reduced 
+\item CPU time, 5x-1000x dependent on time spent on QP vs.~oracle \\ $\Rightarrow$ much more efficient usage of optimization time 
+\item 1000-10000x fewer support vectors, but not when multiplied by $n$
+\item Approximation result $O(1/\epsilon)$
+\item Book-keeping overhead for storing \#SVs $\cdot n$ descriptors of size $O(\log m)$
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Subgradient Methods}
+\frame{\subsectionpage}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Subgradient Method for SVMstruct}
+\begin{itemize}
+\item Can we avoid solving many relaxed QPs? \\ How about a gradient descent flavor method? 
+\item We can avoid linearizing (i.e.~rolling out) the constraints.\\ Work directly with (unconstrained) piecewise linear objective
+\begin{align*}
+w^* = \argmin_{w} \frac \lambda 2 \langle w, w \rangle + 
+\frac 1n \sum_{i=1}^n \underbrace{\max_y \{ \triangle(y_i,y) - \langle \delta\psi_i(y), w \rangle \}}_{\text{oracle} \; \highblue{\hat y_i} := \argmax ()}
+\end{align*}
+\item Compute subgradient, e.g.~via 
+\begin{align*}
+g = \lambda w + \frac 1n \sum_{i=1}^n \delta\psi_i(\highblue{\hat y_i})
+\end{align*}
+\item Perform batch or stochastic updates on $w$ (learning rate?)
+\item Proposed by \cite{Ratliff07}; see also PEGASOS \cite{Shalev11} 
+\end{itemize}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Background: Subgradient Methods}
+\begin{itemize}
+\item Let $f: \Re^D \to \Re$ be a convex, not necessarily differentiable function. A vector $v \in \Re^D$ is called a \highbblue{subgradient} of $f$ at $x_0$, if
+\begin{minipage}{0.42\textwidth}
+$f(x) \geq f(x_0) + \langle v, x - x_0 \rangle$ for all $x$
+\end{minipage}
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=1.4\textwidth]{graphics/subgradient.png}
+\end{minipage}
+\vspace*{-4mm}
+\item Differentiable point $x_0$: unique subgradient = gradient $\nabla f(x_0)$.
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Frank-Wolfe Algorithm}
+\frame{\subsectionpage}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Frank-Wolfe Algorithm}
+\begin{itemize} \setlength{\itemsep}{8pt}
+	\item Frank \& Wolfe, 1956: {\it An algorithm for quadratic programming}
+	\item Minimize linearization at current iterate over corners of  domain
+	\begin{align*}
+		\text{'new iterate'} := (1-\eta) \cdot  \text{'old iterate'} + \; \eta \cdot \text{'optimal corner'}
+	\end{align*}\\[2mm]
+	\item Features \vspace*{2mm}
+	\begin{itemize} \setlength{\itemsep}{4pt}
+		\item {\bf linearity}: linear, not quadratic function minimization in every step
+		\item {\bf sparseness}: convex combination of selected corners
+		\item {\bf projection-free}: iterates stay in convex domain 
+		\item {\bf learning rate}: $O(1/t)$ schedule or via line search
+		\item {\bf duality gap}: implicitly computes duality gap
+	\end{itemize}
+	\item Applied to SVMstruct by \cite{Lacoste13}
+\end{itemize}
+\end{frame}
+
+
+%%%%%
+%%%%%  Frank-Wolfe, quadratic and linearization contour lines
+%%%%%
+\begin{frame}
+
+\frametitle{ Frank-Wolfe Algorithm: Quadratic vs.~Linearized} 
+
+\begin{tabular}{m{4cm}m{8cm}}
+\begin{itemize} \item Quadratic objective (contour line plot) \end{itemize}
+& \includegraphics[width=4.5cm]{graphics/quadratic.png} \\
+\begin{itemize} \item Linearized objective  \end{itemize}
+& \includegraphics[width=4.5cm]{graphics/linearized.png}
+\end{tabular}
+
+\end{frame}
+
+%%%%%
+%%%%%  Frank-Wolfe, 3D scheme
+%%%%%
+\begin{frame}
+
+\frametitle{ Frank-Wolfe Algorithm: Schematic 3D View} 
+
+\begin{center}
+\includegraphics[width=6cm]{graphics/frank-wolfe.png}
+
+\vspace*{4mm}
+[taken from Lacoste-Julien et al.,  2013]
+\end{center}
+
+\end{frame}
+
+%%%%%
+%%%%%  Frank-Wolfe, applied to dual SVMstruct 
+%%%%%
+\begin{frame}
+
+\frametitle{ Frank-Wolfe Algorithm: Dual SVM-struct Objective} 
+
+\begin{itemize} \setlength{\itemsep}{8pt}
+\item Dual objective
+\begin{align*}
+h(\alpha) =  \frac 1 2 \| Q \alpha\|^2 - \langle \triangle, \alpha \rangle 
+\end{align*}
+\item Gradient
+\begin{align*}
+\nabla_{\alpha} h (\alpha^*) =  (Q' Q) \alpha^* - \triangle
+\end{align*}
+\item Linearization
+\begin{align*}
+\bar h(\alpha; \alpha^*) = \underbrace{h(\alpha^*)}_{\text{=const.}}+  \langle \nabla_{\alpha} h (\alpha^*) , \alpha - \alpha^*\rangle  \underbrace{\leq h(\alpha)}_{\text{convexity}}
+\end{align*}
+\item Minimization problem 
+\begin{align*}
+e^* := \argmin_{\{e_r: r=1,\dots,m\}} \bar h(e_r; \alpha^*), \quad \text{with $e_r$: $r$-th unit vector}
+\end{align*}
+\end{itemize}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Frank-Wolfe Algorithm: Deciphered}
+\begin{itemize}
+\item  What does the minimization problem over  corners mean?
+\begin{align*}
+\bar h(e_{y'}; \alpha^*) + const. & =  \langle \underbrace{\nabla_{\alpha} h (\alpha^*)}_{=  (Q' Q) \alpha^* - \triangle}  , e_{y'} \rangle \\
+& = \langle Qe_{\y'} , \underbrace{Q \alpha^*}_{=w} \rangle + \triangle(y,y') \\
+& = \left\langle \textstyle\sum_{i} \delta\psi_i(y'_i), w \right\rangle + \textstyle\sum_i \triangle(y_i, y'_i)
+\end{align*}
+so that 
+\begin{align*}
+\hat y_i  = \argmax_{y'} \{ \langle \delta\psi_i(y'), w \rangle + \triangle(y_i, y') \}
+\end{align*}
+which is just the separation oracle!
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Algorithms: Frank-Wolfe, Subgradient, Cutting Plane}
+\begin{itemize}\setlength{\itemsep}{6pt}
+\item  How does Frank-Wolfe relate to the other methods?
+\item FW $\leftrightarrow$ Subgradients: 
+\begin{itemize}
+\item Same update direction of primal solution $w$ 
+\item But: Smarter step-size policy derived from dual (see below) 
+\item But: Duality gap for meaningful termination condition (see below)
+\end{itemize}
+\item FW $\leftrightarrow$ improved cutting planes: 
+\begin{itemize}
+\item Selected dual variables correspond to added constraints  
+\item But: incremental update step vs.~optimization of relaxed QP
+\item But: \#SV can be larger due to incremental method, no need to re-formulate SVM struct
+\end{itemize}
+\item Further advantages
+\begin{itemize}
+\item Simple and clean analysis
+\item Per-instance updates (block-coordinate optimization) 
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Frank-Wolfe Algorithm: Primal-Dual Version}
+\begin{itemize}\setlength{\itemsep}{6pt}
+\item Apply Frank-Wolfe to dual QP, but translate into primal updates
+\item Compute primal update direction (subgradient)
+\begin{align*}
+\bar w := \frac1\lambda \sum_{i=1}^n  \delta\psi_i(\hat y_i), \quad \bar \triangle := \frac 1n \sum_{i=1}^n \triangle(y_i,\hat y_i)
+\end{align*}
+\item Perform convex combination update 
+\begin{align*}
+w^{t+1} = (1-\gamma^t) w^t + \gamma^t \bar w, \quad \triangle^{t+1} = (1-\gamma^t) \triangle^t + \gamma \bar \triangle
+\end{align*}
+here the optimal $\gamma^t$ can be computed analytically (closed-form line search) from $w^t$, $\bar \triangle$ and $\bar w$
+\item Convergence rate: $\epsilon$-approximation is found in at most $O(\frac{R^2}{\lambda \highbblue{\epsilon}})$ steps 
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Block-Coordinate Frank-Wolfe}
+\begin{itemize}\setlength{\itemsep}{6pt}
+\item Domain of the dual QP factorizes $\alpha \in {\mathcal S}_{m-1}^n$ (product of simplicies)
+\begin{align*}
+\alpha = (\alpha_i)_{i=1}^n, \; \; \text{s.t.} \quad \alpha_i \geq {\bf 0} \quad \text{and} \quad \langle \alpha_i, {\bf 1} \rangle = 1
+\end{align*}
+\hspace*{13mm} \includegraphics[width=0.25\textwidth]{graphics/simplex-alpha01.png} 
+\hspace*{-3mm} \includegraphics[width=0.25\textwidth]{graphics/simplex-alpha02.png} 
+\hspace*{-3mm} \includegraphics[width=0.25\textwidth]{graphics/simplex-alpha03.png} \\[-3mm]
+\hspace{6mm} $\alpha = ($ 
+\hspace*{7mm} $\alpha_1$ 
+\hspace*{19mm} $\alpha_2$ 
+\hspace*{18mm} $\alpha_3$ 
+\hspace*{8mm} $\dots\; $) 
+\vspace*{5mm}
+\item Perform Frank-Wolfe update over each block (randomly selected).
+\begin{itemize}
+\item single-instance mode: alternates single oracle call and update step 
+\item back to successive strengthening, but replace: re-optimization with fast updates
+\item convergence rate analysis; duality gap as stopping criterion  
+\item excellent scalability 
+\end{itemize} 
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Frank-Wolfe Methods: Scalability \cite{Lacoste13}}
+
+\includegraphics[width=0.95\textwidth]{graphics/FWresults.png}
+\begin{itemize}
+\item Frank-Wolfe very similar to improved cutting plane  method 
+\item Block-coordinate version much faster, better than stochastic subgradient descent 
+\item Main caveat: primal-dual version needs to store one weight vector per training instance!! 
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusion \& Outlook} 
+\frame{\sectionpage}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Conclusion \& Outlook} 
+\begin{itemize}
+\item Structured predicition is a very natural generalization of standard classification methods (here: SVM)
+\item Highly relevant applications in many sciences and areas of engineering
+\item Traditionally, lack of computational scalability has limited the use of structured prediction
+\item Many recent advances (subgradient method, Frank-Wolfe) on optimization methods have addressed scalability 
+\item Moving forward: use structured predicion for big data problems!
+\end{itemize}
+\end{frame}
+
+
+
+\small
+\bibliographystyle {alpha}
+\bibliography{thofmann}
+\end{document}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Decomposition-Based Algorithms}
+\frame{\sectionpage}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Factor Graphs}
+
+\begin{itemize}
+\item In many cases of practical interest, the compatibility function naturally allows for an additive decomposition over factors or parts
+\begin{align*}
+f(x,y) = \sum_{c \in {\cal C}} f_c(x_c, y_c)
+\end{align*}
+which can formally be described as a factor graph. 
+\item In the linear case, this can be induced via a feature decomposition 
+\begin{align*} 
+\psi(x,y) & = \sum_{c \in {\cal C}} \psi_c(x_c, y_c), \quad \text{such that} \\
+f(x,y; w) & = \langle w, \psi(x,y) \rangle = \sum_c  \underbrace{\langle w, \psi_c(x_c,y_c) \rangle}_{=: f_c(x_c,y_c)} 
+\end{align*}
+\item We typically require that the loss decomposes in a compatible manner
+\begin{align*}
+\triangle(y,y'; x) = \sum_{c \in {\cal C}} \triangle_c(y_c,y_c';x_c)
+\end{align*}
+\end{itemize}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Representer Theorem for the Factorized Case}
+
+\begin{itemize}
+\item 
+Conditions as before but factor structure assumed. Denote configurations for factor $c$ as $z\in \Zcal(c)$.
+\item
+Representation
+\begin{align*}
+f(x,y) = \sum_{i=1}^n \underbrace{\sum_{c \in {\cal C}} \sum_{z \in \Zcal(c)}}_{\sum_{c} |\Zcal(c)| \ll |\Ycal|}
+\mu_{icz} \underbrace{\langle \psi_c(x_{ic} , z), \psi_c(x_{ic}, y_c) \rangle}_{=:k_c((x_{ic},z),(x_{ic}, y_c))}
+\end{align*}
+\item Note that this offers the possibility to
+\begin{enumerate}
+\item define kernels on a {\it per factor} level  
+\item use a low-dimensional parametrization that does not need to rely on sparseness
+\end{enumerate}
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Decomposing the Dual QP}
+
+\begin{itemize}
+\item 
+Dual has the following structure (rescaling by $n$ as appropriate to make $\alpha$ probability mass function) 
+\begin{align*}
+& \min_{\alpha \geq 0} h(\alpha) := \frac 12 \|Q \alpha\|^2 - \langle \alpha, \triangle \rangle
+\quad \text{s.t.} \;\; \sum_{y} \alpha_{iy} = 1 \; (\forall i) 
+\end{align*}
+\item Introduce \highbblue{marginal probabilities}
+\begin{align*}
+\mu_{icz} := \sum_{i,y} {\bf 1\!}\left[y_c = z \right] \alpha_{iy} , \quad 
+\sum_z \mu_{icz} = \sum_{i,y} \alpha_{iy} = 1
+\end{align*}
+\item 
+Decompose loss (similar for $Q^t Q$)
+\begin{align*}
+\sum_{y} \alpha_{iy} \triangle(y_i,y) &  = 
+\sum_{y} \alpha_{iy} \sum_{c} \triangle_c(y_{ic},y_c)
+\\& = \sum_{c,z} \underbrace{\left( \sum_y {\bf 1\!}\left[y_c = z \right]  \alpha_{iy}  \right)}_{=  \mu_{icz}}\triangle_c(y_{ic},z)
+\end{align*} 
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Decomposing the Dual QP (continued)}
+
+\begin{itemize}
+\item  Define with multi-index $(icz)$:
+\begin{align*}
+Q_{\bullet, icz} & := \psi_c(x_{ic},y_{ic}) - \psi_c(x_{ic},z), \quad 
+\mu_{{\cal C}} & := (\mu_{icz}), \quad \triangle_{\cal C} := (\triangle_{icz})
+\end{align*} 
+\item  Factorized QP
+\begin{align*}
+\mu^*_{{\cal C}} & = \argmin_{\mu_{{\cal C}} \geq 0}\left\{  \frac 12 \| Q \mu_{{\cal C}} \|^2 - \langle \mu_{{\cal C}}, \triangle_{\cal C} \rangle \right\} \\
+& \text{s.t. $\mu_{{\cal C}}$ is on the \highbblue{marginal polytope}}
+\end{align*}
+\vspace*{-4mm}
+\begin{itemize}
+\item $\mu_{\cal C}$ needs to be normalized and locally consistent (non-trivial). 
+\item objective broken up into parts - global view enforced via constraints! 
+\end{itemize}
+\item Example: \highbblue{Singly connected factor graph}. Local consistency:
+\begin{align*}
+\sum_{r: (r,s) \in {\cal C}} \mu_{irs} = \mu_{is} \quad (\forall i,s)
+\end{align*}
+\item For general factor graphs: only enforce local consistency = \highbblue{relaxation} in the spirit of approximate belief propagation \cite{Taskar03}
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Conditional Exponential Family Models}
+\begin{itemize}
+\item Structured prediction from a statistical modeling angle
+\item $f$ from some RHKS with kernel $k$ over $\Xcal \times \Ycal$
+\item \highbblue{Conditional exponential families}
+\begin{align*}
+p(y | x; f) & = \exp\left[ f(x,y) - g(x,f) \right], \;\; \text{where} \\
+g(x,f) & := \int_{\cal Y} \exp \left[ f(x,y) \right] d\nu(y)
+\end{align*}
+\item Univariate case ($y \in \Re$), generalized linear models
+\begin{align*}
+p(y|x;w ) =\exp\left[ y\langle w, \phi(x) \rangle - g(x,w) \right]
+\end{align*}
+\item
+Non-parameteric models, e.g.~ANOVA kernels 
+\begin{align*}
+k((x,y),(x',y') = y y' k(x,x')
+\end{align*}
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Conditional Random Fields}
+\begin{itemize}
+\item Conditional log-likelihood criterion \cite{Lafferty01,Lafferty04}  
+\begin{align*}
+f^* := \argmin_{f \in {\cal H}}  \frac \lambda 2 \underbrace{\| f\|^2_{\cal H}}_{\text{stabilizer}} - \underbrace{\frac 1n \sum_{i=1}^n \log p(y_i|x_i;f)}_{\text{log-loss}}
+\end{align*}
+\item 
+Optimization methods: 
+\begin{itemize}
+\item improved iterative scaling \cite{Lafferty01}
+\item pre-conditioned conjugate gradient descent,  limited memory quasi-Newton \cite{Sha03}
+\item finite dimensional case: requires computing expectations of sufficient statistics ${\bf E} \left[ \psi(Y,x) \right]$ for $x=x_i$, $i=1,\dots,n$.
+\begin{align*}
+\nabla_w [...] \stackrel != 0 \iff  \lambda w^* = 
+\underbrace{\frac 1n \sum_{i=1}^n \psi(x_i,y_i)}_{\text{sample statistics}}  - \underbrace{\frac 1n \sum_{i=1}^n\sum_{y \in \Ycal} \psi(x_i,y) p(y|x_i; w^*)}_{\text{expected statistics}}
+\end{align*}
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Dual CRF}
+\begin{itemize}
+\item Representer theorems apply to log-loss. Log-linear dual: 
+\begin{align*}
+\alpha^* = & \argmin_{\alpha \geq 0} h(\alpha) := \frac 12 \| Q \alpha \|^2 + \sum_{i=1}^n \sum_{y \in \Ycal} \alpha_{iy} \log \alpha_{iy}\\
+& \text{s.t.} \;\; \sum_{y \in \Ycal} \alpha_{iy} = 1 \quad (\forall i)
+\end{align*}
+\item Compare with SVM struct \\
+\begin{minipage}{0.45\textwidth}
+\begin{align*}
+& \frac 12 \| Q \alpha \|^2 \\
+& + \sum_{i=1}^n \highblue{\sum_{y \in \Ycal} \alpha_{iy} \log \alpha_{iy}}
+\end{align*}
+\end{minipage}
+\begin{minipage}{0.1\textwidth}
+\end{minipage}
+\begin{minipage}{0.45\textwidth}
+\begin{align*}
+& \frac 12 \| Q \alpha \|^2 \\
+& - \sum_{i=1}^n \highblue{\sum_{y \in \Ycal} \alpha_{iy} \triangle(y_i,y)}
+\end{align*}
+\end{minipage}
+\begin{itemize}
+\item same data matrix $Q$ constructed from $\delta\psi_i(y)$ (or $Q^t Q$ via kernels)
+\item same $n$-factor simplex constraints on $\alpha$ 
+\item entropy maximization, instead of linear penalty (based on loss)
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Exponentiated Gradient Descent}
+
+\begin{itemize}
+\item  Exponentiated gradient descent \cite{Collins08} can be applied to solve both duals (hinge loss and logarithmic loss)
+\item General update equation
+\begin{align*}
+\alpha^{(t+1)}_{iy} & \propto \alpha_{iy}^{(t)} \cdot \exp\left[ \nabla h(\alpha) \right] 
+\\
+& = \alpha_{iy}^{(t)} \cdot \exp\left[ \lambda \langle w^*, \delta\psi_i(y) \rangle- \triangle(y_i,y)\right] 
+\end{align*}
+\begin{itemize} 
+\item Can be motivated by performing gradient descent on the canonical/natural parameters (and re-formulating in mean-value parameterization)
+\begin{align*}
+\theta^{(t+1)} = \theta^{(t)} + \delta \theta^{(t)} 
+\Rightarrow \alpha^{(t+1)} = \exp[ \langle \psi, \theta^{(t+1)} \rangle ]  = \exp[\langle \psi, \delta \theta^{(t)}\rangle] \alpha^{(t)}
+\end{align*}
+\item on-line version: generalizes SMO for solving dual problem (when no closed form solution exists)
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Factorized Exponentiated Gradient Descent}
+
+\begin{itemize}
+\item  Work with factorized dual QP: e.g. ~\cite{Taskar03}, SMO over marginal variables $\mu_{{\cal C}}$.
+\item  Better: adopt exponentiated gradient descent \cite{Collins05,Collins08}
+\item Derivation: summing on both sides of the update equation...
+\begin{align*}
+\mu^{(t+1)}_{icz} & = \sum_{y} {\bf 1\!}\left[y_c = z \right]  \alpha_{iy}^{(t)}
+ \exp \left[  \lambda \langle w^*, \delta\psi_i(y) \rangle- \triangle(y_i,y)\right]   \\
+& \propto \sum_{y} {\bf 1\!}\left[y_c = z \right]  \alpha_{iy}^{(t)}
+ \exp \left[  \lambda \langle w^*, \psi_c(x_i,y_{iz}) - \psi_c(x_i,z) \rangle- \triangle(y_{iz},z)\right] 
+ \\ & = \mu^{(t)}_{icz} \cdot
+\exp \left[  \lambda \langle w^*, \psi_c(x_i,y_{iz}) - \psi_c(x_i,z) \rangle- \triangle(y_{iz},z)\right] 
+\end{align*}
+\begin{itemize}
+\item $w^*$ can (representer theorem) computed from $\mu$ and $\psi_c$ (or via $k_c$), $\triangle_c$ terms. 
+\end{itemize}
+\item Similar for log-loss, faster convergence rates $O(\log 1/\epsilon)$. 
+\end{itemize}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%\section{Spotlights: Extensions \& Improvements}
+%\frame{\sectionpage}
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\begin{frame}
+%\frametitle{Non-Convex Loss Bounds}
+%
+%\begin{itemize}
+%\item Convex bounds (e.g.~Hinge loss) become very poor for large losses
+%\item Use non-convex bound instead: ramp loss \cite{Collobert06,Chapelle08}
+%\item Ramp loss: 
+%\includegraphics[width=\textwidth]{graphics/ramploss.png}
+%\begin{align*}
+%l(x,y; f) 
+%:= & \; \max_{y' \in \Ycal} \left[ \triangle(y,y') + f(x,y) - f(x,y')\right] \\
+%&  -  \max_{y' \in \Ycal} \left[ f(x,y) - f(x,y') \right]
+%\end{align*}
+%\item Optimize with convex concave procedure (CCCP) \cite{Yuille03}
+%\end{itemize}
+%
+%\end{frame}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Conclusion \& Discussion}
+\frame{\sectionpage}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Structured Prediction}
+
+\begin{itemize}
+\item Support Vector Machines: can be generalized to structured prediction in a scalable manner
+\item Oracle-based architecture: decouples general learning method from domain-specific aspects  
+\item Features \& loss function: can be incorporated in a flexible manner
+\item Kernels: efficient dual methods exist that can rely on kernels (crossed feature maps, factor-level kernels)
+\item Algorithms: rich set of scalable methods; cutting planes, subgradients, Frank-Wolfe, exponentiated gradient
+\item Decomposition-based methods: can exploit insights and algorithms from approximate probabilistic inference
+\item Conditional random fields: close relation (decomposition, dual, sparseness?) 
+\item Applications: ever increasing number of applications and use cases
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\small
+\bibliographystyle {alpha}
+\bibliography{thofmann}
+
+\end{document}
+
+

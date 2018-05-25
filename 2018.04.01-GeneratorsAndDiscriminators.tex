@@ -1,0 +1,44 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm,bbm}
+\usepackage{color,graphicx}
+\usepackage[autostyle]{csquotes}  
+\graphicspath{{./figures/}}
+
+\newcommand{\indep}{\rotatebox[origin=c]{90}{$\models$}}
+\renewcommand{\Re}{{\mathbb R}}	
+\renewcommand{\P}{{\mathbb P}}	
+\newcommand{\E}{{\mathbf E}}	
+\newcommand{\mI}{{\mathbf I}}	
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\title{
+	Generators and Discriminators
+}
+\author{
+	Thomas Hofmann \\[1mm] Department of Computer Science, ETH Zurich
+}
+
+\begin{document}
+:
+\maketitle 
+
+\paragraph{Density Estimation} What can we do with a function $f: \Omega (\subseteq \Re^n)\to \Re$? We can use it to define a probabilistic classifier linking $X$ and $Y \in \{-1,1\}$ by defining 
+\begin{align}
+\Pr(Y = \pm 1 | X=x) = \sigma(\pm f(x))\,, \quad \sigma: z \mapsto \frac{e^z}{1+e^{z}}\,,
+\end{align}
+which is a purely local representation. We can also plug $f$ into a Gibbs form to define a probability density
+\begin{align}
+p(x) = \frac 1Z_{\!f} e^{f(x)}, \quad Z_f = \int_\Omega e^{f(x)} \,dx
+\end{align} 
+provided $Z_f$ exists. Here the interpretation of $f$ at a point does require an aggregate baseline as a point of reference. It seems this global calibration is what makes density estimation (or generation) fundamentally more difficult than, say, binary classification. 
+
+\paragraph{Unnormalized Models} There have been attemps such as score matching \cite{hyvarinen2005estimation} to define density estimation in a way that eliminates the normalization constant, basically by looking at $\nabla_x \log p = \nabla_x f$. However, score matching has not seen widespread use in practice and the score vectors seem to be too crude of an instrument for model fitting.
+
+\paragraph{Self Normalizing Models} One other line of modeling is to embed normalized models, i.e.~ones with $Z_{\!f}=1$ into a larger family of non-normalized models and to then define a suitable criterion such that the optimal $f^*$ automatically belongs to the self-normalized subclass. 
+
+\bibliographystyle{acm}
+\bibliography{th}
+\end{document}
+

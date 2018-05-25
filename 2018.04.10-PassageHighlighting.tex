@@ -1,0 +1,42 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm,bbm}
+\usepackage{color,graphicx}
+\graphicspath{{./figures/}}
+
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\vLambda}{{\boldsymbol \lambda}}
+\newcommand{\mSigma}{{\boldsymbol \Sigma}}
+\newcommand{\vDelta}{{\boldsymbol \delta}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\E}{{\mathbf E}}
+
+
+\title{
+	Deep Networks for Automatic Text Passage Highlighting
+}
+\author{
+	Master Thesis Project, Data Analytics Lab, ETH Zurich 
+}
+
+\begin{document}
+
+\maketitle 
+
+This projects aims at designing and evaluating a deep learning architecture for automatic highlighting of relevant passages in text documents. Concretely, a document corpus of $\sim 100$K news articles and reports, which has been hand-annotated according to a small set of pre-defined issues (currently $31$) by human analysts, will be provided by RepRisk. The primary goal is then to automate the passage selection and classification process, possibly also leading to a passage-based document-level categorizer. \\
+
+The master project will start by assessing the difficulty of the document-level categorization problem by building simple token-based (TF-IDF) logistic document classifiers for each of the $31$ issues. This will also serve as a first experimental base-line. \\
+
+The main part of the project will be to devise a method that learns to score consecutive token spans (e.g.~aligned at the sentence level) relative to each of the pre-defined issues. As a starting point, we will take the architecture suggested in \cite{lee2017end}, which will be modified and adapted to the problem at hand. As a first step, we use pre-trained character-string embeddings \cite{lample2016neural} and word embeddings \cite{le2014distributed}, which are contextualized in a bi-drectional LSTM layer as suggested in \cite{chiu2015named,lee2017end}. In a first implementation, this contextualization stage may be skipped.\\
+
+Using a simple sentence splitter such as \cite{manning2014stanford}, candidate token spans are identified.  Each such span is scored by passing on the left- and right-most contextualized token-level representation along with a processed representation of the span (this replaces the head-finding attention mechanism in \cite{lee2017end}). We will investigate convolutional networks (or, alternatively, recurrent networks) to compress a span. i.e.~multiple sentences, into a fixed length representation. Pruning heuristics need to be devised in order to keep the number of candidate sentence/token spans tractably small. Each span is scored -- via the generated span representation -- relative to each of the issues, to produce a vector of scores. A simple thresholding (or logistic regression) is then used to select passages. Some post-processing is necessary to deal with possibly overlapping token spans, e.g.~by retaining the one with the highest score. \\
+
+As a training objective it would be ideal to use a token set overlap measure like the Jaccard or Dice coefficients. One idea would be to possibly exploit submodularity properties of the Jaccard coefficient (see \cite{berman2017optimization}, to be determined). At any rate, one would need some differentiable surrogate of an overlap coefficient in order to make the neural network trainable by standard stochastic gradient methods. \\
+
+There are a number of additional  questions that may be investigated (optionally): (1) parameter sharing vs.~per-issue parameters, (2) improving span localization at token level in a refinement pass, (3) using passage classifiers as the basis for document-level classification, (4) doing ablation studies and comparing different components relative to each other. 
+
+\bibliographystyle{acm}
+\bibliography{th}
+\end{document}
+

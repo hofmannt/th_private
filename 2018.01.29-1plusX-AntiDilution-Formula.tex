@@ -1,0 +1,50 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm,bbm}
+\usepackage{color,graphicx}
+\graphicspath{{./figures/}}
+
+\newcommand{\indep}{\rotatebox[origin=c]{90}{$\models$}}
+\renewcommand{\Re}{{\mathbb R}}	
+\newcommand{\E}{{\mathbf E}}	
+\newcommand{\x}{{\mathbf x}}	
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\definecolor{Red}{rgb}{0.9,0.1,0.1}
+\newcommand{\textred}[1]{{\color{Red} #1}}
+\newcommand{\textbred}[1]{{\color{Red}\bf #1}}
+\newcommand{\mV}{{\mathbf V}}
+\newcommand{\mSigma}{{\boldsymbol \Sigma}}	
+\newcommand{\mGamma}{{\boldsymbol \Gamma}}	
+
+
+\title{
+	Anti-Dilution Formula, Appendix 7.2
+}
+\author{
+	Thomas Hofmann 
+}
+
+\begin{document}
+
+\maketitle 
+
+\paragraph{Reference Price.} The reference price trajectory (called \texttt{AP1}) is computed based on a 10\% p.a.~increase in share price. If a subsequent investments happens at a valuation (called \texttt{AP2}) lower than the reference price, the anti-dilution mechanism kicks-in. The relevant difference \texttt{DIFF} in share price is hence the larger of zero and \texttt{(AP1-AP2)}.
+
+\paragraph{Correction as a Monetarv Value.} As a montary value, the refund would just be \texttt{DIFF * Ai}, where \texttt{Ai} denotes the number of shares purchased by the investor. Basically, this would be what was overpaid relative to the new investment. The challenge is to convert that into an equivalent  value based on newly issued shares. 
+
+\paragraph{Conversion of Montary Value into Shares: Simplified View.} For simplicity let us assume that the nominal value of the new shares (called \texttt{Pv}) is negligible. Let us look at the case, where all other shareholder would have purchased at the price \texttt{AP2 < AP1}, i.e.~\texttt{A=0}. Then the investors would need to get a total number of shares  \texttt{AP1/AP2 * Ai}, instead of just \texttt{Ai}. So one would need to issue them \texttt{(AP1-AP2)/AP2 * Ai} additional shares. 
+
+\paragraph{Full Formula: It's complicated} It is unclear to me, how the full formula is motivated. But by doing some algebraic simplifications one gets to the fact that the number of shares of the investor would be increased by a boost factor of 
+\begin{align*}
+\frac{ \texttt{(A+B) * AP1}}{\texttt{A * AP1 + B * AP2}} \ge 1
+\end{align*}
+where some linear interpolation is happening in the denominator.  As \texttt{AP1-AP2}$\to 0$  the factor approaches $1$. Similarly, as \texttt{B/(A+B)} $\to 0$. 
+
+\paragraph{Scenarios.} Let us assume that we perform a 25\% share increase in 2 years time at the same valuation. Then \texttt{AP1}  = 1.2 \texttt{AP2} due to the 10\% growth. Moreover, \texttt{B/(A+B)} = 20\%, which is the fraction of newly issued shared after the share increase. The formula gives
+\begin{align*}
+... = \frac{1.2}{0.8 * 1.2 + 0.2 * 1} = \frac{1}{0.8 +  0.2/1.2}  = \frac{1}{0.9\bar{6}} \approx 1.0344
+\end{align*}
+So they would get a close to $3.5\%$ increase to their share pool.
+\end{document}
+

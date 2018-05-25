@@ -1,0 +1,39 @@
+\documentclass{article}
+\usepackage{amsmath,amssymb}
+\author{Thomas Hofmann, Andreas Marfurt}
+\title{Generative Document Models \\ Master Thesis Project}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\mat}[1]{{\mathbf #1}}
+\renewcommand{\vec}[1]{{\mathbf #1}}
+
+\begin{document}
+\maketitle
+
+\paragraph{Document Model} A document model assigns a probability to a document (often: conditioned on its length). Document models are fundamental for many use cases and applications in information retrieval and text mining, for instance, in search ranking and text categorization. They are also often used for other research questions such as collaborative filtering, by making appropriate analogies, e.g.~identifying users with documents and items with words.  
+
+\paragraph{Replicated Softmax Model}
+
+The replicated softmax model (RSM) \cite{hinton2009replicated} is derived from the general restricted Boltzmann machine \cite{hinton2010practical}, by adapting it to a bag-of-words sampling model. Inference is not trivial in these models and typically relies on meanfield approximations.  
+
+\paragraph{Document NADE}
+
+The NADE model is inspired by the RBM approach, yet develops the idea in the direction of an autoregressive model. Basically, it is assumed that the data is presented in some order and that later variables are predicted from previous outcomes by intermediation of a hidden layer representation. Parameters are shared in a natural way.
+
+In docNADE the ideas of NADE is combined with the adaptation presented in  \cite{hinton2009replicated}. This yields a very competitive document model, which however, relies on a "random" ordering that is not natural for a bag-of-word document representation. One idea is to modify the model to make it order-free, e.g.~by predicting a word in a "gap", instead of left-to-right. 
+
+\paragraph{Variational Autoencoder Model} 
+
+In \cite{miao2015neural}, it has been shown how to learn generative document models based on the variational autoencoder \cite{kingma2013auto,rezende2014stochastic}. The perplexity numbers are lower than for any other method, including LDA \cite{blei2003latent}, replicated softmax \cite{hinton2009replicated}, and docNADE \cite{larochelle2012neural}. 
+
+We would like to explore the neural variational document model (NVDM) in more depth and compare it with other models, in particular, variants of docNADE. Open directions include improved  training algorithms, more complex noise models (other than diagonal normal distributions) and applications beyond simple generative document modeling.
+ 
+It is also highly interesting  to better understand the nature of the representations, i.e.~are the directions interpretable, can representations be sparsified or compressed etc. 
+
+\paragraph{Project}
+
+Compare different neural document models, investigate the benefits and weaknesses. Try to improve in terms of perplexity. Understand properties of the derived embeddings. Are there smarter ways of modeling documents, e.g.~as distributions or trajectories in a latent space instead of just a single point? A distributional characterization seems natural in the variational autoencoder setting. It would also be interesting to not just assess representations with regard to their generative power (i.e.~perplexity), but as the basis for use cases such as text categorization. 
+
+\bibliography{GenDocModels}
+\bibliographystyle{acm}
+
+\end{document}

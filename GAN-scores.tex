@@ -1,0 +1,47 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\E}{{\mathbf E}}
+\begin{document}
+
+\noindent
+GAN setting: 
+\begin{itemize}
+\item latent code $z \in \Re^m$ with density $p_z$, usually standard normal density.
+\item generator transformation $g_\theta: \Re^m \to \Re^n$, $z \mapsto g_\theta(z) = x$
+\item induced density  $p_x = p_z \left| \frac{\partial x}{\partial z} \right|^{-1}$
+\item discriminator $f_\phi: \Re^n \to [0;1]$
+\item data generating distribution: unknown density $q$
+\item objective 
+\begin{align}
+J(\theta, \phi) = \frac 12 \E_{x \sim q} \log f_\phi(x)  + \frac 12 \E_{z \sim p_z} \log (1-f_\phi(g_\theta(z)))
+\end{align}
+\end{itemize}
+
+\noindent 
+Usually, GAN considers the discriminator $f$ as fixed, when computing $\theta$-gradients. 
+Moreover, stochastic backpropagation is approximated in a deterministic manner. Let us make this precise. Note that by the law of the unconcious statistician
+\begin{align}
+\E_{x \sim p_x} [h(x)]  = \E_{z \sim p_z} [h(g_\theta(z))]
+\end{align} 
+which does not involve Jacobian determinants. When it comes to computing gradients, however thety become relevant. The direct way of computing the required gradient is via
+\begin{align}
+\nabla_\theta \E_{x \sim p_x} [h(x)] = 
+\int h(x) \nabla p_x(x) dx = 
+\E_{x \sim p_x}\left[ h(x) \nabla_\theta \log p_x \right] 
+\end{align}
+and then to approximate the integral by sampling from $x \sim p_x$. However, this approach is known to suffer from high variance \cite{paisley2012variational,kingma2013auto}. Whenever possible, it is preferrable to use the re-parameterization trick \cite{kingma2013auto, rezende2014stochastic}.  
+\begin{align}
+\nabla_\theta \E_{z \sim p_z} [h(g_\theta(z))] =  \E_{z \sim p_z} \nabla_\theta h(g_\theta(z))
+\end{align}
+where now one can sample from the simple distribution $p_z$, instead of using the 
+
+
+\begin{align}
+\nabla_\theta \E_z[h(z)] \approx \E_z \nabla_\theta h(z)
+\end{align}
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}

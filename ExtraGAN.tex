@@ -1,0 +1,443 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{hyperref}
+\title{Extragradient Learning for GANs}
+\author{Hadi Daneshmand, Paulina Grnarova, Jonas Kohler, \\
+Aurelien Lucchi, Kevin Roth, Thomas Hofmann\\ ETH Zurich}
+
+\newcommand{\E}{{\mathbf E}}
+\renewcommand{\H}{{\mathcal H}}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\x}{{\mathbf x}}
+\newtheorem{comment}{Comment}
+
+
+\begin{document}
+\maketitle
+
+\section{Introduction} 
+
+Generative adversarial networks \cite{goodfellow2014generative} formulate learning of implicit models as a zero-sum game between a generator ($\phi$) and a discriminator ($\psi$). The original algorithm of alternating minibatch SGD updates is simple, but known to be instable.\footnote{\cite[Algorithm 1]{goodfellow2014generative} suggests an inner and outer loop, but then suggegts to use a single inner iteration. } Recent approaches have tried to stabilize training through the use of noise \cite{sonderby2016amortised,arjovsky2017towards}, regularization \cite{gulrajani2017improved,roth2017stabilizing}, foresight \cite{metz2016unrolled}, or modified gradient dynamics \cite{mescheder2017numerics,nagarajan2017gradient}. We build on these ideas, in particular, \cite{mescheder2017numerics} and relate it to the extra-gradient method \cite{korpelevich76Extragradient}. 
+
+\section{Re-Interpreting Consensus Optimization}
+Let us take the modified learning rule of \cite{mescheder2017numerics} with saddle objective $f$ as a starting point and define the regularizer $\Omega \equiv \frac 12 \| \nabla f\|^2$, s.t.~$\nabla \Omega = (\nabla^2 f) \nabla f$. Define the gradient operator
+\begin{align}
+T \equiv \begin{bmatrix} \partial_\phi f \\ - \partial_\psi f \end{bmatrix} + \gamma \nabla\Omega
+= G \, \nabla f, \quad G \equiv \begin{bmatrix} I & 0 \\ 0 & - I \end{bmatrix} + \gamma \nabla^2 f \,.
+\end{align}
+We aim to find a critical point $T(\theta^*)=0$ by simulating (i.e.~discretizing) the ODE $\dot \theta + T(\theta) =0$ with explicit Euler steps of length $\eta$
+\begin{align}
+\theta_{n+1} = \theta_n - \eta T(\theta_n) = F(\theta_n), \quad \text{where} \quad F \equiv \text{id} - \eta T \,.
+\end{align}
+The stability of critical points $\theta^*$ can be analyzed by the Jacobian matrix criterion, i.e.~the spectrum of $F'(\theta^*)$. As a direct application of the chain rule
+\begin{align}
+F' = I - \eta T', \quad T'(\theta^*) = (G \cdot \nabla^2 f)(\theta^*)
+\label{eq:T'}
+\end{align}
+Assuming strict convex-concavity of the problem, i.e.~$\partial^2_\phi f \succ 0$ and $\partial^2_\psi f \prec 0$, we get immediately that locally $T'(\theta^*) \succ 0$.
+%\begin{comment}
+%\cite{mescheder2017numerics} chose to express matrices relative to the vector field $v=(\partial_\phi f, -\partial_\psi f)$, which makes things more complicated. Lemma 6 is really trivial (as $\nabla f(\theta^*)=0$). Lemma 7 seems very obscure. The non-singularity condition basically amounts to definiteness of the block Hessians. If they are only semi-definite, then clearly the corresponding Hessian is singular and so is the relevant block matrix (denoted $v'$). 
+%\end{comment}
+Exponential stability is guaranteed in this case, yet: how about the numeric stability of the discrete iterations?  For any eigenvalue $\lambda$  of $T'$, $|1 - \eta \lambda)| <1$ needs to hold. With $\lambda = r + is$, $r \in \Re_+, s\in \Re$ one gets
+\begin{align}
+| 1 - \eta \lambda|^2 
+% = (1-\eta r)^2 + \eta^2 s^2 
+= 1 - 2\eta r + \eta^2 |\lambda|^2 \stackrel !< 1 
+\iff \eta  \stackrel !< \frac{2r}{r^2 + s^2} = \frac{2}{r} \cdot \frac{1}{1+(\frac{s}{r})^2}
+\label{eq:rs}
+\end{align}
+Eigenvalues with large real part require small step sizes (as in the case of optimization) and so do eigenvalues with complex phase close to $\frac \pi2$. For any eigenvalue $\lambda$ of $A$ with eigenvector $u$ ($\| u\|=1$) it holds that 
+\begin{align}
+\lambda =  r + is, 
+\quad 
+r = \frac12 u^* 	\underbrace{ (A + A^*)}_{\text{symmetric}} u,
+\quad 
+s = \frac{1}{2i} u^* 	\underbrace{ (A - A^*)}_{\text{skew-symm.}} u, \quad r,s \in \Re
+\end{align}
+Note that the skew-symmetric part of $T'$ is not changed by $\gamma>0$ as
+\begin{align}
+\frac 12 ( T' - T'^*) = \begin{bmatrix} 0 & \partial_\phi \partial_\psi f \\ -\partial_\psi \partial_\phi f & 0 \end{bmatrix}, 
+\quad 
+\rho \equiv \frac 12 \sup_{v: \| v\|=1} ( T' - T'^*)
+\end{align}
+Thus $\rho$ consitutes an upper bound on the imaginary part of any eigenvalue for $T'$ for any $\gamma$. On the other hand simply note that
+\begin{align}
+\frac12 \frac{d}{d\gamma} \left[ u^* \left( T' + T'^*\right) u \right]  = \| (\nabla^2f) u\|^2 >0
+\end{align}
+which implies (slopily) that the real part of eigenvalues can be made arbitrarily large by increasing $\gamma$. However note that this reduces the $2/r$ factor in Eq.~\eqref{eq:rs}. This is why the main result \cite[Lemma 9]{mescheder2017numerics} is only addressing the second factor and is not showing that the proposed method really leads to more numeric stability. This is not very satisfying. 
+
+\section{Implicit Euler} 
+
+\subsection{Motivation and Trivialities}
+
+% some material from https://arxiv.org/pdf/1706.04156.pdf
+The indirect  Euler method discretizes an ODE $\dot x + \nabla f =0$ via the implicit equation 
+\begin{align}
+x_{n+1} = x_n - \triangle t \nabla f(x_n) + \mathbf O(\triangle t^2)
+\end{align}
+The stability of the (more expensive) indirect (vs.~the direct) method can be paradigmatically analysed in the linear case
+\begin{align}
+\dot x  + \lambda x = 0, \quad \lambda >0 \; \text{(i.e.~real)}
+\end{align}
+With a step size $\eta>0$, the direct methods yields $x_{n+1} = (1 - \eta \lambda) x_n$. In order to guarantee stability, we require $|1-\eta \lambda| <1 \iff \eta < 2/\lambda$. The indirect method however yields $(1+\eta \lambda) x_{n+1} = x_n$ and the stability requirement is $| 1 / (1 + \eta\lambda)|<1$, which is fulfilled any step size. Hence, indirect Euler steps have an inherent stability that implicit Euler steps lack. Note that the linear ODE can be thought of as a local approximation to any homogeneous ODE and this result is relevant beyond linear ODEs. 
+
+Can we do even better? In order to improve on the approximation order, one typically uses the predictor-corrector method (aka~$2^{\text{nd}}$ order Runge-Kutta):
+\begin{align}
+x_{n+\frac 12} & = x_n - \eta \nabla f(x_n) + \mathbf O(\eta^2),\quad \\
+x_{n+1} & = x_n - \frac \eta 2 \left( \nabla f(x_n) + \nabla f(x_{n+\frac 12}) \right)+ \mathbf O(\eta^3)
+\end{align}
+Note that the gain in order comes from the fact that $\nabla f(x_n + \mathbf O(\eta^k)) = \nabla f(x_n) + \eta \mathbf O(\eta^{k})= \nabla f(x_n) +\mathbf O(\eta^{k+1})$. The extra gradient method can be seen in this context as an improvement not in approximation order, but towards more stability. 
+\begin{align}
+x_{n+1} & = \underbrace{x_n - \eta \nabla f(x_{n+\frac 12})}_{\text{extra gradient update}} = \underbrace{x_n - \eta \nabla f(x_{n+1})}_{\text{indirect Euler}} + \mathbf O(\eta^3)
+\end{align}
+
+
+
+\bibliographystyle{acm}
+\bibliography{IterativeNumerics}
+
+\end{document}
+
+
+\newpage
+
+[TH: Leaving lemma 9 aside for now...]\\
+
+Aurlien's argument that this is an approximation of a Newton step? 
+
+\section{Proximal Methods}
+
+An alternative to modfying the dynamics of the ODE by virtue of an addtional term that leaves critical points invariant is to use a different integration method. One systematic manner of how to do this is by using the proximal method 
+\begin{align}
+\theta_{n+1} = \text{prox}_f^{\eta} (\theta_n), \quad \text{prox}_f^{\eta}(\theta') = \arg\min_\theta \left( f(\theta) + \frac 1{2\eta} \| \theta - \theta' \|_2^2 \right)
+\end{align}
+
+
+\newpage
+
+An alternative to modfying the dynamics of the ODE by virtue of an addtional term that leaves critical points invariant is to use a different integration method. One systematic manner of how to do this is by using the proximal method 
+\begin{align}
+\theta_{n+1} = \text{prox}_f^{\eta} (\theta_n), \quad \text{prox}_f^{\eta}(\theta') = \arg\min_\theta \left( f(\theta) + \frac 1{2\eta} \| \theta - \theta' \|_2^2 \right)
+\end{align}
+Note that if $f$ is differentiable then this is equivalent to performing an implicit Euler step as
+\begin{align}
+\theta_{n+1} = \theta_{n} - \eta \nabla f(\theta_{n+1}) 
+\end{align} 
+
+\newpage
+
+We can think about this modification as an approximation of a Newton update in the following sense:
+\begin{align}
+\theta_{n+1} & = \theta_n - \left( [\nabla^2 f]^{-1} \nabla f\right)(\theta_n) \\
+\end{align}
+\begin{align}
+[\nabla^2 f]^{-1} = I + 
+\end{align}
+
+
+\newpage
+
+
+NOT NEEDED
+\begin{align}
+& v^\top \begin{bmatrix} A & C \\ -C^\top  & B \end{bmatrix} v 
+= v^\top \begin{bmatrix} A & 0 \\ 0  & B \end{bmatrix} v 
+\quad (\forall v), \qquad
+D^\top D \succeq 0
+\end{align}
+
+\begin{align}
+\begin{bmatrix} I & 0 \\ 0 & - I \end{bmatrix}
+\nabla^2 f 
+% = \begin{bmatrix} \partial_\phi^2 f & 0 \\ 0 & -\partial_\psi^2 f \end{bmatrix}
+\succeq 0
+\\
+\nabla^2 f = 
+\underbrace{\begin{bmatrix} \partial_\phi^2 f & 0 \\ 0 & -\partial_\psi^2 f \end{bmatrix}}_{\succeq 0} + 
+\underbrace{\begin{bmatrix} 0 & \partial_\phi \partial_\psi f  \\  -\partial_\psi \partial_\phi f & 0\end{bmatrix}}_{\sim 0}
+\end{align}
+
+
+can show that $T'(\theta^*) \succeq 0$ as
+
+\section{Examples}
+
+System $f(x,y) = xy$, saddle point at $x=y=0$, ODE 
+\begin{align}
+\begin{bmatrix} \dot x \\ \dot y \end{bmatrix} +
+\begin{bmatrix}  y \\ -x \end{bmatrix} =0
+\end{align} 
+with solution 
+\begin{align}
+\begin{bmatrix}  x \\ y \end{bmatrix}(t) = 
+\begin{bmatrix}  \cos(t) & -\sin(t)  \\ \sin(t) & \cos(t) \end{bmatrix}
+\begin{bmatrix}  x\\ y \end{bmatrix}(0)
+\end{align}
+Gradient updates 
+\begin{align}
+\begin{bmatrix}  x \\ y \end{bmatrix}_{n+1} = 
+\begin{bmatrix}  x \\ y \end{bmatrix}_n - \eta
+\begin{bmatrix}  0 & 1  \\ -1 & 0 \end{bmatrix}
+\begin{bmatrix}  x \\ y \end{bmatrix}_n
+=\underbrace{\begin{bmatrix}  1 & -\eta  \\ \eta & 1\end{bmatrix}}_{=:A_\eta}
+\begin{bmatrix}  x \\ y \end{bmatrix}_n
+\end{align}
+Characteristic polynomial $\text{det}(tI - A_\eta) = (t-1)^2 + \eta^2= t^2 -2t +(\eta^2+1)$. Hence eigenvalues $\lambda = 1 \pm i\eta$. $\text{Re}(\lambda)=1$ and Jacobian does (indeed) not guarantee stability.  Step size influences imaginary part.
+
+
+\section{ODEs} 
+
+Many algorithms in optimization, game theory and related areas can be thought of as discrete-time approximations of a continuous-time system described by an ordinal differential equation (ODE). The simplest example is a gradient flow with a massless particle, i.e.~$\dot x + \nabla f(x)=0$, which we can approximate -- starting from some initial state  --  using explicit Euler steps. This results in the standard gradient descent updates, $x_{n+1} = x_n - \triangle t \cdot \nabla f(x_n)$ with step size $\triangle t$. Here $x_n$ approximates the solution of the ODE at time $t=\triangle t\cdot n$. This continuous time viewpoint is a powerful one as it allows making use of various mathematical tools in the design, implementation, and analysis of algorithms. 
+
+
+
+\section{Convergence Analysis}
+
+\subsection{Hilbert Space Weak Convergence Results}
+ 
+\paragraph{Convex Case} The classical result is the theorem of Bruck \cite{bruck1975asymptotic}. It considers the subgradient flow of a convex (lower-semicontinuous) $f$ in a Hilbert space $H$, i.e.~$\dot x + \partial f(x) \ni 0$.  
+% Weak convergence in Hilbert space - https://en.wikipedia.org/wiki/Weak_convergence_(Hilbert_space)
+Weak convergence\footnote{Weak convergence of a sequence in $H$ to $x$ means that $\langle x_n, y \rangle \to \langle x, y\rangle$, $\forall y \in H$.} is shown by evoking the Opial property for Hilbert spaces (Opial's theorem \cite{opial1967theorem}).\footnote{Of course, a triviality in finite-dimensional Euclidean spaces.} 
+
+Generalizations to the heavy-ball system $\ddot x + \gamma x + \nabla f(x) = 0$ exist \cite{alvarez2000minimizing}, which has also been studied in \cite{antipin1994minimization,haraux1998convergence}. The question of how to best deal with non-smooth or even non-continuous $f$ is discussed in \cite{attouch2000heavy}, which shows weak convergence for the case of differentiable $f$ over closed convex domains. 
+
+\paragraph{Non-Convex Case} It is very relevant (e.g.~for deep neural networks) to consider questions related to local optimization of non-convex, possibly non-smooth functions. A recent paper \cite{attouch2013convergence} shows an abstract weak convergence result that makes use of the Kurdyka-Lojasiewicz property as the main assumption on $f$. The main results in this context is the Lojasiewicz inequality that states that if $f$ is (real-)analytic, then the gradient norm of $f$ around critical points $x^*$ can be bounded from below for some $\theta \in [\tfrac 12; 1)$, $C>0$ via
+\begin{align}
+| f(x) - f(x^*) |^\theta \le C \| \nabla f(x) \|, \; \forall x \in U(x^*)
+\end{align}
+% see proof in: https://www.ljll.math.upmc.fr/~plc/attouch.pdf
+with the help of this inequality Lojasiewicz's theorem \cite{Lojasiewicz84} shows convergence (and finite trajectory length) of gradient dynamics. 
+
+This work has been extended in \cite{kurdyka2000proof} 
+% http://emis.ams.org/journals/Annals/152_3/mostowski.pdf
+to proof a stronger version of Thom's conjecture that shows that there is also a directional convergence -- na\"ively speaking, the critical point is approached from a consistent direction.\footnote{This is non-trivial as the conjecture fails for convex functions (!) as shown in \cite{daniilidis2010asymptotic}.} 
+
+The basic proof technique for Lojasiewicz's theorem defines a Lyaponov function via $\phi(f(x(t))-f(x^*))$, where $\phi(s) = Cs^{1-\theta}$ is a desingularizing function. This construction can also be used \cite{kurdyka1998gradients} to extend these results via the Kurdyka-Lojasiewicz (KL) inequality \cite{attouch2010proximal} to the non-smooth case. There are many interesting function classes that fufill the KL inequality, including semi-algebraic functions\footnote{See presentation: \url{www.ljll.math.upmc.fr/~plc/attouch.pdf}}. Convergence results for steepest descent of analytic functions can be found in \cite{absil2005convergence} and extensions to proximal methods for non-smooth optimization are presented in \cite{attouch2009convergence,attouch2011prox}. More results for splitting (forward-backward) algorithms as well as use cases in compressed sensing (and more) are summarized with references in \cite{attouch2011Poincare}.
+
+\section{Monotone Operators}
+
+The theory of monotone operators is extensive. A recent comprehensive overview can be found in \cite{ryu2016primer}. The key idea is to define problems such that solutions correspond to fixed points of an operator, i.e.~$x = A(x)$. Think of the case of finding a critical point in optimization, where we may consider gradient operators $A=\nabla f$ (or $A=\partial f$). Similarly, in finding saddle points or solving zero-sum games, we may have operators $A=(\nabla_\phi f, - \nabla_\psi f)$ or more generally $A=(\nabla_\phi f, \nabla_\psi g)$. Solutions to such problems can often be obtained by studying the ODE $\dot x + A(x) = 0$ and discretized versions thereof such as (in the simplest case) $x_{n+1} = x_{n} - \eta A(x_n)$. 
+
+\subsection{Maximal Monotonicity} 
+
+The monotonocity of $A$ is a fundamental property that generalizes many of the properties of gradient operators. Formally, a relation $R$ over a vector space is monotone, if 
+\begin{align}
+(u-v)^\top (x-y) \ge 0, \quad \forall (x,u), (y,v) \in R
+\end{align}
+and an operator is monotone, if the induced relation $R=(x,A(x))$ is. A technically important property is maximal montonicity, which means, there is no extension $R' \supset R$ such that $R'$ is still monotone. Note that gradients (or sub-differentials) of convex functions are maximal monotone. Similar of how convexity can be generalized to strong convexity, one can define strong monotoncity by requiring $(A(x)-A(y))^\top (x-y) \ge \mu \| x-y\|^2_2$ for some $\mu >0$. For convex functions $f$, one usually requires $f$ to be also closed and proper (so-called CCP) as then $\partial f$ is guarenteed to be maximally monotone \cite[Section 4.2]{ryu2016primer}. Moreover note that projections are always monotone \cite[Section 4.3]{ryu2016primer}. For the maximal monotonicty of the saddle subdifferential for convex-concave problems see \cite{rockafellar1976monotone}. It is also possible to cast Lagrangian optimization in this framework by defining the KKT operator \cite[Section 4.4]{ryu2016primer}.
+
+\subsection{Fixed-Point Iterations}
+
+It is often possible to find a fixed point of an operator $F$ by iterating $x_{n+1} = F(x_n)$, which is also known as Picard's algorithm \cite{picard1890memoire,banach1922operations}. One condition under which convergence is guaranteed is operator \textit{contractiveness} cf.~\cite[Section 5.1]{ryu2016primer}. Assume that we have a $\mu$-monotone and $L$-smooth operator $A$, then we can perform updates of the type $x_{n+1} = x_n - \eta A(x)$ such that $F = I - \eta A$. It can be shown that $F$ is contractive for $\eta \in (0; 2\mu/L^2)$, which is worse than what one gets for the specific case of gradient descent. Contractive fixed point iterations are not just converging, but they converge linearly and are Fej\'er monotone\footnote{$\| x_n -x\|$ is strictly decreasing with $n$.}. 
+
+Sometimes it is interesting to consider averaged operators that can be written $F = (1-\theta)I + \theta G$ for $\theta \in (0;1)$ and $G$ non expansive. Such damping can sometimes guarantee convergence for non-expansive operators, e.g.~with typical $1/n$ rates, see \cite[Section 5.2]{ryu2016primer}.
+
+On a more abstract level, one can identify $R=(I+\eta A)^{-1}$ as the resolvent of $A$ and $C = 2R -I$ as the Cayley operator (reflected resolvent). These operators are related in interesting ways \cite[Section 6.1]{ryu2016primer}. $R$ is an averaged operator while $C$ is not, therefore it is often better to base a fixed point iteration on $R$. This is nothing esle than the \textit{proximal point method}, $x_{n+1} = (I + \eta A)^{-1}(x_n)$, cf.~\cite{martinet1970breve,rockafellar1976monotone}. In this context, one can also analyse the methods of multipliers.\footnote{TH: Follow up on this...}
+
+Another way to define fixed-point schemes is to use \textit{operator splitting} \cite[Section 7]{ryu2016primer}, e.g.~if $F = A+B$, where $A$ and $B$ are maximally monotone and have some other properties. For instance if $A$ is singly-valued than one can perform forward-backward splitting 
+\begin{align}
+x_{n+1} = R_B(x_{n} - \eta A(x_n))
+\end{align}
+For instance, $A$ could be a gradient operator and $B$ be a more general operator related to a non-differentiable objective. The paradigmatic case is the proximal gradient method \cite{combettes2005signal,duchi2009efficient,beck2009fast} were we optimize a convex $f=g+h$ with differentiable $g$ via:
+\begin{align}
+x_{n+1} = 	\arg\min_x \left[ 
+g(x_n) + \nabla g(x_n)^\top (x-x_n)+ h(x) + \frac{1}{2\eta} \| x - x_n\|^2
+\right] 
+\end{align}
+This uses a first order approximation of $g$ at the current iterate. It converges for differentiable $g$ with $L$-Lipschitz gradients and step size $\eta <2/L$. More complex splitting methods are discussed in \cite[Section 7.2-7.4]{ryu2016primer}.
+
+\subsection{Specific Algorithms}
+
+There are numerous examples discussed in  \cite[Section 7.5]{ryu2016primer}. We focus on saddle point and game-related problems. The solution presented here relates the forward-backward-forward splitting (as a special case) to the extragradient method \cite[Section 7.5, p.~41]{ryu2016primer}. The convergence proof for the convex-concave case follows from the general result(s). 
+
+\section{Proximal Methods}
+
+In optimization, the more specific setting of the proxcimal operator has been studied and used extensively. The prox-operator is defined as
+\begin{align}
+\text{prox}_{\gamma f}(y) = \arg\min_x \left\{ f(x) + \frac 1{2\gamma} \| x - y \|^2_2 \right\}
+\end{align}
+
+\section{Variational Inequalties}
+
+There is an immense body of literature and knowledge on (finite dimensional) variational inequalties, which generalize many settings from optimization to game theory and econometrics. One of the authoritative monographs on the subject is \cite{facchinei2007finite}. Seminal work includes the fixed-point algorithm of Scarf \cite{scarf1967approximation}, which led to the development of homotopy methods for the field of equilibrium programming. One of the more modern developments are variants of Newton's method, in particular \cite{de1996semismooth}. 
+
+\bibliographystyle{acm}
+\bibliography{IterativeNumerics}
+
+\end{document}
+
+\newpage
+
+\paragraph{Proximal Method for Monotone Operators}
+
+Given a strongly monotone operator (generalizing a gradient operator), the proximal method is a method for finding points $x^*$ that fulfill $A(x^*)=0$, which proceeds in iterations of the type 
+\begin{align}
+x_{t+1} = x_t + \eta_t A(x_{t+1}) 	
+\end{align}
+Note that this equation is implicit in that $x_{t+1}$ (and not $x_t$) appears on the right-hand side. It generalizes the implicit Euler method for integrating a simple ODE $\dot x = -\nabla f(x)$. Note that a standard method for solving the (inner) proximal problem are fixed-point iterations\footnote{\url{en.wikipedia.org/wiki/Backward_Euler_method}}. A special case of performing fixed-point iterations only once results in the extra-gradient approach\footnote{If I understand this correctly, needs to be verified.}
+\begin{align}
+\bar x_{t+1} = x_t + \eta_t A(x_{t}), \quad x_{t+1} = x_t + \eta_t A(\bar x_{t+1}). 
+\end{align}
+The general proximal approach has been suggested and investigated in the classical paper by Rockafellar \cite{rockafellar1976monotone}. 
+% http://www.cs.cmu.edu/~suvrit/teach/papers/1976_rockafellar_monotone_operators_proximal_point_algorithm.pdf
+There it is introduced by observing that (under suitable conditions on the operator) there always is a unqiue $x^+$ satisfying 
+\begin{align}
+x^+ = x + \eta A(x^+), \quad \text{s.t.} \quad x^+ = \underbrace{(I - \eta A)^{-1}}_{:=P}x
+\end{align}
+where $P$ is called the proximal mapping, which is shown to be  non-expansive. A stationary point $x^*$ of $P$ fulfills $A(x^*)=0$. One can often recast the problem in terms of a local optimization problem, e.g.~for gradient operators 
+\begin{align}
+x_{t+1} = \arg\min_x \left\{ f(x) + \frac1{2\eta} \| x - x_t\|^2 \right\}
+\end{align}
+which is the caonical definition in the optimization literature (e.g.~Boyd et al), where the mofied objective is sometimes also called Moreau-Yosida regularization. Similar formulations are possible for saddle points of convex-concave functions (\cite{rockafellar1976monotone}, Eq.~(1.11)). The mathematically most relevant questions center around weak (or strong) convergence of such iterative methods, given general properties of the monotone operator. There are also results that investigate the underlying ODE for the subgradient dynamics of convex functions, e.g.~\cite{bruck1975asymptotic}. 
+
+
+
+\newpage
+
+\noindent 
+\subsection*{Numerics of GANs \cite{mescheder2017numerics}}
+\paragraph{Basic Setting} Bi-objective optimization. Parameters $\phi$, $\theta$, $\xi = (\phi,\theta)$. Two coupled objectives, $f$ and $g$, special case: zero-sum games $g=-f$. Goal find \textit{saddle point}, i.e.~pair $(\phi^*, \theta^*)$ such that 
+\begin{align}
+\phi^* \in \arg\min_{\phi \in \Phi} f(\phi,\theta^*), \quad 
+\theta^* \in \arg\min_{\theta \in \Theta} g(\phi^*,\theta)
+\end{align}
+where $\Phi, \Theta$ denote local or global domains. 
+Define a vector field and its Jacobian field as
+\begin{align}
+v= \begin{pmatrix}  \nabla_\phi f \\ \nabla_\theta g \end{pmatrix}, \quad 
+v' =\begin{pmatrix} \nabla^2_\phi f & \nabla_\phi \nabla_\theta g \\ \nabla_\phi \nabla_\theta f  & \nabla_\theta^2 g 
+\end{pmatrix}, \quad  
+\end{align}
+In the special case of $g=-f$, one has that $v'$ positive (semi) definite.~iff both Hessians are positive (semi) definite\footnote{Follows directly from block matrix multiplication.}.
+
+\paragraph{Fixed-points of Operators} One is interested in iterative methods to find saddle points, which often amount to the repeated application of an operator $F$. Such a method converges locally around $x_0$ with a linear rate, if $F'$ (the Jacobian of $F$) has a bounded spectral radius: fixed point theorem
+\begin{align}
+F(x_0) = x_0, \quad \rho(F'(x_0)) < 1 \; \Longrightarrow \exists \epsilon \; \forall x \in U_\epsilon(x_0), \; F^t(x) \to x_0
+\end{align}
+A typical iterative method (e.g.~gradient descent) makes an additive correction to the current iterate and thus we may be intersted in the specific case where $F = \text{id} - \eta G$, such that $F' = I - \eta G'$. 
+
+Let us first look at the special case where $G =\nabla f$ is a gradient operator (single minimization problem). In the latter case convergence is tied to local convexity, i.e.~a p.d.~condition on the Hessian $G'$, namely $G' \succ 0$.  The learning rate is upper-bounded by $\gamma_{\max}(G')$ as $|1 - \eta \gamma_{\max}|<1$ and hence $\eta < 2/\gamma_{\max}$. As $G'$ is symmetric, all eigenvalues $\gamma$ are real.
+
+In the more general case discussed in \cite{mescheder2017numerics}, $G$ is a more general vector field and $G'$ is no longer symmetric, allowing for the possibility of complex eigenvalues  with non vanishing imaginary parts. As their main technical Lemma 4 shows, the above condition can be generalized to yield (for p.d.~$G'$)
+\begin{align}
+\eta < \frac{2}{\text{Re}(\gamma)} \left( 
+\frac{\text{Re}(\gamma)}{|\gamma|}\right)^2 
+\end{align} 
+Hence, in addition to the real part, one needs to also take the imaginary part into account (the modulus, relative to the real part of an eigenvalue).  This is a nice and basic piece of analysis.
+
+\paragraph{Improving Local Stability} The paper then suggets to modify the objectives $f$ and $g=-f$ by adding a ``consensus term'', i.e.~a shared objective, which is simply chosen to be $\Omega = \frac \gamma 2 \| v \|^2$. The idea is that a large enough choice of $\gamma$ will lead to better convergence properties and larger learning rates (i.e.~faster training). Note also that at a saddle point $\xi^*$ (Nash equlibrium) $v(\xi^*)=0$ and hence this modification is not changing the location (and number) of saddle points.  However, the modification may make instable criticial points locally stable, which is clearly non-desirable and points at a possible conceptual flaw.
+
+\paragraph{Accelerated Gradients?}
+
+The modified vector fields are (as one can easily derive) given by $w = v + \gamma v' v$. For $\gamma=0$ we can think of simultaneous gradient descent as a time discretized version (direct Euler method) for solving an underlying ODE, namely $\dot\xi = - v$, describing a massless particle moving through the vector field. 
+
+The additional term can be thought of as representing the acceleration in the above system. As a system evolving as $\dot\xi = -v$ has an acceleration field $\ddot\xi = - \dot v = v' \dot \xi= - v'v$. In the time-continuous domain we may  thus be compelled to write in terms of ODE
+\begin{align}
+\dot \xi + w = 0 \iff \dot \xi + v + \gamma v' v = 0 \stackrel{?}{\iff} -\gamma \ddot\xi + \dot\xi + v =0
+\end{align}
+However this would not be correct as the identity $\ddot\xi = - \dot v$ only holds for a solution to the orginal system $\do \dot\xi = - v$. If we modify the ODE however, the solution of this ODE will (in general) no longer fullfill this as now the dynamics has changed.
+
+\subsection*{Solving GANs via Proximal Methods}
+
+\paragraph{Proximal Method for Monotone Operators}
+
+Given a strongly monotone operator (generalizing a gradient operator), the proximal method is a method for finding points $x^*$ that fulfill $A(x^*)=0$, which proceeds in iterations of the type 
+\begin{align}
+x_{t+1} = x_t + \eta_t A(x_{t+1}) 	
+\end{align}
+Note that this equation is implicit in that $x_{t+1}$ (and not $x_t$) appears on the right-hand side. It generalizes the implicit Euler method for integrating a simple ODE $\dot x = -\nabla f(x)$. Note that a standard method for solving the (inner) proximal problem are fixed-point iterations\footnote{\url{en.wikipedia.org/wiki/Backward_Euler_method}}. A special case of performing fixed-point iterations only once results in the extra-gradient approach\footnote{If I understand this correctly, needs to be verified.}
+\begin{align}
+\bar x_{t+1} = x_t + \eta_t A(x_{t}), \quad x_{t+1} = x_t + \eta_t A(\bar x_{t+1}). 
+\end{align}
+The general proximal approach has been suggested and investigated in the classical paper by Rockafellar \cite{rockafellar1976monotone}. 
+% http://www.cs.cmu.edu/~suvrit/teach/papers/1976_rockafellar_monotone_operators_proximal_point_algorithm.pdf
+There it is introduced by observing that (under suitable conditions on the operator) there always is a unqiue $x^+$ satisfying 
+\begin{align}
+x^+ = x + \eta A(x^+), \quad \text{s.t.} \quad x^+ = \underbrace{(I - \eta A)^{-1}}_{:=P}x
+\end{align}
+where $P$ is called the proximal mapping, which is shown to be  non-expansive. A stationary point $x^*$ of $P$ fulfills $A(x^*)=0$. One can often recast the problem in terms of a local optimization problem, e.g.~for gradient operators 
+\begin{align}
+x_{t+1} = \arg\min_x \left\{ f(x) + \frac1{2\eta} \| x - x_t\|^2 \right\}
+\end{align}
+which is the caonical definition in the optimization literature (e.g.~Boyd et al), where the mofied objective is sometimes also called Moreau-Yosida regularization. Similar formulations are possible for saddle points of convex-concave functions (\cite{rockafellar1976monotone}, Eq.~(1.11)). The mathematically most relevant questions center around weak (or strong) convergence of such iterative methods, given general properties of the monotone operator. There are also results that investigate the underlying ODE for the subgradient dynamics of convex functions, e.g.~\cite{bruck1975asymptotic}. 
+
+\paragraph{Proximal Iterations with Momentum}
+In the spirit of the approach first proposed in \cite{antipin1994minimization} to use ODEs as the starting point for optimization algorithms, \cite{alvarez2001inertial} investigates the heavy ball with friction ODE 
+\begin{align}
+\ddot x + \gamma \dot x + \nabla f(x) = 0 
+\end{align}
+which can be shown (citation?) to converge towards the global minimum of a (strongly) convex function. There is also work in the mathematics literature (and not just in optimization as Nesterov's \cite{nesterov1983method}), e.g.~\cite{attouch2000heavy,alvarez2000minimizing}. Understanding the dynamics of such system seems to be easier for coercive operators (what is the relevance of that?) \cite{attouch2000heavy}.
+% http://www.dim.uchile.cl/~falvarez/Papers/AlvAtt00.pdf 
+
+% IMORTANT 
+% https://arxiv.org/pdf/1609.08177.pdf
+
+% https://www.ljll.math.upmc.fr/~plc/attouch.pdf
+
+% https://link.springer.com/article/10.1007/s10957-005-7564-z
+
+
+\newpage
+
+They take this as the starting point to motivate a time discrete version of an operator problem. Assuming $A$ is a maximal monotone operator (a generalization of a gradient operator), then they define an implicit iterative approach via 
+\begin{align}
+x_{t+1} - x_t - \alpha_t  (x_t - x_{t-1}) + \gamma_t A(x_{t+1}) = 0 
+\end{align}
+
+
+
+
+
+\paragraph{Variational Inequalities} A standard approach in mathematics deals with solving variational inequalities (VIs). Here one has an operator $G: U \to \Re^n$ (see \cite{konnov2002theory} for an overview) and is interested in the existence and computation of points $x^*$ such that
+\begin{align}
+\langle G(x^*), x-x^* \rangle \geq 0, \quad \forall x \in U
+\end{align}
+for which one also considers the dual VI problem
+\begin{align}
+\langle G(x), x-x^* \rangle \geq 0, \quad \forall x \in U
+\end{align}
+The paradigmatic case that is generalized via VIs is optimization where we have a minimization problem and $G$ is the gradient operator of $f$, the function to be minimized (assume $U = \Re^n$ for simplicity). Assume $f$ is convex, then DVI characterizes the global minimum. 
+
+
+\paragraph{Extragradient Methods} In the optimization literature, the above problem is known as the problem of solving \textit{variational inequalities} and a standard tool to solve these problems is the extragradient method \cite{Korpelevich76Extragradient,taskar2006structured}. Intersting quote from \cite{nguyen2016extragradient}: ``Intuitively, this additionalt
+iteration allows to foresee the geometry of the problem and take into account curvature information,
+one of the most important bottlenecks for first order methods.''
+
+
+
+% Interesting, use of Fenchel duality to construct gap function for equilibrium problems
+% http://www.mat.univie.ac.at/~rabot/publications/jour06-07.pdf
+
+% Somewht advanced paper by the expert of VIs, Noor (Pakistan)
+% shttps://www.researchgate.net/profile/Muhammad_Noor3/publication/275			508330_General_equilibrium_bifunction_variational_inequalities/links/553de2750cf2c415bb0f7e9e/General-equilibrium-bifunction-variational-inequalities.pdf
+
+% check this: http://www.dim.uchile.cl/~falvarez/Papers/AlvAtt01b.pdf
+
+% What are these splitting operators - SIAM journal s		
+% https://scholar.google.com/scholar?cluster=7851196261519148778&hl=en&as_sdt=0,5&as_vis=1
+
+% http://www.pmf.ni.ac.rs/pmf/publikacije/filomat/2015/29%20-%205/F29-5-8%20-%20597.pdf
+
+\end{document}
+
+\newpage
+
+
+Convergence guarantee via Jacobian 
+\begin{align}
+F' = I + h A, \quad \rho(F') <1 \iff h < \frac{1}{|\text{Re}(\gamma)|} \cdot \frac{2}{1+ \left( \frac{\text{Im}(\gamma)}{\text{Re}(\gamma)} \right)^2} \; (\forall \gamma)
+\end{align}
+
+\noindent 
+Add regularizer $\Omega(\xi) = \frac 12 \| v(\xi)\|^2$ and  regularized function and vector fields 
+\begin{align}
+\bar f  = f  - \gamma \Omega, \; \bar g = g - \gamma \Omega, \quad 
+w = v - \gamma \nabla \Omega, \quad \nabla \Omega = \left( v'^\top \right) v
+\end{align}
+So the fixed point function of gradient updates is given by 
+\begin{align}
+F(\xi) = \xi + h\left[I - \gamma v'(\xi) \right] v(\xi), \quad \text{more generally} \quad [...] =:A
+\end{align}
+
+
+\end{document}

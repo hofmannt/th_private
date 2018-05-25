@@ -1,0 +1,64 @@
+Section 1
+=======
+
+- g_i being "a". These are different functions per index i.
+
+- I don't like the \mathcal P_k notation.  Why not use "I" for a generic set of indices (the capitalized version of "i", so  it's consistent with that convcention and I_k for indexed index set.
+
+- Lines 67ff. I find it too early to introduce the notation here. Move to Section 2.
+
+- It may be helpful to quickly discuss the data sharding approach to make the connection to ML. Sharding by instancews vs. sharding by features, say. I understand that formally, this does not make a difference, but it is much harder in practice (and this is where large scale distributed optimization is supposed to be used) to shard by features, say, as data typically arrives in "instances", which is therefore the more natural "semantic unit". 
+
+
+Section 2
+=======
+
+- I think it would help to first introduce the second-order Newton model.
+
+- The readability of the auxilary model Eq.2-5 is poor. I suggest moving part of the detailed block notation from the intro here and to try to improve the notation a bit to make it more accessible.
+
+- I would write as follows: 
+
+	\mathcal M(\triangle \alpha; \alpha) 
+	= 
+	\mathcal f(\alpha) + \sum_i g_i(\alpha_i+ \triangle \alpha_i)   	% this shows that g_i's are handeled exactly, whereas f 
+													% is approximated locally
+	+ \nabla^\top f(\alpha) A \triangle \alpha 					% first order
+	+ \frac \sigma 2 
+		\triangle \alpha^\top A^\top H(\alpha) A \triangle \alpha	% second order, leaving open what H is
+													
+	Now with the choice of H = \nbabla^2 f, we can easily identify this as a second order model for f
+														
+	In the next step one can then introduce block index notation and a matrix \tilde H that has block structure, so that 
+	\triangle \alpha^\top \tilde H(\alpha) \triangle \alpha = \sum_I \triangle \alpha^\top_I \tilde H(\alpha)_{II} \triangle \alpha_I
+	
+- Sect. 2.2: I find the remark about \sigma being a measure of approximation quality unclear. (In fact, I don't understand what you mean and certainly nothing is explained at this point. Please provide an explanation. Do you mean that that it is better to have a first order model of f than to have a far off second order model? What is the range of \sigma? Shouldn't 0<= \sigma <=1?
+
+Section 3
+=======
+
+- Notation "\theta"[approximately. In statistics and many other areas \theta stands for a parameter vector. Somethimes for a threshold. Why not use \epsilon (or if this is needed elsewhere, \eta)? This is the most natural candidate, no? Eq. (7), maybe more clearly written as a ratio? 
+
+- After Eq. (7): \sigma_t. You never mentioned the need to provide a schedule for \sigma before. This needs to be explained and motivated better. Is this the best place to have this discussion?
+
+- Before assumption 1: Isn't this dual suboptimality? Why call it a distance? 
+
+- Assumption 1. Can't you just put these suppositions into the theorem? It feels a bit awkward to call them assumptions. This would make sense, if you have many of them, or some which are non-obvious.
+
+- Theorem 1: "yield a succesful step' -  what does this mean? It seems that this comes from the algorithm box. I find it very bad style to make a theorem depend on something defined in an algorithm box ;-)
+
+- What is \epsilon? What is the difference between \epsilon_t and \epsilon^{(t)} (if any)? Why not say, "an accuracy of at least C"? What is the meaining of C/\epsilon? What is gained relative to just dropping this (=1)? It seems you can't describe how much smaller \epsilon (\le C), so why make things overly complex? In the end, we know that bounds are pessimistic.
+
+- What do you mean by general convex? Proper convex? or just "plainly" convex?
+
+- Proof sketch. I surely like it, if proofs are decomposed and steps are clarified. I think this requires a bit more work though.
+
+- There are a lot of hyperparameters. What is the significance of \xi? Do we really need \gamma_1 and \gamma_2? It is not always best (in my opinion) to parameterized everything to the max in order to get the most general results. Everyone knows that this can be done. So let's be a bit more concscious about how many tuning parameters are introduced. 
+
+- Things seem a bit complex and the paper is not explaining it well. For instance if \gamma_1 = \gamma_2 = \gamma, then it seems the second term in theorem 1 disappears. However, I suppose that then \sigma_sup will potentially be very large? It's not 100\% clear to me. Maybe you want \gamma_2 <1 as well? 
+
+- Is it correct that \rho, \zeta_1, \zeta_2 do not enter the bound directly? Is this entering indirectly through \sigma_sup? Please clarify how the effec of these tuning parameters on the analysis. 
+
+- What is E[\sigma_t]? This is just the average over the iterations? So is it an empirical quanitity? Then the theorem would not be "a priori". Fine, but very important to clarify the nature of the claim that you are making.
+
+- There are two definitions of a constant C. One in the theorem, one in Lemma 5. They don't seem to be identical. This is confusing...

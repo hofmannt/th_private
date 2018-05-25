@@ -1,0 +1,94 @@
+The posterior may be difficult to deal with in the general case, where not even a compact representation may be possible. The remaining challenge then is to compute the actual expectation of the complete data log-likelihhod. Due to the linearity in $Z$, this is trivial for $\loglike^0$ and $\loglike^-$, where we can simply replace $Z_d$ by $q_d$. The challenge is in computing 
+\begin{align}
+& \E_Q \loglike^+ = \sum_{e} X_e \E_Q \log \left( 1 - e^{-\langle Z, \theta \rangle} \right), \quad \text{where}  \\
+& \E_Q \log \left( 1 - e^{-\langle Z, \theta \rangle} \right) \le  \log \left( 1 - e^{-\langle \E_Q Z, \theta \rangle} \right) 
+\end{align}
+
+How can we get a lower bound on $\E f(x)$, where $f(x) = \log (1-e^{-x})$? Due to the concavity of $f$, direct application of Jensen's inequality yields an nupper bound, instead of a lower.  Let us look at the Taylor expansion of $f$ at a point $x_0$. Derivatives are given by 
+\begin{align}
+& f'(x) = \frac{e^{-x}}{1-e^{-x}}, \quad f''(x) = -f'(x) - f'(x)^2, \quad \\
+& f'''(x) = -f''(x) - 2 f''(x) = - 3 f''(x) 
+\end{align}
+
+
+
+%%%%%%%%
+
+
+The posterior may be difficult to deal with in the general case, where not even a compact representation may be possible. The remaining challenge then is to compute the actual expectation of the complete data log-likelihhod. Due to the linearity in $Z$, this is trivial for $\loglike^0$ and $\loglike^-$, where we can simply replace $Z_d$ by $q_d$. The challenge is in computing 
+\begin{align}
+& \E_Q \loglike^+ = \sum_{e} X_e \E_Q \log \left( 1 - e^{-\langle Z, \theta \rangle} \right), \quad \text{where}  \\
+& \E_Q \log \left( 1 - e^{-\langle Z, \theta \rangle} \right) \le  \log \left( 1 - e^{-\langle \E_Q Z, \theta \rangle} \right) 
+\end{align}
+
+How can we get a lower bound on $\E f(x)$, where $f(x) = \log (1-e^{-x})$? Due to the concavity of $f$, direct application of Jensen's inequality yields an nupper bound, instead of a lower.  Let us look at the Taylor expansion of $f$ at a point $x_0$. Derivatives are given by 
+\begin{align}
+& f'(x) = \frac{e^{-x}}{1-e^{-x}}, \quad f''(x) = -f'(x) - f'(x)^2, \quad \\
+& f'''(x) = -f''(x) - 2 f''(x) = - 3 f''(x) 
+\end{align}
+
+%%%%%%%%
+\paragraph{Quadratic Bound.}
+
+Can we get a quadratic lower bound on $f(x) = \log (1-\exp(-x))$ around $x_0$? To begin, compute the first and second derivative 
+\begin{align}
+f'(x) = \frac{e^{-x}}{1-e^{-x}}, \quad f''(x) = -f'(x) - f'(x)^2
+\end{align}
+
+%%%%%%%%
+
+\paragraph{Quadratic Bound.}
+
+Can we get a quadratic lower bound on $f(x) = \log (1-\exp(-x))$ around $x_0$? To begin, compute the first and second derivative 
+\begin{align}
+f'(x) = \frac{e^{-x}}{1-e^{-x}}, \quad f''(x) = -f'(x) - f'(x)^2
+\end{align}
+
+%%%%%%%%
+
+\paragraph{Variational Approximation.} How can we deal with the complicated likelihood term $\loglike^+$? One approach is to lower bound each term (or a sufficiently large number of terms) by a family of bounds with variational parameters. Let us introduce a facorizing variational distribution $Q_e$ with marginals $q_{ed} = \E_{Q_e}[Z_d]$.
+\begin{align}
+\log P(X_e=1| Z; \theta) & = \log \left ( 1- e^{-\theta_{e0} - \sum_{d=1}^m Z_d \theta_{ed}} \right) \nonumber \\
+& \ge \sum_{d=1}^m q_{ed} \log \left ( 1-\exp\left[ -\theta_{e0} - \frac{Z_d \theta_{ed}}{q_{ed}} \right] \right) 
+\end{align}
+Now we need to see how we can transform this into a bound that is linear in $Z$.  By inserting the two possibilities for a specific $Z_d$ we get 
+\begin{align}
+& \log P(X_e=1| Z; \theta) \nonumber \\
+& \ge  \sum_d  q_{ed} \left[ 
+Z_{ed} \log \left(1 - e^{-\theta_{e0} - \frac{\theta_{ed}}{q_{ed}}} \right)
++ (1-Z_{ed}) \log \left(1 - e^{-\theta_{e0}} \right)
+\right]  \,.
+\end{align}
+
+%%%%%%%%
+
+\paragraph{Variational Approximation.}
+
+Optimizing $\Theta$ for noisy-or networks is not directly feasible. One thus makes a further simplification
+\begin{align}
+\E_Q \left[ \log \left( 1- e ^{- \langle Z, \theta_e \rangle} \right) \right] & \ge \log \left(1- e^{- \langle \E_Q[Z], \theta_{e}\rangle} \right)\,, 
+\end{align} 
+which exploits the concavity of $\log(1+\exp(-x))$ for $x \ge 0$ together with Jensen's inequality.  
+
+
+%%%%%%%%
+
+\paragraph{More General Approach.} The approach presented in \cite{jaakkola1999variational} is more general and introduces variational distributions for every finding node $X_e$ and every instance. The above formulation is somewhat more efficient and worth investigating on its own right. Moreover, \cite{jaakkola1999variational} also suggests to re-introduce some dependencies and not to work with completely factorizing distributions $Q$. Again, this will increase the accuracy of the posterior inference, but at additional computational cost and implementaton complexity. 
+
+Let us re-derive the \cite{jaakkola1999variational} approach in our notation. First, we note that we can perform the variational approximation for a single finding node at a time, thus lower bounding each $P(X_e=1|Z; \theta)$ by introducing a variational distribution $Q_e$. 
+\begin{align}
+\log P(X_e=1| Z; \theta) & = \log \left ( 1- e^{-\theta_{e0} - \sum_{d=1}^m Z_d \theta_{ed}} \right) \\
+& \ge \sum_{d=1}^m q_{ed} \log \left ( 1-\exp\left[ -\theta_{e0} - \frac{Z_d \theta_{ed}}{q_{ed}} \right] \right) 
+\end{align}
+
+
+%%%%%%%%
+%%%%%%%%
+%%%%%%%%
+%%%%%%%%
+%%%%%%%%
+%%%%%%%%
+%%%%%%%%
+%%%%%%%%
+
+

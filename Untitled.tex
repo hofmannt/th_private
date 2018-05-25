@@ -1,0 +1,14 @@
+
+
+The standard approach for supervised machine learning is to cast it as an optimization problem with a loss function $\ell$ and a suitable regularizer. Learning then amounts to minimizing the regularized traning risk over a chosen model family, parameterized by weights  $\w \in \Theta$. 
+
+
+ Given training data $(\x_i,y_i)$, $1 \le i \le n$ one then minimizes a regularized empirical loss over a model paramneterized with weights $\w \in \Theta$. 
+
+
+define a parameterized model with weights $\w \in \Theta$  and a loss function $\ell$ along with a regularizer $\Omega$ and 
+
+It will be useful to study simpler matrices than full Hessians. Without loss of generality, we focus on the diaginal case.  
+\begin{lemma}
+Assume $\H = \diag(\lambda_i)$  and for arbitrary $\tau \geq 0$ denote by $\underline\H=\diag(\sigma_i)$, where $\sigma_i = \tau$ if $\lambda_i \ge \tau$ and $\sigma_i = \lambda_{\min}$, otherwise. Then 
+\end{lemma}

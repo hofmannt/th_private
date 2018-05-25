@@ -1,0 +1,89 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts}
+\usepackage{tikz-cd}
+\usetikzlibrary{matrix,arrows,decorations.pathmorphing}
+
+\title{Compressed Sentence Model \\
+STATUS: Fragment, see email to Florian}
+\author{Thomas Hofmann}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\E}{{\mathbf E}}
+\newcommand{\z}{{\mathbf z}}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\smapsto}{{\stackrel \sim \mapsto \,}}
+
+\setlength\parindent{0pt}
+
+\begin{document}
+
+\maketitle
+
+\paragraph*{Sentence Models} Sentence $S \in \Sigma^*$, represented as a sequence of words $S = (\sigma_1, \dots,. \sigma_l)$. Probabilistic sentence encoder:
+\begin{align}
+q: \Sigma^* \to \mathcal{P}(\Re^m), \quad S \mapsto q(\z; S), \; \z \in \Re^m, 
+\end{align}
+where $\z$ is a latent vector and $q$ a (variational) distribtion over the latent space. Probabilistic sentence decoder 
+\begin{align}
+r: \Re^m \to \mathcal{P}(\Sigma^*), \quad \z \mapsto p(S; \z), \; S \in \Sigma^*
+\end{align}
+Composing encoding and decoding, we get a conditional distribution by integrating out the latent variables. 
+\begin{align}
+p(S' | S) = \int_{\Re^m} q(\z|S) \, r(S'|\z) d\z
+\end{align}
+
+\paragraph*{Sentence Compression}
+
+We would like to learn a model which takes a sentence $S$ and some scalar control $\xi \ge 0$ as an input and produces a compressed version $S'(\xi)$ of $S$ such that $|S'|=m<|S|$, where $m$ is controlled by $\xi$. The key challenge is to do so without any labeled sentence pairs $(S,S')$, i.e.~in a purely unsupervised manner from a large corpus of sentences.\\
+
+We suggest to make use of the latent representation $\z$ in order to model semantic relatedness of sentences. Controlled by $\xi$ we want to learn a mapping $T: \Re^d \times \Re \to \Re^d$ such that if $\z \stackrel \sim \mapsto S$, then $T_\xi \x \stackrel \sim \mapsto S'$, where $S'$ is a compressed version of $S$. As we are actually learning the latent representation, we could also impose a particular form for $T_\xi$ and then learn the representations to match that form. There are simple possibilities such as $T_\xi \z = \xi \z$, $0 < \xi \le 1$, which would mean, shorter sentences can be obtained by shortening $\z$. Another option would be to directly encode $\xi$ or a desired sentence length in additional dimensions of $\z$. 
+
+
+
+\paragraph*{Automated Sentence Comparsion}
+
+The simplest idea is to use a BLEU-like score that compares $S$ and $S'$. Basically, we would measure the precision of the $n$-grams in $S'$ relative to $S$.  $\xi$ would control the sentence length penalty in the score. What this would essentially do is to encourage the sentence compressor to re-use most of the words in the original sentence. Combined with an implicit language model that produces only probable (and mostly grammatical) sentences, this could already result in a non-trivial model.  
+
+
+
+
+\newpage
+
+
+Autoencoder training could aim at maximizing $\E \log p(S'|S)$ or more generally at minimizing a problem-specific loss $\E J(S,S')$.
+
+\paragraph{Example} Seq2seq uses a determinstic LSTM-based encoder that maps $S \mapsto (\x_{\sigma_1},\dots,\x_{\sigma_l}) \mapsto \z(S)$ through word embeddings $\x_\sigma$. The decoder is also LSTM-based and produces conditional probabilities $p(\sigma | \sigma_1,\dots, \sigma_k; \z)$ for arbitrary $k$. High probability samples from the sequence distribution can be generated (approximately) via beam search.
+
+
+
+So if $U_\xi: \Sigma^* \to \Sigma^*$  would be an ideal compression scheme, then the diagram in Figure \ref{fig:commute} should approximately commute. The challenge is the fact that we do \textbf{not} want to assume that we have access to $U_\xi$ directly or indirectly (through examples).  \\
+\begin{figure}
+\begin{center}
+\begin{tikzcd}
+S \arrow{r}{U_\xi} \arrow{d}{q}   &  S'  \\
+\z \arrow{r}{T_\xi}   &  \z' \arrow{u}{r}
+\end{tikzcd}
+\end{center}
+\caption{Commutative diagram.}
+\label{fig:commute}
+\end{figure}
+
+We motiviate our approach by the following data coding setting. Assume that we want to encode and losslessly decode a sentence $S$. We will do so conceptually by mapping $S \mapsto S'$ and by using the code $S' \smapsto  \z$  to encode $S$.
+\begin{align}
+L(S', S) = {c |S'|} - \log \int r(S|\z) q(\z|S') d\z
+\end{align}
+
+
+\newpage
+
+
+
+Let us conceptually illustrate how this may be possible.\\[2mm]
+(1) embedding-based approaches (using CNNs or RNNs) have shown to be powerful in learning language models. So we can generally assume that we have access to a model $p(S')$ that would  favor us to compress $S$ into a grammatical/probable sentence in the source language.\\[2mm]
+(2) we can train a probabilistic auto-encoder for sentences such that $S \stackrel F \mapsto z(S)$ and $z(S) \stackrel G \mapsto \theta$ such that $\log p(S| \theta)$ is high.   There may actually be hope to turn an autoencoder into a generative model, which is what variational autoencoders do. So (1) and (2) may be accomplished by a shared model. \\[2mm]
+Moreover, (3) we can ensure that adding (small-ish amplitude) noise to $z(S)$ will not be overly detrimental, i.e.~$z(S)$ is a robust representation. This is typically done in variational autoencoders by explicitly learning a variational distribution $q(z)$, which is favored to be of high entropy (or small KL-divergence with regard to the prior). \\[2mm]
+
+
+
+
+
+\end{document}

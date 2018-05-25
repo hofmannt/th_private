@@ -1,0 +1,43 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\title{SAGA Analysis}
+\author{Hadi Daneshmand, Thomas Hofmann\\ ETH Zurich}
+
+\newcommand{\E}{{\mathbf E}}
+\renewcommand{\H}{{\mathcal H}}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\x}{{\mathbf x}}
+
+\begin{document}
+\maketitle
+
+\paragraph{Preliminaries} For shortage of time, notation is not properly introduced. Basis are the SAGA paper and the neighborhood SAGA paper. 
+
+\paragraph{Improved Strong Convextity Bound}
+
+Convexity trivially implies the bound 
+\begin{align}
+\langle f'(\x) , \x^* - \x \rangle \le  f(\x^*)-f(\x)
+\end{align} 
+However, in the strongly convex case and assuming that $f = \frac 1n \sum_i f_i$ one can get a stronger bound (cf.~SAGA), which holds for the case, where all loss functioins $f_i$ are individually $\mu$-convex.\footnote{If strong convexity only comes in through a $L_2$ regularizer $\lambda \| \x \|^2$, i.e.~$\mu = \lambda$ then this would not be a stronger assumption at all. However, SAGA and other methods are adaptive to $\mu$, so the global $\mu$ maybe larger then the chosen regularization strength $\lambda$. Of course, what $\mu$ ends up being is hard to quantify \textit{a priori} and generally, whenever we have to use conservative bounds, we can just assume that $\mu = \lambda$.}
+\begin{align}
+\langle f'(\x) , \x^* - \x \rangle \le &  \frac {L-\mu}{L} \left[ f(\x^*) - f(\x) \right] -  \frac \mu 2 \| \x^* - \x\|^2 \\
+& - \frac{1}{2Ln} \sum_{i=1}^n \| f_i'(\x^*) - f_i'(\x) \|^2 \label{eq:third-term}
+\end{align} 
+The remarkable property is that the term in Eq.~\eqref{eq:third-term} does not depend on $\mu$. Notice that this term shows up in the simple iterate recurrence 
+\begin{align}
+\E \| \x + \gamma g_i(\x) - \x^* \|^2 = \| \x - \x^* \|^2  + 2 \gamma \langle f'(\x) , \x^* - \x \rangle + \gamma^2 \E \| g_i(\x)\|^2
+\label{eq:recurrence}
+\end{align}
+where $g_i$ is the update direction upon selecting $i$ (at random). The latter term can be decomposed (simple bound, $\beta=1$ in the parameterized bound): 
+\begin{align}
+\E \| g_i(\x)\|^2 \le 2 \E \| f_i'(\x) - f_i'(\x^*) \|^2 + 2 \E \| \alpha_i - f_i'(\x^*)\|^2, 
+\end{align}
+where the same term $\epsilon(\x) := \frac 1n \sum_{i=1}^n \| f_i'(\x^*) - f_i'(\x) \|^2$ appears. A first question would be for what range of step sizes these terms would cancel out in Eq.~\eqref{eq:recurrence}.\footnote{Note that they have opposite signs.} The condition would be 
+\begin{align}
+\frac \gamma {L} \epsilon(\x) \ge \gamma^2 \epsilon(\x) \iff \gamma \le \frac 1L
+\end{align}
+
+
+\end{document}

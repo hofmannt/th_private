@@ -1,0 +1,193 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\renewcommand{\th}{{\tilde \theta}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\E}{{\bf E}}
+\newcommand{\w}{{\bf w}}
+\newcommand{\x}{{\bf x}}
+\newcommand{\y}{{\bf y}}
+\newcommand{\z}{{\bf z}}
+\newcommand{\X}{{\bf X}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\Z}{{\bf Z}}
+\newcommand{\Xcal}{{\cal X}}
+\renewcommand{\S}{{\cal S}}
+\newcommand{\Ccal}{{\cal C}}
+\newcommand{\Zcal}{{\cal Z}}
+\newcommand{\tgamma}{{\stackrel{\gamma}{\longleftarrow}}}
+\newcommand{\mycomment}[1]{}
+\newcommand{\loglike}{{\mathcal L}}
+
+\title{Multicausal Model of User Web Behavior}
+\author{Thomas Hofmann, ETH Zurich}
+
+\begin{document}
+
+\maketitle 
+
+\paragraph{QMR-DT Network.} Consider a two-layer noisy-OR Bayesian network, equivalent in structure to the QMR-DT network, discussed in \cite{shwe1991probabilistic,jaakkola1999variational}. We will denote by $X_e \in \{0,1\}$, $e=1,\dots,n$, the observable variables, corresponding to \textit{events} or \textit{behaviors} such as visited domains and by $Z_d \in \{0,1\}$, $d=1,\dots,m$, the latent causes, i.e.~socio-demographic or interest factors  as well as possibly uninterpreted explanatory variables. In the medical language of QMT, $X_e$ corresponds to findings and $Z_d$ to possible diseases. 
+
+\paragraph{Noisy-or Model.} The noisy-or assumption for the causal mechanism can be expresses in the following way\footnote{Here  we introduce a constant dummy variables $Z_{0}=1$ with a corresponding parameter $\phi_{e0}$ to account for the leak probability of  turninf on $X_e$ by an unmodelled cause.}
+\begin{align}
+P(X|Z; \phi) = \prod_{e=1}^n P(X_e| Z; \phi), \quad \text{with} \;\; P(X _e=0 | Z; \phi) = \prod_{d=0}^m (1-\phi_{ed})^{Z_{d}} \,.
+\label{eq:noisy-or}
+\end{align}
+Here $\phi_{ed} \in [0;1]$ is the probability that the presence of $Z_d=1$ will cause $X_e=1$. A variable $X_e$ is thus \textit{not} "turned on", if all of the causes fail to activiate it. It is convenient to perform the re-parameterization $\theta_{ed} := -\log (1- \phi_{ed}) \ge 0$, such that we get a simple log-linear form
+\begin{align}
+\log P(X _e=0 | Z; \phi) = \sum_{d=0}^m Z_d \log (1-\phi_{ed}) = -  \sum_{d=0}^m Z_d \theta_{ed} =: - \langle Z, \theta_e \rangle \,.
+\label{eq:log-prob} 
+\end{align}
+Note also that $\phi_{ed}=0 \iff \theta_{ed}=0$, i.e.~the re-parameterization preserves the dependency structure.
+
+\paragraph{Complete Data Model.} 
+
+If we were to observe both, findings $X$ and causes $Z$, then we can define a prior probability on $Z$, e.g.~via a $\pi$-parameterized factorial distribution 
+\begin{align}
+P(Z; \pi) = \prod_{d=1}^m \pi_d^{Z_d} (1-\pi_d)^{1-Z_d} 
+\end{align}
+and then aim to maximize the complete data log-likelihood function over $l$ cases
+\begin{align}
+\loglike(\pi,\theta) = \sum_{i=1}^l \loglike(\pi,\theta; X^i, Z^i)
+\end{align}
+where the per-case log-likelihood has three parts coming from the (i) prior over causes, (ii) negative findings, and (iii) positive findings as follows:  
+\begin{align}
+\label{eq:cond-log-like}
+\loglike(\pi,\theta; X, Z)  & = \loglike^0(\pi; Z) + \loglike^-(\theta; X, Z) + \loglike^+(\theta; X, Z) 
+\end{align}
+with
+\begin{align}
+\loglike^0(\pi; Z) & :=  \sum_{d=1}^m Z_d \log \pi_d + (1-Z_d) \log (1-\pi_d), \nonumber  \\
+\loglike^-(\theta; X, Z) & := -\sum_{e=1}^n (1-X_e)  \langle Z, \theta_{e} \rangle, \nonumber \\
+\loglike^+(\theta; X,Z) & := \sum_{e=1}^n X_e \log \left( 1-  e^{-\langle Z, \theta_e \rangle} \right)\,. \nonumber
+\end{align}
+%
+Note that the log-likelihood contributions $\loglike^0(\pi; Z)$ and $\loglike^-(\theta; X, Z)$ are linear in $Z$ and the main difficulty comes from the positive findings.
+
+\paragraph{Expectation Maximization Algorithm.}
+
+In most practically relevant cases, $Z$ is (at least partially) unobserved. Hence, we should consider the marginal likelihood obtained by summing out the latent causes $Z$
+\begin{align}
+& \loglike(\pi, \theta; X) := \log \sum_{Z} \exp\left[ \loglike(\pi, \theta; X, Z) \right]
+% = \log \sum_{Z} e^{\loglike^0(\pi; Z)} e^{\loglike^-(\theta; X, Z)} e^{\loglike^+(\theta; X,Z)}
+\,.
+\label{eq:marginal-loglike}
+\end{align}
+Although the summation could be performed for $\loglike^0$ and $ \loglike^-$, it is intractable for $\loglike^+$ and thus we look for an alterantive approach to inference and parameter learning. 
+
+One standard approch of finding approximate solutions for marginal likelihood maximization is the expectation maximization (EM) algorithm. Essentially, the EM algorithm replaces the sum over the latent variables $Z$ by their expectations and maximizes the expected complete data log-likelihood with regard to a distribution $Q$ over $Z$. Together with the entropy $H(Q)$ this can easily be seen to be a lower bound on the marginal likelihood 
+\begin{align}
+\label{eq:em-bound}
+ \loglike(\pi, \theta; X) \nonumber 
+& = \log \sum_Z Q(Z) \exp\left[ \loglike(\pi, \theta; X, Z) - \log Q(Z) \right] \\ 
+& \ge\E_Q \loglike(\pi, \theta; X, Z) + H(Q) =: \Theta(\pi, \theta, Q; X)
+\end{align}
+What is the optimal choice of $Q$ in the sense that it defines the largest lower bound? As can be seen easily by differentiating \eqref{eq:em-bound}, the optimal $Q$ is just the posterior of $Z$, i.e.~$Q(Z) := P(Z| X; \pi, \theta)$. In fact, the inaccuracy introduced by the inequality \eqref{eq:em-bound} is exactly the KL-divergence between $Q$ and the posterior. Computing $Q$ then constitutes the E-step, while maximizing the bound with regard to the parameters is done in the M-step. Both steps thus maximize a common objective $\Theta$, guaranteeing  convergence of the EM algorithm towards a local maximum. 
+
+\paragraph{Mean-field Approximation.}  
+
+The main challenge with the EM-approach to the noisy-OR network is in computing the expectations $\E_Q \loglike^+$. Note that $\loglike^0$ and $\loglike^-$ are linear in $Z$ and we compute the expectation by simply replacing $Z_d$ with $Q_d := \E_Q[Z_d]$.  As to the evidence from positive findings, we want to avoid the complex variational approach of \cite{jaakkola1999variational} and investigate a simpler and more scalable approximation. One choice is the mean-field approximation suggested in \cite{ng1999approximate} and used in \cite{platt2007fast} in the context of internet error diagnosis. We thus restrict $Q$ to be of the factorial form 
+\begin{align}
+Q(Z) = \prod_{d=1}^m q_d^{Z_d} (1-q_d)^{1-Z_d}, \quad \text{where} \;\; q_d = \E_Q[Z_d]
+\end{align}
+and then replace the expectation of $\loglike^+$ with the log-likelihood of the expectation. Overloading notation, we also think of $Q$ as an augmented probability vector $Q=(1,q_{1},\dots,q_{m})'$. Note that by the concavity of $\log (1-e^{-x})$ and Jensens's inequality this provides an upper  bound 
+\begin{align}
+\E_Q \log \left( 1- e ^{- \langle Z, \theta_e \rangle} \right) \le \log \left(1- e^{- \langle \E_Q Z], \theta_{e}\rangle} \right)  = \log \left(1- e^{-\langle Q, \theta_e\rangle} \right),
+\end{align}
+which is  somewhat against the spririt of variational EM, where we ideally aim to obtain lower bounds on the marginal likelihood that we can then jointly maximize. However, this approximation can be justified by the alternative analysis provided for MF$(0)$ in \cite{ng1999approximate}, which is based on ideas from \cite{kearns1998large} and shows bounded approximation errors. 
+%
+In summary, we thus define
+\begin{align}
+\tilde\Theta(\pi, \theta, Q; X) :=  & 
+\sum_{e} X_e \log \left(1- e^{- \langle Q, \theta_{e} \rangle} \right)  
+- \! \sum_{e} (1-X_e) \langle Q,\theta_e \rangle
++ D(q||\pi)
+\end{align}
+where $D$ denotes the KL-divergence. We propose to optimize $\tilde \Theta$ with regard to $Q$ as well as with regard to $(\pi,\theta)$ in an alternating manner. 
+
+
+\paragraph{Mean-field Stationary Equations.}
+
+We can derive stationary equations -- so called mean-field equations -- for $q_d$ by computing partial derivatives and setting to zero. 
+\begin{align}
+\nonumber \frac{\partial \tilde\Theta}{\partial q_d} & = 
+\log \left[ \frac{(1-q_d)\pi_d}{q_d (1-\pi_d)}  \right] - \sum_{e} (1-X_{e}) \theta_{ed} + 
+\sum_{e} X_e \theta_{ed} \frac{e^{-\langle Q, \theta_e \rangle}}{1 - e^{-\langle Q, \theta_e \rangle}}  \stackrel{!}{=}0 \\
+\iff  q_d & =  \frac{1}{1 +  \exp[f_d(Q)]}
+\end{align}
+where 
+\begin{align}
+f_d(Q) & := \log \frac{\pi_d}{1-\pi_d} - \sum_{e} (1-X_e) \theta_{ed} + 
+\sum_{e} X_e \frac{e^{-\langle Q, \theta_e \rangle}}{1 - e^{-\langle Q, \theta_e \rangle}} \theta_{ed} 
+\end{align}
+We can solve these equations by updating each $q_d$ as a function of the entire vector $Q$ and iterating those updates until convergence.
+
+
+\paragraph{Parameter Estimation.}
+
+Once we have found $q_i \in[0;1]^m$ for each training instance (variational E-step), we can optimize  with regard to the parameters. The solution for $\pi$ can be easily determined from 
+\begin{align}
+\sum_{i=1}^l \frac{q_{id}}{\pi_d} - \frac{1-q_{id}}{1-\pi_d} \stackrel != 0 \iff \pi^* = \frac 1l \sum_{i=1}^l Q_{i} \,.
+\end{align}
+The M-step solution for $\theta$ cannot be computed in closed form. Instead one has to resort to gradient descent techniques, using the partial gradients  
+\begin{align}
+\nabla_{\theta_e} \tilde \Theta & =  -  \sum_{i=1}^l (1-X_{ie}) Q_{i} + \sum_{i=1}^l X_{ie} Q_{i} \frac{e^{-\langle Q_i, \theta_e \rangle}}{1 - e^{-\langle Q_i, \theta_e \rangle}}  
+% \\& = -l \pi^* + \sum_{i}   \frac{X_{ie}}{1 - e^{-\langle Q_i, \theta_e \rangle}} Q_{i}
+\end{align}
+Note that these gradients decouple for different findings $X_e$ as we would expect based on the conditional independence structure of the noisy-or network. 
+
+\paragraph{Matrix Factorization.} The mean-field approximation is similar to a (naive) matrix factorization approach. The main difference is (i) a somewhat more principled derivation, (ii) the fact that an entropy term on $Q$ is included, and (iii) the possibility to use the mean-field equations in the E-step. 
+
+\paragraph{Using Statistical Information on Causes.} In the user data application, we may have information in the aggregate about the audience behind a particular behavior, e.g.~about the visitors to a particular Web domain. Generally, such information can be described as constraints of the form 
+\begin{align}
+P(Z_d=1| X_e=1) = \xi_{ed} 
+\end{align}
+where we assume for the moment, we have (at least) accurate statistical information. This can be incorprated in the above algorithm via Lagrange parameters, 
+\begin{align}
+\hat \Theta = \tilde \Theta +  \sum_{e,d} \lambda_{ed} \left( \frac{\sum_i X_{ie} Q_{id}}{\sum_i X_{ie}} - \xi_{ed} \right) 
+\end{align}
+which makes determining the solution for $Q_i$ harder as they now get coupled across instances. It seems not hard to device an appropriate algorithm though. 
+
+\paragraph{Multivalued Causes}
+
+Standard binary 
+\begin{align}
+P(X=0; Z) = \prod_{d} (1-\phi_d)^{Z_d} 
+\end{align}
+
+
+
+\bibliographystyle{acm}
+\bibliography{Multicausal}
+
+\end{document} 
+
+
+
+ 
+
+
+
+\section*{Appendix}
+
+\paragraph{Summation Trick.}
+\begin{align}
+\log \sum_Z e^{\langle Z, \rho \rangle +c} 
+& = \log \sum_{Z_1 \in \{0,1\}} \sum_{Z_2  \in \{0,1\}} \dots \sum_{Z_m  \in \{0,1\}}  e^{\langle Z, \rho \rangle + c}  \\ \nonumber
+& = c + \log \sum_{Z_1 \in \{0,1\}} e^{Z_1 \rho_1} \sum_{Z_2 \in \{0,1\}} e^{Z_2 \rho_2} \dots \sum_{Z_m \in \{0,1\}}   e^{Z_m \rho_m}  \\ \nonumber
+& = c + \log \prod_{d=1}^m (1+ e^{\rho_d})  = c + \sum_{d=1}^m \log (1 + e^{\rho_d}).
+\end{align}
+
+\paragraph{Logistic Function in Optimization.}
+
+Note that we need to solve equations for $\pi \in [0;1]$ of the type 
+\begin{align}
+\nonumber
+\log \frac{\pi}{1-\pi} = x \iff \pi   = (1-\pi) e^x \iff (1+e^x) \pi = e^x \iff \pi = \frac{e^x}{1+ e^x}
+\end{align}
+
+

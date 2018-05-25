@@ -1,0 +1,37 @@
+\documentclass{article}
+\usepackage{amsmath,amssymb}
+\author{Michal Provaznik, Hastagiri Vanchinathan, Thomas Hofmann}
+\title{Master Thesis Project}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\mat}[1]{{\mathbf #1}}
+\renewcommand{\vec}[1]{{\mathbf #1}}
+
+\begin{document}
+\maketitle
+
+\paragraph{DeepWalk} 
+
+DeepWalk \cite{perozzi2014deepwalk} is an unsupervised, representation learning method for nodes in a graph. The basic structure considered are truncated graph random walks starting at nodes $v  \in V$. Concretely, multiple fixed length random walks are sampled per node. This results in a set consisting of elements over $V \times \text{multiset}(V^t)$. The author propose to sample such elements and to perform SGD updates on the SkipGram objective \cite{mikolov2013efficient}, using Hierarchical Softmax \cite{mnih2009scalable} and a few more tricks for speeding things up. 
+
+One proposal is to adapt this approach to web visitation data as follows\footnote{This is TH's intepretation of the idea by HV.}: We connect users $v \in V$ not by social interactions, but indirectly based on common site or page visits, i.e.~the edge set is weighted with a weighting function $W: V \times V \to \Re_{\ge 0}$. We can then generalize the random walk idea by defining an appropriate weighted (instead of uniform) neighbor selection strategy. 
+
+Note that the sampling of random walk idea is not very elegant (in my opinion -- TH). Let us start with non-weighted graphs, represented by an adjacency matrix $\mat A$. Here, the random walks of length $t$ can be characterized by $\mat A^t$. So we can easily integrate out the random sampling and get a closed form solution. Similarly, if we have a transition matrix $\mat A$ of a random walk on the graph, i.e.~$\sum_v A_{u,v} = 1$, then we can again integrate out the choice of random walks and use $\mat A^t$  instead of $\mat A$ as the effective transition matrix. Once, we can compute the transition probabilities, we would need to maximize an objective of the form 
+\begin{align}
+\max \sum_u \sum_v A^t_{uv} \log p(v|u; \vec x_u, \vec x_v) 
+\end{align}
+It may be that the sampling view offers computational advantages as computing the powers of $\mat A$ may be costly. 
+
+Side remark: there has been prior work in this area, which is ignored by the paper, e.g.~\cite{jaakkola2002partially} and \cite{tishby2000data}.\footnote{At this point, no claim that this is necessarily leading to improvements or new ideas, just related work that one should not forget, just because it is 15 years old.}
+
+\paragraph{Co-Embeddings with Content}
+
+The idea of co-embeddings of two data modalities, which are also characterized by features has been developed in \cite{denton2015user}\footnote{Here, we will ignore the user-conditional aspect in their model}. Ultimately they compute affinity scores between objects (here: images) and tags via a bilinear model (see first equation, section 3). Here, the hash tags are assumed to be purely symbolic, i.e.~are not easily characterized by features. In the 1plusX context, hash tags would correspond to anonymous users, about which we do not know more than what we can indirectly observe (although this is not a necessity). As one can see, the hashtag embedding function is just a look-up table. On the other hand, \cite{denton2015user} uses a CNN over images to compute embeddings for images. The  way this works is that one uses a pre-trained network (i.e.~one that is trained in an unsupervised manner or via distant supervision). Then one introduces a matrix that computes a linear transformation to produce the final representation inin the co-embedding space with the HashTags. In the 1plusX context, this would be replaced by any model that represents text documents based on the textual content, i.e.~anything from doc2vec, topic models, DocNADE \cite{larochelle2012neural}, to various CNN models for text.
+
+\paragraph{Hybrid Models} 
+
+Another relevant paper is \cite{khan2014scalable}. Here, a simple bi-linear matrix factorization model is used as the base model. An additive correction to this utility score is computed via a Gaussian process (GP). In our setting, we could use the GP to incorporate item-based features, i.e.~it could use standard tf-idf document representations, which would then be combined with a collaborative model, instantiated by the bi-linear part. Bottom line: perhaps we can draw inspiration from this model in order to improve a deep network model. The GP approach is generally more tricky to scale up. 
+
+\bibliography{Michal}
+\bibliographystyle{acm}
+
+\end{document}

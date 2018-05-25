@@ -1,0 +1,41 @@
+\documentclass{article}
+\usepackage{amsfonts,amsmath}
+\renewcommand{\Re}{{\mathbb R}}
+\title{Convolving Embeddings} 
+\author{Thomas Hofmann}
+
+\begin{document}
+\maketitle 
+
+\subsection*{Convolutional Layers for Language}
+
+For many decades, convolutional networks have been used quite successfully for computer vision applications of neural networks. Convolutions very effevtively exploit fundamental properties of images, namely their two-dimensional topology and translational invariance. Convolutional networks have also seen an increasing use and success in natural language processing. As the raw data representation is a sequence of symbols, the convolutional layers typically operate on a word (or character) embedding, which is often pre-trained using approaches such as skip-gram or GloVe.  The question that we want to raise is the following: is the current common practice of embedding plus convolution the most sensible approach, for instance, in order to generate representations for sentences and documents? We would like to highlight two important approaches to convolutional transformations in NLP.
+\begin{enumerate}
+\item The first approach picks a window size $m$ and stacks $m$ embedding vectors of dimension $d$ from within a window into a representation of dimension $m \times d$. A single filter then is a mapping $f: \Re^{m \times d} \to \Re$, which is applied to all windows that are shifted over the inputs (with approriate padding). In this approach, we allow for arbitrary combinations of dimensions from different embedding vectors. We do not exploit the fact that dimensions of the $m$ vectors are aligned as learning $f$ is invariant with regard to permutations of the $m \times d$ dimensions. 
+\item  The second approach is one, where we process each embedding dimension independently. So each filter consists of $d$ seperate filters, each one of which gets applied to one of the dimensions. So we have functions $f_a: \Re^m \to \Re$, $1 \leq a \leq d$. This constrains the mapping by not allowing for mixing of different dimensions. It also introduces an axis-dependency as rotating the embeddings yields different axis orientation and hence a different model.
+\end{enumerate}
+
+\subsection*{Ideas for Improvements}
+
+Let us make a few comments on these approaches, discussing their strengths and weaknesses, and identifying potential for improvement. 
+
+\begin{enumerate}
+\item \textbf{Whitening Embeddings}. The second approach would seem more sensible, after we have rotated the vector embeddings in a manner that decorrelates dimensions. Certainly this would also have the advantage to remove the dependency on an arbitrary choice of the coordinate system. Instead, we would effectively match up dimensions with the principal axes of the embedding data distribution. \textit{Experiment}: perform a PCA behforehand and rotate the embeddings into the eigensystem. Does this improve learning speed and/or accuracy? 
+\item \textbf{Initial Dimension Reduction}. Each filter needs to re-identify independently the relevant dimensions and orientations of the embedding. One can use a generalized linear map that reduces the dimensionality of the embedding from $d$ to $d' \leq d$. This layer may also use a nonlinearity to re-scale different dimensions. \textit{Experiment}: Introduce an initial dimension reduction layer with a $d \times d'$ weight matrix and (possibly) $d'$ biases/shifts. This layer could also effectively decorrelate the embedding dimensions. 
+\item \textbf{Learning Word Importance}. Often the word embeddings are pre-trained using a different objective (e.g.~in an unsupervised manner). In adapting these embeddings to a task at hand, it could help to factor out the norm of the embedding vectors of each word. One could then adapt these scalars discriminatevely, while retaining the directional information. This could, for instance, account for word importance prior to the convolutions. So one could argue that one has task-independent (universal) embeddings, but adjusts the importance of words by adapting the norm in a task-dependent manner.  \textit{Experiment}: adapt the norms of word embeddings without changing the direction (not sure how to best hack this into an existing framework).\footnote{When pre-training with GloVe, what happens to the bias parameters in the GloVe model?} 
+\item \textbf{Topologically Ordered Dimensions}. In a standard word embedding, there is no topology defined over the dimensions, i.e.~permuting the dimensions has no effect. It would be interesting for subsequent "quasi-2d" convolutions, if dimensions would relfect a topology such that more similar dimensions would be close in index space (under cyclic group).  Here is a conceptually simple way of doing this. Create dimension noise during training of embeddings. Define some probability kernel and with a certain probability, replace  dimension $x_i$ of an embedding vector with a "nearby" dimension $x_j$, where the probability depends inverse monotonically on the index space distance $(i-j) \mod  d$. Once could think of this as training with a specific type of noise. This is somewhat related to ideas such as dropout or even vector quantization with Self-Organizing-Maps. One could then define $2d$-convolutions that would have a temporal support as well as some "index support". \textit{Experiment}: training of word embeddings as suggested. Non-standard, so unclear how much work. Also: currently mainly using pre-trainined models. One way of doing this more quickly: combine it with the projection idea and hack into this stage, i.e.~project $d$ dimensions without topological ordering into a $d'$ dimensional representation with topological ordering.  
+\end{enumerate}
+
+
+\subsection*{Scale Space Embeddings}
+
+We would like to learn embeddings (of words, phrases, sentences), which allow for a coarse-to-fine scale space. What is meant by that is that we can introduce a scale parameter $t  \ge 0$ and derive representations that successivey contain less detail as we take $t \to \infty$. In the signal processing literature, the canoncial scale space is defined via Gaussian kernels of width $\sigma^2 = t$, i.e.~low-pass filtering or smoothing of a signal (in one or two dimensions). It is also known that when using low-pass filters, one removes the high frequency components and can effectively subsample the filtered signals to obtain multi-scale representations known as \textit{pyramids}. In learning embeddings, we generally obtain representations in which the axis have no meaning as any rotation of the embeddings is equaivalent. The idea is to instead learn embeddings in which the dimensions obey a one-dimensional arrangment, so that the vector of numbers can be treated as if it was a one-dimensional signal -- we call this \textit{signal embeddings}. Why would this be interesting?
+\begin{itemize}
+\item Subsequent processing levels could make use of embeddings at different levels of resolution. Specifically, instead of performing one-dimensional convolutions over time, we may consider two-dimensional convolutions, consisting of linear convolutions over time and circular convolutions over the embedding dimensions.
+\item We may exploit the signal structure of the embeddings to inject noise during training, i.e.~to reduce  resolution of the embedding vectors.
+\item The signal structure breaks  the rotation invariance and should enforce more meaningful interpretations of the axes.  We could use further meachisms to enforce factorization, e.g.~between syntactic regularities and semantic ones.
+\item The scale-space structure may allow for faster training, for instance by annealing over the scale parameter. Start learning coarser embeddings with less details and then increase the level of detail over the course of training a network.
+\end{itemize}
+
+
+\end{document}

@@ -1,0 +1,84 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{mathdots}
+\usepackage{hyperref}
+\title{Proof Techniques for Optimization \\ in Machine Learning}
+\author{Thomas Hofmann\\ ETH Zurich}
+
+\newcommand{\E}{{\mathbf E}}
+\renewcommand{\H}{{\mathcal H}}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\x}{{\mathbf x}}
+\renewcommand{\L}{{\mathcal L}}
+\newcommand{\ly}{{\mathcal E}}
+\newcommand{\dom}[1]{{\text{dom $#1$}}}
+\renewcommand{\H}{{\mathbf H}}
+
+\begin{document}
+\maketitle
+
+\section{Local Analysis}
+
+\subsection{Self Concordant Functions}
+
+\paragraph{Basic Properties}
+
+Given $f \in C^3(\dom{f})$ with open domain. Define a family of univariate functions via restriction to lines $x + t u$:
+\begin{align}
+f|_{x+tu}(\cdot) := f(x + \cdot \, u)
+\end{align}
+$f$ is called self-concordant with constant $M$, if 
+\begin{align}
+\left[ \dddot f|_{x+tu}(0) \right]^2  \le M^2 \| u\|_x^{3}, \quad \| u\|_x := \sqrt{u^\top \ddot f(x) u}
+\end{align}
+\begin{itemize}
+\setlength{\itemsep}{0mm}
+\item Self-concordancy is preserved under linear combination, the formula for the constant given as in \cite[Theorem 4.1.1]{nesterov1998introductory}. 
+\item In particular if $f$ is self-concordant with $M$, then $\alpha f$ is self-concordant with $M/\sqrt{\alpha}$. 
+\item It is also preserved under composition with a linear function \cite[Theorem 4.1.2]{nesterov1998introductory}. 
+\item Self-concordant functions are barrier functions for $\text{cl(dom f)}$ \cite[Theorem 4.1.4]{nesterov1998introductory} as they grow without bound towards the boundary of their domain.
+\end{itemize}
+
+\paragraph{Basic Inequalities}
+
+An useful auxiliary univariate function is
+\begin{align}
+\phi(t) = \frac{1}{\sqrt{u^\top \ddot f(x+ t u) u }}
+\end{align}
+which can be used for interpolation between $x$ and $y$ by chosing $u = y-x$ such that at $\phi(0)=1 / \|x-y\|_x$ and $\phi(1) = 1/\| x-y\|_y$. Basic properties  of $\phi$ (that rely on self-concordance of $f$) are $|\dot \phi| \le 1$ and $(-\phi(0), \phi(0)) \subseteq \dom{\phi}$. This also implies the basic inequalities (see \cite[Theorem 4.1.5]{nesterov1998introductory})
+\begin{align}
+\phi(1) + 1 \stackrel{(1)}\ge \phi(0) \stackrel{(2)}\ge \phi(1)-1 \quad \text{and thus} \quad 
+\| x-y\|_x \stackrel{(1)}\ge \frac{\| x-y\|_y}{1+\|x-y\|_y}
+\end{align}
+Moreover 
+\begin{align}
+\| x -y\|_x \le \frac{\| x-y\|_y}{1-\| x-y\|_y}, \quad \text{whenever} \quad \|x-y\|_y<1\,.
+\end{align}
+This can be used to get a hanlde on the Hessian norm ratio $\|u\|_y/\|u\|_z$ evaluated at two points in terms of their distance $\rho=\|x-y\|_x$. Bacially \cite[Theorem 4.1.6]{nesterov1998introductory}
+\begin{align}
+(1-\rho)^2 \le \frac{\| u\|_y}{\| u\|_x}  \le \frac{1}{(1-\rho)^2}
+\end{align}
+
+\newpage
+
+\begin{align}
+\phi(t) = \left( u^\top \H_f(x+ut) u \right)^{-\frac 12} \quad 
+\Longrightarrow \quad |\dot\phi(t)| \le 1, \quad t \in \text{dom $\phi$}
+\end{align}
+
+A basic lemma shows that for any one-variable function
+
+and that $(-\phi(0), \phi(0)) \subseteq \text{dom $\phi$}$ 
+
+\begin{itemize}
+\setlength{\itemsep}{0mm}
+\item An open Hessian $1$-ball at a feasible $x$ is always contained in $\text{dom $f$}$, i.e.~$\{ y: \| y-x\|_x < 1\} \subseteq \text{dom $f$}$.
+\end{itemize}
+
+
+
+
+\bibliographystyle{acm}
+\bibliography{IterativeNumerics}
+
+\end{document}

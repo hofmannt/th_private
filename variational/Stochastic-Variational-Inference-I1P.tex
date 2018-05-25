@@ -1,0 +1,53 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\renewcommand{\th}{{\tilde \theta}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\E}{{\bf E}}
+\newcommand{\w}{{\bf w}}
+\newcommand{\x}{{\bf x}}
+\newcommand{\y}{{\bf y}}
+\newcommand{\z}{{\bf z}}
+\newcommand{\X}{{\bf X}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\Z}{{\bf Z}}
+\newcommand{\Xcal}{{\cal X}}
+\renewcommand{\S}{{\cal S}}
+\newcommand{\Ccal}{{\cal C}}
+\newcommand{\Zcal}{{\cal Z}}
+\newcommand{\tgamma}{{\stackrel{\gamma}{\longleftarrow}}}
+\newcommand{\mycomment}[1]{}
+\newcommand{\loglike}{{\mathcal L}}
+
+\title{{\large Idea on {\LARGE 1} Page} \\Stochastic Variational Inference}
+\author{Thomas Hofmann, ETH Zurich -- \today}
+\date{}
+
+\begin{document}
+
+\maketitle 
+
+\paragraph*{Idea.} Combine variational inference with stochastic gradient descent (SGD) to increase scalability. 
+\paragraph*{Sketch.} Variational lower bound to the marginal likelihood with local ($z$) and global ($\beta$) latent variables   in fully factorial (mean-field) approximation 
+\begin{align}
+& \log \int p(x,z, \beta) \,  dz d \beta\geq \E_q\left[ \log p(x,z,\beta) \right] + H(q) =: \loglike(\lambda)\\ 
+& q(z,\beta) := q(\beta| \lambda) \prod_{n,j} q(z_{nj} | \phi_{nj}) \,.
+\end{align}
+Working with natural gradient (better,  easier): 
+\begin{align}
+\hat \nabla_\lambda \loglike = \E_\phi \left[ \eta(x,z,\alpha) \right] - \lambda 
+\end{align}
+where $\eta$ are the natural parameters of the complete data conditional for $\lambda$. This gradient can be approximated by an unbiased stochastic gradient 
+\begin{align}
+\hat \nabla_\lambda \loglike_n = \E_{\phi_n} \left[ \eta(x_n,z_n,\alpha) \right] - \lambda, \quad n \sim \text{Uni}(1:N)
+\end{align}
+
+\paragraph{Complexity and Complications.} It is important to get the decouplings that are necessary for the analysis to go through. However, the paper tries to derive somewhat more specific equations that require stronger assumptions (on exponential family forms of certain distributions) that somewhat obstruct the main line of argument of the paper. \\[5mm]
+
+\textit{Hoffman, M. D., Blei, D. M., Wang, C., \& Paisley, J. (2013). Stochastic variational inference. The Journal of Machine Learning Research, 14(1), 1303-1347.}
+
+\end{document}

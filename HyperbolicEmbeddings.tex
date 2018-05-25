@@ -1,0 +1,59 @@
+\documentclass{article}
+\usepackage{amsfonts,amsmath}
+\usepackage{hyperref}
+\title{Hyberbolic Embeddings}
+\author{Thomas Hofmann, Octavian Genea\\[2mm] Department of Computer Science, ETH Zurich}
+
+\newcommand{\mat}[1]{{\mathbf #1}}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\hyperspace}{{\mathcal X}}
+\newcommand{\z}{{\mathbf z}}
+\renewcommand{\Re}{{\mathbb R}}
+
+\begin{document}
+\maketitle
+
+\subsection*{Riemannian  Embedding} 
+
+Popular embeddings in Euclidean spaces can be generalized to embeddings in Riemannian manifolds. The concept of distances is naturally generalized in such manifolds or spaces as the Riemannian tensor $g$ directly implies unique curve lengths via
+\begin{align}
+\gamma: [0;1] \to M, \quad \text{len}(\gamma) = \int_{0}^1 \sqrt{g_{\gamma(t)}(\gamma'(t), \gamma'(t))}  \; dt = \int_0^1 \| \gamma'(t) \| \; dt 
+\end{align}
+Note that $\gamma'(t) \in T_M(\gamma(t))$, i.e.~it is an element of the tangent space at $\gamma(t)$. By extrememizing this over differentiable curves, a distance between points $p = \gamma(0) \in M$ and $q = \gamma(1) \in M$ is induced. The minimal length curve is also called a \textit{geodesic}. 
+
+\subsection*{Hyperbolic Spaces}
+
+We follow \cite{nickel2017poincar} and use the Poincar\'e model of hyperbolic spaces, i.e.~$\frak B^d := \{ x \in \Re^d: \| x\| <1\}$. The Riemannian metric tensor of the resulting manifold is the product of the Euclidean metric $g_*$ and a simple isotropic scalar field, i.e.
+\begin{align}
+g_x = \left( \frac{2}{1-\|x\|^2} \right)^2 g_*
+\end{align}
+which induces a distance function that can be calculated to be 
+\begin{align}
+d(x,y) = \cosh^{-1}\left(1+ 2 \frac{\| x-y\|^2}{(1-\|x\|^2) \cdot (1-\|y\|^2)} \right) \,.
+\end{align}
+The arcos function can also be written as $\cosh^{-1}(z) = \ln(z + \sqrt(z^2-1))$. 
+Obviously, the Euclidean distances get stretched without bound as one approaches the border $\partial \frak B^d$ of $\frak B^d$, which is the unit sphere. 
+
+As a special case let us compute the distances for points $x,x'$ with norm $r=\|x\|$ and $r'=\|x'\|$ that are on the same spoke, assuming $0 < r' \le r < 1$. Then 
+\begin{align}
+d(x,x') = \ln \left( \frac{1+r}{1-r} \cdot \frac{1-r'}{1+r'} \right) = 2 \left( \tanh^{-1}(r) - \tanh^{-1}(r') \right)
+\end{align}
+
+
+\subsection*{Order Embeddings in Hyperbolic Spaces}
+
+Each point $x$ defines (canonically) a section $\frak S_x$ that is symmetric around the spoke passing through $x$ who's  border is given by the union of all geodesic lines that are tangents to the hyper-sphere with radius $\|x\|$.  Geometrically, all geodesics through $x$ are circular arcs with the same radius and because of the symmetry, each arc is cut in half at $x$. Moreover, if $x,x'$ are on the same spoke as above, then $\frak S_x \subseteq \frak S_{x'}$, i.e.~as we move along a spoke outwards, the section corresponding to the point shrinks. In the limit of $r \to 1$, $S_x$ is just $x$ itself. Note further that if $y \in \frak S_x - \{x\}$, then $\|y\|< \|x\|$. \\
+
+We can use the above construction of a cone\footnote{The geodesics take the role of straight lines, can this construction be shown more formally to a cone.} to define a canonical (i.e.~isotropic, symmetric) partial order on $\frak B^d$ as follows
+\begin{align}
+x \succeq y \quad \iff y \in \frak S_x
+\end{align}
+This relation is indeed reflexive, antisymmetric, and transitiv, i.e.~a partial order. 
+
+
+
+
+\bibliographystyle{acm}
+\bibliography{th}
+
+\end{document}

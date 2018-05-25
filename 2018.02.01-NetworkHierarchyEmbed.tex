@@ -1,0 +1,57 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm,bbm}
+\usepackage{color,graphicx}
+\graphicspath{{./figures/}}
+
+\renewcommand{\v}{{\mathbf v}}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\vLambda}{{\boldsymbol \lambda}}
+\newcommand{\vDelta}{{\boldsymbol \delta}}
+\renewcommand{\Re}{{\mathbb R}}
+
+
+\title{
+	Thoughts on Magic Tunneling 
+}
+\author{
+	Thomas Hofmann \\[1mm] Department of Computer Science, ETH Zurich \\ thomas.hofmann@inf.ethz.ch
+}
+
+\begin{document}
+
+\maketitle 
+
+The classic work on neural networks has comprehensively investigated the question of how a network with a single hidden layer of $h$ units can be embedded into a larger structure with $h+1$ units without altering the network transfer function. Informally speaking, one can (a) add a barren node by (i) setting its input weights to zero, so that the unit is implementing the zero function or (ii) setting its output weights to zero, such that the unit's activity has no downstream effect on the output and loss. In addition one can (b) add redundancy by cloning one of the $h$ units  and by convexly combining the activity of this and the new unit in all downstream processing. In the simplest case, where hidden units feed directly into a single output unit with weights $\v \in \Re^h$, cloning unit $h+1$ from unit $i$ preserves the represented function as long as the new weight vector $\tilde\v \in \Re^{h+1}$ fulfills for some $0 \leq \lambda  \leq 1$,
+\begin{align}
+\tilde v_j = 
+	\begin{cases} 
+		\lambda v_i & \text{if $j=i$} \\
+		(1-\lambda) v_i & \text{if $j=h+1$} \\
+		v_j & \text{otherwise} 
+	\end{cases}
+\end{align}
+In addition, dependent on properties of the hidden unit activation functions, one may allow for sign reversal in cloning. For instance, $\tanh$ has the property that $-\tanh(-z)= \tanh(z)$, so locally flipping the sign of all incoming and outgoing  weights of a single unit will leave the network transfer function invariant. 
+
+In the following denote by $\v$ the outgoing and by $\w$ the incoming weights for the added unit. What is the effect of adding a barren node on the gradient, it is easy to see that 
+\begin{align} 
+\nabla_\theta F^{h+1} = \nabla_\theta F^{h},\quad 
+\nabla_\v F^{h+1} = \mathbf 0, \; \text{if $\w=\mathbf 0$}, \quad 
+\nabla_\w F^{h+1} = \mathbf 0, \; \text{if $\v=\mathbf 0$}
+\end{align}
+Note that our goal is to escape from situations where $\| \nabla_\theta F^h \| \approx 0$, i.e.~we need $\| \nabla_\v F^{h+1}\|$ or 
+$\| \nabla_\w F^{h+1}\|$ to be as large as possible to provide an interesting escape direction. It is not clear how to optimally initialize in the above case, but in the spirit of incremental learning methods such as \cite{breiman1993hinging}, which iteratively fit the residual loss (in general: this is a family known as \textit{boosting} algorithms \cite{friedman2000additive,buehlmann2006boosting,tutz2007boosting}), one could evolve the new parameters  $(\v,\w)$ via gradient descent or some smarter fitting procedure, keeping $\theta$ fixed. Note that these algorithms have a different objective, i.e.~one of incrementally training models of increasing complexity. In our case, we are primarily interested in an escape mechanism from a saddle point. 
+
+The case we are mainly interested in is the case of cloning. Here, for $L$ units downstream from the hidden layer under consideration, we can chose $\lambda_l \in [0;1]$, $1 \leq l \leq L$ to embed the smaller network into the larger one. Note that as the transfer function is invariant with respect to the choice of $\vLambda$, the units' activities do not change (other than the activities of the two units involved in cloning). Denote by $\delta^+_l$ the error terms back-propagated to the units in the downstream layer, which are independent of $\vLambda$.  We then need to look at the next backpropagation step, which in the given network is  
+\begin{align}
+\vDelta = 
+\end{align}
+
+\newpage
+
+has classified how smaller networks can be embedded into 
+
+\bibliographystyle{acm}
+\bibliography{th}
+\end{document}
+

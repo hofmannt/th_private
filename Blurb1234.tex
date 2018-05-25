@@ -1,0 +1,16 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\begin{document}
+\begin{align}
+\text{Regret}^{\mathcal A_2}_T 
+& \le \sum_{t=1}^T \left[ M(u_t,v_t) - M(u_{t+1},v_t)  \right] 
+\\ \nonumber
+& = \sum_{t=1}^{T} \left[ M(u_t, v_t) - M(u_t,v_{t-1}) \right] + M(u_{1},v_0)- M(u_{T+1},v_{T}) 
+\\ \nonumber
+& \le L \sum_{t=1}^T  \| v_{t} - v_{t-1} \| + 2C \le \text{last line}
+\end{align}
+
+\end{document}

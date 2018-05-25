@@ -1,0 +1,39 @@
+\documentclass{article}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\author{Thomas Hofmann}
+\title{Group Actions and Representations \\ for Natural Language Processing}
+\newcommand{\RR}{{\mathbb R}}
+\newcommand{\CC}{{\mathbb C}}
+\newcommand{\ZZ}{{\mathbb Z}}
+\newcommand{\mat}[1]{{\mathbf #1}}
+\newcommand{\X}{{\mathcal X}}
+\newcommand{\Y}{{\mathcal Y}}
+\renewcommand{\vec}[1]{{\mathbf #1}}
+
+\begin{document}
+\maketitle
+
+\paragraph{Background} Vector-based latent representations have fundamentally changed the methodology used today in Natural Language Processing (NLP). In particular, \textit{word  embeddings} \cite{} have been used successfully as first level representation across a wide range of tasks. However, what is less understood is how semantic modifiers and semantic compositionality act on these representations. What needs to be studied are functions that \textit{transform} a given vector representation, where we will assume that an embedding space of finite (i.e.~fixed) dimensionality. Currently, one applies either standard sequential processing models such as convolutional neural networks or recurrent models (e.g.~using LSTM units) or one uses recursive models, typically in a hybrid approach that works in conjunction with parsing. 
+
+\paragraph{Matrix Lie Groups} We make the key assumption that (many) semantic transformations can be modeled as \textit{actions of a group} $G$. Moreover, as we are less interested in finite groups, we restrict ourselves to Lie groups, which alternatively can be thought of as manifolds. More precisely we will focus on matrix Lie groups $G \subseteq \text{GL}(n;\RR)$ or $G \subseteq \text{GL}(n;\CC)$, which contain the most relevant families of groups \cite[Section 1]{hall2015lie}. We can directly think of such groups as acting on the vector spaces $\RR^n$ or $\CC^n$, i.e.~each group element $g \in G$ corresponds to a vector space automorphism (an invertible linear mapping). Sometimes, it may be useful to broaden that view and to allow for more general (linear) \textit{group representations}, in which case the given matrix group representaion is also called the \textit{standard representation} (cf.~the discussion in \cite[Section 4.2]{hall2015lie}).\footnote{For our purposes it may be useful to consider representations over the complex field, even if $G$ is a real matrix group.} 
+
+\paragraph{Classical Groups} As vector representations in NLP are \text{inferred} and not initially \textit{given}, we are somewhat free to chose which type of invariances and symmetries we want the vector representation to obey. This is in contrast to signal processing, where certain invariances (translation, rotation, reflection) may be implied directly by the domain, or physics, where there are direct connections, say between Hamiltoniam mechanics and the symplectic group or between quantum mechanics and the Heisenberg group. 
+
+It is therefore useful to start with the classical groups \cite{weyl1946classical} as candidates, see also the examples listed in \cite[Section 2.2]{hall2015lie}. A shortlist may consist of the orthogonal $\text{O}(n)$ or unitary $\text{U}(n)$ groups, its subgroups $\text{SO}(n)$ (rotations) or  $\text{SU}(n)$ as well as the Euclidean group $\text{E}(n)$, which combines $\text{O}(n)$ with translations. One may -- in principle -- also consider the symplectic group, but it is less clear what role skew-symmetric bilinear forms should play in NLP models. 
+
+
+
+
+
+\newpage
+
+
+We will focus on actions induced by linear representations where each group element is associated with an invertible matrix  via a representation $\rho: G \to \text{GL}(V)$, where $V$ is a vector (embedding) space. Here $\rho$ needs to fulfill $\rho(g \circ h) = \rho(g) \cdot \rho(h)$, i.e.~it is a group homomorphism between $(G, \circ)$ and $(\text{GL}(V),\cdot)$. 
+
+
+\bibliographystyle{acm}
+\bibliography{group}
+
+
+\end{document}

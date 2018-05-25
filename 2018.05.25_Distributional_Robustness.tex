@@ -1,0 +1,128 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm,mathabx}
+\usepackage{color,graphicx}
+\usepackage{mathtools}
+\usepackage{marginnote}
+
+\graphicspath{{./figures/}}
+
+\DeclarePairedDelimiterX{\infdivx}[2]{(}{)}{%
+  #1\;\delimsize\|\;#2%
+}
+\newcommand{\infdiv}{D\infdivx}
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}
+
+\renewcommand{\Re}{{\mathbb R}}	
+\newcommand{\E}{{\mathbf E}}	
+\renewcommand{\S}{{\mathcal S}}	
+\newcommand{\x}{{\mathbf x}}	
+\newcommand{\y}{{\mathbf y}}	
+\newtheorem{lemma}{Lemma}
+\newtheorem{example}{Example}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\definecolor{Red}{rgb}{0.9,0.1,0.1}
+\newcommand{\textred}[1]{{\color{Red} #1}}
+\newcommand{\textbred}[1]{{\color{Red} \textbf #1}}
+\newcommand{\Ell}{{\mathcal L}}
+% \newcommand{\smallint}{\begingroup\textstyle \int\endgroup}
+
+\title{
+	Distributional Robustness  
+}
+\author{Thomas Hofmann}
+
+\begin{document}
+
+\maketitle 
+
+\subsection*{Empirical Likelihood}
+
+\paragraph{Classical Hypothesis Testing} 
+
+
+Likelihood  ratios are a standard tool for statistical hypothesis testing. The Neyman-Pearson lemma \cite{neyman1933problem} states that for two simple hypothesis $\theta_0$ and $\theta_1$ one should compute 
+\begin{align}
+\Lambda(x) := \frac{\Ell(\theta_0|x)}{\Ell(\theta_1|x)}, \quad \text{with likelihood function} \quad \Ell(\theta|x) := P(X\!=\!x; \theta)
+\end{align}
+and threshold it at $\rho$ to get a significance level $\alpha = \mathbb P\left( \Lambda(X) \le \rho \mid \theta = \theta_0 \right) $. This will then be the optimal (most powerful) statistical test. The likelihood ratio test is commonly generalized to (nested) composite hypotheses $\Theta_0 \subseteq \Theta$ as follows
+\begin{align}
+\Lambda(x) := \frac{\sup_{\theta \in \Theta_0} \Ell(\theta; x)}{\sup_{\theta \in \Theta} \Ell(\theta,x)}\,.
+\end{align}
+It is a famous result by Wilks \cite{wilks1938large} that asymptotically with increasing sample size, $- 2 \log \Lambda$ will be $\chi^2$ distributed if $H_0: \theta_0 \in \Theta_0$ is true, where the degrees of freedom are given by the dimensionality difference $\text{dim}(\Theta)-\text{dim}(\Theta_0)$. This makes significance levels easy to compute in practice.\footnote{Note that Wilks theorem critically assumes the true parameter is in the interior of $\Theta$.}
+
+\paragraph{Empirical Likelihood} 
+The seminal work of Owen \cite{owen1990empirical,owen2001empirical} has provided a theory of how to systematically extend likelihood ratios into the realm of non-parametric statistics, i.e.~without having to assume that the data come from a known family of distributions. This work builds on classical work such as \cite{kiefer1956consistency,thomas1975confidence} and aims at deriving confidence bounds on parameter estimates. Following \cite[Chapter 2, 3]{owen2001empirical} let us define the \textit{empirical distribution function} as 
+\begin{align}
+P_n = \frac 1n \sum_{i=1}^n \delta_{X_i}, \quad \text{i.i.d.~sample} \quad X_1,\dots, X_n \sim P_0
+\end{align}
+and an empirical  likelihood and likelihood ratio  via
+\begin{align}
+\Ell(P) := \prod_{i=1}^n P(\{ X_i\}), \quad 
+\Lambda(P) := \frac{\Ell(P)}{\Ell(P_n)}  = \prod_{i=1}^n n P(\{ X_i\})
+\le 1\,.
+\end{align}
+where the inequality follows from $\Ell(P_n) = n^{-n}\ge \Ell(P)$ \cite[Theorem 3.1]{owen2001empirical}.
+
+\paragraph{Profile Likelihood} 
+From here one can naturally move to the non-parametric \textit{profile likelihood function}
+\begin{align}
+\label{eq:profile-like}
+\mathcal R(t) := \sup_{P \in \mathcal P} \{ \Lambda (P) \mid T(P; X_{1:n}) = t \} \,.
+\end{align}
+where $T$ is some parameter of interest. A typical example is the data mean under $P$, 
+\begin{align}
+T(P; X_{1:n}) = \sum_{i=1}^n P(\{ X_i\}) X_i  \,.
+\end{align}
+%
+A simple argument shows that the supremum in Eq.~\eqref{eq:profile-like} is dominated by $P$ such that $P(\{X_1,\dots,X_n\})=1$.\footnote{If $t$ is in a bounded interval defined by the sample min/max. This argument is not made  rigorous in \cite{owen2001empirical}.} These are atomic probability distributions whose atoms are just the observed data points. For the profile likelihood of the mean, one thus only needs to consider a re-distribution of probability mass among the sample, i.e.
+\begin{align}
+\label{eq:profile-mean-max}
+\mathcal R(t) = \max\left\{ \prod_{i=1}^n n p_i: \; \sum_{i=1}^n p_i X_i = t, \; p \in S_n\right\},  
+\quad \text{with} \;\; S_n = \left\{ p: p \ge 0, \sum_i p_i=1\right\}
+\end{align}
+%
+One of the fundamental results \cite[Theorem 3.2]{owen2001empirical} then shows the convexity of the confidence region 
+\begin{align}
+C_{t,n} := \left\{  \sum_{i=1}^n p_i X_i \mid \prod_{i=1}^n n p_i \ge t, p \in S_n\right\} 
+\end{align}
+along with a convergence of $-\log \mathcal R(\mu_0)$ to a $\chi^2$-distribution, generalizing Wilks's theorem. \\
+
+\textit{How can we interpret this? We typically want to know whether a particular value $t$ for  $T$ can be excluded with some confidence. To do so, we can look at all distributions $P$ that would yield $t$ as the expectation. Among those $P$ we use the one with the largest ($\sup$) likelihood as the witness and its likelihood ratio relative to the empirical distribution as the relevant test statistics.}
+
+
+\paragraph{KL-divergence Reweighting} Let  us look at an example: with $\hat t = \frac 1n \sum_{i=1}^n X_i$, we get obviously $\mathcal R(\hat t)=1$. We can now ask, how plausible another value $t \neq \hat t$ is (e.g.~does it lie in a confidence region) by looking at $\mathcal R(t)$. Here we find a witness $P_t$, which maximizes Eq.~\eqref{eq:profile-mean-max} and has $T(P_t) = t$. How can the term $\prod n p_i$ be interpreted? Note that maximizing it is equivalent to minimizing its negative logarithm, which is nothing but a KL-divergence to the uniform distribution 
+\begin{align}
+- \log \prod_{i} n p_i =  n \sum_{i} \frac 1n \log \frac{\tfrac 1n }{p_i} = n \text{KL}\left(\tfrac1n \, \|\, p \right)
+\end{align}
+Thus, if we fix a threshold $\rho$ for the profile likelihood $\mathcal R(t)\ge \rho$, then the uncertainty sets $\{ t: \mathcal R(t) \geq \rho \}$ consist of means achievable by re-weighting samples by a distribution that does not differ by more than $\rho/n$ relative to the uniform distribution on the sample. \\
+
+\textit{What has been accomplished so far? We have seen that for the empirical profile liklihood, we only need to consider atomic distributions that perform a re-weighting of the sample. This is natural as without any further prior assumptions, we do not know, which outcomes, other than the observed ones should matter. So now, the profile likelihood test statistics boils down to the question how quickly $\Lambda$ falls-off with the radius of the KL-divergence of the weighting function relative to a uniform distribution.} 
+
+\subsection*{Distributional Robustness}
+
+\paragraph{Background}
+
+The idea of distributional robustness aims at replacing empirical risk minimization with a robust inference principle that builds an uncertainty set around the empirical distribution of the data. It has recently been suggested by Duchi and co-workers \cite{duchi2016statistics} and was inspired by related work on robust optimization \cite{ben2009robust,delage2010distributionally,ben2013robust,bertsimas2018data}.
+
+
+\paragraph{$f$-Robustness} The distributional robustness approach of \cite{duchi2016statistics} makes a connection between robust optimization and Owen's empirical likelihood approach. They extend the latter in various way and focus on uncertainty set of the type 
+\begin{align}
+\mathcal P(\theta) = \left\{ \E_P\left[ \ell(\theta; X) \right]: D_f\left(P,P_n\right) \leq \rho/n, \; P \ll P_n  \right\}
+\end{align}
+where $\ell$ is a loss function and $D_f$ can now be any $f$-divergence. They are particularly interested in the use of upper (and lower) bounds of the type
+\begin{align}
+u_n := \inf_{\theta \in \Theta} \sup \mathcal P(\theta), \quad 
+l_n :=  \inf_{\theta \in \Theta} \inf \mathcal P(\theta)
+\end{align}
+
+
+\bibliographystyle{acm}
+\bibliography{th}
+\end{document} 
+
+\newcommand{\textbred}[1]{{\color{Red} \textbf #1}}
+
+
+

@@ -1,0 +1,371 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts}
+\usepackage{tikz-cd}
+\usepackage{amsthm}
+\usetikzlibrary{matrix,arrows,decorations.pathmorphing}
+
+\title{Understanding Embeddings}
+\author{Thomas Hofmann}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\logl}{{\mathcal L}}
+\newcommand{\ZZ}{{\mathbb Z}}
+\newcommand{\NN}{{\mathbb N}}
+\newcommand{\mZ}{{\mathbf Z}}
+\newcommand{\E}{{\mathbf E}}
+\newcommand{\z}{{\mathbf z}}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\mX}{{\mathbf X}}
+\newcommand{\mY}{{\mathbf Y}}
+\newcommand{\y}{{\mathbf y}}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\smapsto}{{\stackrel \sim \mapsto \,}}
+\newcommand{\word}{{\omega}}
+\newcommand{\words}{{\Omega}}
+\newcommand{\context}{{\sigma}}
+\newcommand{\contexts}{{\Sigma}}
+\newcommand{\n}{{n}}
+\newcommand{\mN}{{\mathbf N}}
+\newcommand{\mat}[1]{{\mathbf #1}}
+\newcommand{\lrangle}[1]{{\left\langle \, #1\, \right\rangle}}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+
+
+\setlength\parindent{0pt}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+Embeddings are models that map symbols or discrete events to points in vector spaces. Perhaps the most prominent example are word embeddings as suggested by \cite{mikolov2013distributed,pennington2014glove}, which embed word forms in $\Re^d$. The simplest type of models deal with pairwise co-occurrence data over finite sets, i.e.~elementary observations are pairs in some product set $\words \times \contexts$. Paradigmatically, we can think of $\word \in \words$ as word forms and $\context \in \contexts$ as contexts, which may be word forms themselves as in the skip-gram model \cite{mikolov2013distributed} where $\words=\contexts$. For notational convenience we will index symbols as well as their embedding by integers so that $\words \ni \word_i  \mapsto \x_i$ and $\contexts \ni \context_j \mapsto \y_j$, $K:=|\words|$, $L:=|\contexts|$. The co-occurrence statistics are summarized in a matrix $\mN$ with entries $n_{ij} \in \NN$ corresponding to the co-occurrence counts. \\
+
+Many popular models are bi-linear in that they relate 	the inner product in the embeddings to the joint co-occurrence probability (modulo marginals), i.e.~
+\begin{align}
+z_{ij}(\theta) := \x_i^\top \y_j + b_i + c_j = \begin{cases} 
+\log p(\word_i,  \context_j) & \text{joint model} \\
+\log p(\word_i | \context_j) & \text{conditional model} \\
+\log p(\word_i | \context_j) - \log p(\word_i) & \text{information model}
+ \end{cases}
+\end{align} 
+where parameters $\theta$ encompass all embedding vectors and biases. 
+It should be clear that $b_i$ and $c_j$ can account for the differences stated above, whereas the bi-linear part is unaffected.\footnote{Strictly speaking we have to make sure to avoid non-identifiability issues caused by different vector lengths. It is thus an option to enforce unit length embeddings, i.e.~embed on the hyper-sphere.}
+
+
+\section{Criteria for Embeddings} 
+
+\subsection{Notation}
+We define three types of distributions (or observation weights) that we will make use of in the sequel. Note that a large part of the discussion does not depend on how exactly we parameterize $z_{ij}(\theta)$ and applies more broadly to models of co-occurrence data. 
+\begin{itemize}
+\item sample distribution $P = (p_{ij})$
+\begin{align}
+p_{ij} := p_j p_{i|j},
+\quad p_{i|j} := \frac{n_{ij}}{\sum_{k} n_{kj}}, \quad p_j := \frac1S \sum_{i} n_{ij}, \quad S := \sum_{ij} n_{ij} \,.
+\end{align}
+\item factorial distribution $Q=(q_{ij})$
+\begin{align}
+q_{ij} = p_j q_{i}, \quad q_{i} := \frac{1}{S} \sum_j n_{ij}\,.
+\end{align}
+\item model distribution $\Pi = (\pi_{ij})$ in natural parameterization with $z_{ij}(\theta)$ 
+\begin{align}
+\pi_{ij} := p_j  \pi_{i|j} , \quad \pi_{i|j} := \frac{ \exp[z_{ij}] }{ \sum_k \exp[z_{kj}] } \,.
+\end{align}
+\end{itemize}
+
+\subsection{Maximum Likelihood Estimation}
+
+The most natural starting point is the (average) multinomial log-likelihood of predicting words conditioned on contexts
+\begin{align}
+& \logl = \sum_{ij} p_{ij} \log \pi_{i|j} =  \sum_{ij} p_{ij} \left( z_{ij} - \log \sum_{k} \exp[z_{kj}] \right)\,.
+\end{align}
+We can (in principle) maximize this objective with regard to the embeddings, using gradient-based methods
+\begin{align}
+& \partial_{z_{ij}} \logl  =  % p_{ij} \left( 1 - \frac{\exp[z_{ij}]}{\sum_k \exp[z_{kj}]} \right) = 
+\sum_{k} p_{kj} (\delta_{ik}-\pi_{i|j}) = p_j \left( p_{i|j} - \pi_{i|j} \right), \quad  \\
+& \nabla_{\theta} \logl = \sum_{ij}p_j \left( p_{i|j} - \pi_{i|j} \right) \nabla_\theta z_{ij} \,.
+\label{eq:mle}
+\end{align}
+One general challenge, however,  is the computation of the partition function implicit in $\pi_{i|j}$, which involves a sum with $K$ terms as a normalization. As it is not untypical for $K$ to be in the millions, this may make MLE prohibitively expensive.\\
+
+Let us introduce two SGD version of how to train embedding models. In one model (A), we sample individual co-occurrences, one at a time with probability $1/S$ and we get stochastic gradients
+\begin{align}
+\triangle \theta = \nabla_\theta \pi_{i|j} = \nabla_\theta z_{ij} - \sum_{k} \pi_{k|j} \nabla_\theta z_{kj} 
+\end{align}
+In another model (B), we first form the count matrix (e.g.~in a first pass through the data) and then sample non-zero counts with probability $1/R$, $R:=|\{ (i,j): n_{ij}>0\}|$. This model yields the corrections
+\begin{align}
+\triangle \theta = R p_{ij}  \cdot \nabla_\theta \pi_{i|j}
+\end{align}
+which will scale-up updates for pairs $(i,j)$ proportional to their count. Note that both vertsion update $\x_k$ and $b_k$ for all $k$ and just a single $\y_j$ and $c_j$. This asymmetry is due to the decision to condition on $j$. In model (A), for instance, we have
+\begin{align}
+\triangle \x_k = \left( \delta_{ik} - \pi_{k|j} \right) \y_j, \quad 
+\triangle \y_j = \x_i -\sum_{k} \pi_{k|j} \x_k
+\end{align} 
+There have been various attempts to find a criterion along with heuristics that would (i) avoid the prohibitive computation of the partition function and (ii) yield better word embeddings in terms of perplexity and -- more often -- their usefulness for a range of linguistic tasks. We discuss these approaches in the sequel.
+
+\subsection{Noise Contrastive Estimation} 
+
+\cite{mnih2012fast,mnih2013learning} propose noise contrastive estimation \cite{gutmann2012noise} as a prime way to avoid computation of the partition function. Let us look at the mixture $R = \frac{1}{\kappa+1} \Pi + \frac{\kappa}{\kappa+1} Q$ and the related posterior probabilities of the latent mixing variables $\tau_{ij}$
+\begin{align}
+\tau_{ij} = \frac{ \pi_{ij}}{\pi_{ij} + \kappa q_{ij}} 
+% = \frac{1}{1 + \frac{\eta q_{ij}}{(1-\eta) \pi_{ij}}} 
+= \sigma\left(  \log \left( \frac{\pi_{ij}}{ q_{ij}} \right) - \log \kappa\right)
+\end{align}
+NCE suggests to maximize the probabilistic classification accuracy
+\begin{align}
+\logl = \frac{1}{\kappa+1} \sum_{ij} p_{ij} \log \tau_{ij} + \kappa q_{ij} \log (1-\tau_{ij})\,.
+\label{eq:nce}
+\end{align}
+Note that the effect of parameters $\theta$ is indirect through the posterior $\tau_{ij}$. As $\dot\sigma = \sigma (1-\sigma)$ we get
+\begin{align}
+\partial_{\pi_{ij}} \log \tau_{ij} = \frac{1-\tau_{ij}}{\pi_{ij}}, \quad 
+\partial_{\pi_{ij}} \log (1-\tau_{ij}) = -\frac{\tau_{ij}}{\pi_{ij}},
+\end{align}
+and thus\footnote{This is equivalent to \cite[Eq.~10 \& 11]{mnih2013learning}.}
+\begin{align}
+\partial_{\pi_{ij}}  \logl 
+& = 
+\frac{(1-\tau_{ij}) p_{ij} - \kappa \tau_{ij} q_{ij}}{\pi_{ij}}
+ = \frac{1-\tau_{ij}}{\pi_{ij}} \left(  p_{ij} -\pi_{ij}\right)\,.
+\end{align}
+% MOVE TO APPENDIX 
+% =================
+% where the last equality follows from  
+%\begin{align}
+%\kappa \tau_{ij} q_{ij} = \kappa q_{ij} \frac{ \pi_{ij}}{\pi_{ij} + \kappa q_{ij}}= \pi_{ij} (1-\tau_{ij})
+%\end{align}
+Moreover  as $\kappa \to \infty$ $\tau_{ij} \to 0$ we recover the MLE gradient asymptotically
+\begin{align}
+\lim_{\kappa \to \infty}\partial_{z_{ij}}\logl  = (p_{ij} -\pi_{ij}) \frac{\partial \log \pi_{ij}}{\partial z_{ij}} \; \Longrightarrow \lim_{\kappa \to \infty} \nabla_\theta \logl 
+= \sum_{ij} p_{ij} \nabla_\theta \log \pi_{ij}
+\end{align}
+
+This approach can only lead to computational savings, if we switch to unnormalized models (with biases $c_j$), $\tilde \pi_{ij} = \exp[z_{ij}]$. With this choice, we get 
+\begin{align}
+\partial_{z_{ij}} \logl = (1-\tau_{ij}) \left( p_{ij} -\exp[z_{ij}] \right)
+\label{nce:unnorm}
+\end{align}
+Moreover the optimality condition $\partial_{c_j} \logl = \sum_{i} \partial_{z_{ij}} \logl \stackrel != 0$
+ uniquely determines $c_j$ (keeping all other parameters fixed) and for the optimal choice we will get as $\kappa \to \infty$, $\sum_i \exp[z_{ij}] = p_j$, which is exactly the normalization that is required to get $\pi_{ij} = \exp[z_{ij}]$. Of course, instead of optimizing for $c_j$, one will make the updates of $c_j$ be part of the overall stochastic gradient procedure. It has been observed, that once can also simply set $c_j=0$ and still get approximately normalized distributions. We will come back to that phenomenon later. 
+
+
+\subsection{Negative Sampling Model} 
+
+Negative sampling is inspired by noise contrastive estimation \cite{}. It reduces the estimation problem to a binary classification problem between pairs drawn from the data distribution $P$ vs.~a noise distribution $Q$, which in the simplest case is assumed to be a product of the marginals (like above).  With a fudging factor $\kappa$, we get
+\begin{align}
+& \logl =  \frac{1}{\kappa+1} \sum_{ij} p_{ij} \log \sigma(z_{ij}) -  \kappa q_{ij} \log \sigma(-z_{ij}) \,. 
+% \quad  q_{ij} := \frac{\sum_j n_{ij}}{S} \cdot \frac{\sum_i n_{ij}}{S} \,.
+\end{align}
+The difference relative to Eq.~\eqref{eq:nce} that the posteriors are replaced by simpler logistic probabilities.\footnote{The exact relationship to the NCE case seems unclear. Can this be made more precise?}
+
+For $\kappa=1$ the partial derivatives are given by (dropping subscripts)
+\begin{align}
+& \partial_{z} \logl = p \sigma(-z) - q \sigma(z)
+= q \sigma(-z) \left( \frac p q  - e^z  \right)\,.
+\end{align}
+In a saturated model, we could chose $z_{ij}$ independently and as $\sigma(z)>0$ the first order optimality condition amounts to
+\begin{align}
+& \partial_{z_{ij}} \logl \stackrel !=0 \iff z_{ij} \stackrel != \log p_{ij} - \log q_{ij}
+\label{eq:pmi-optimal}
+\end{align}
+which is nothing else but the point-wise mutual information (PMI, cf.~\cite{levy2014neural}). However, note that this fact  says nothing about what error model is used to measure deviations, something which is inevitable (and wanted) in constrained models of limited dimensionality $d$. 
+
+\subsection{Global Word Vectors}
+
+Instead of being only weakly related to PMI, the GloVe approach \cite{pennington2014glove} takes a PMI-based fitting criterion as a starting point. 
+\begin{align}
+\logl = \sum_{ij} f_{ij} ( z_{ij} - \log p_{ij})^2, \quad f_{ij} := \frac{f(n_{ij})}{\sum_{kl} f(n_{kl})}
+\end{align}
+where $f$ is a monotone function. This makes the question more explicit of how to chose the weighting function $f$, defining the expectation, which in GloVe is suggested as 
+\begin{align}
+f(n) = \begin{cases}
+\left( \frac{n}{n_{\max}}\right)^\alpha, & n \leq n_{\max} \\ 1 & \text{otherwise}
+\end{cases} \;, \quad \text{with} \quad \alpha=\frac 34\,.
+\end{align}
+There are two elements here: for one the use of a squared distance function that circumvents the computational bottleneck of the partition function. Second, the specific form of $f$, which increases the relative weight of less frequent words. \\
+
+The same "magic" choice of $\alpha = \frac 34$ is suggested in \cite[Section 2.2]{mikolov2013distributed} to fudge the unigram probabilities, where it is claimed that this choice slightly improves the perplexity of the model (and even more significantly the accuracy across a range of tasks). 
+
+\subsection{$3/4$-Exponent}
+
+% We have seen that embedding models aim at approximating a co-ocurrence matrix of (log-)counts. Obviously, the observed counts are subject to sampling noise. 
+[Why?]
+
+\subsection{Poisson Rate Model}
+
+A Poisson distribution defines a PMF on a non-negative integer variable, which we can identify with a count. The log-probability of a count, given a rate parameter $\lambda$ is given by 
+\begin{align}
+& \log p(n | \lambda) = n \log \lambda - \lambda - \log(n!)
+\label{eq:poisson}
+\end{align}
+which is maximized for $\lambda = n$. For vectors of counts one gets
+\begin{align}
+& \log p(\mathbf n | \mathbf \lambda) = \sum_i \left( n_i \log \lambda_i - \lambda_i \right) + const. 
+\label{eq:vector-poisson}
+\end{align}
+Note that, if we condition on the total count $s := \sum_i n_i$, the Poisson likelihood becomes a multinomial likleihood with 
+\begin{align}
+& \log p(\mathbf n | s; \mathbf \lambda) = \sum_i n_i \frac{\lambda_i}{\sum_j \lambda_j } + const. 
+\end{align}  
+
+We suggest to apply this to embeddings by looking at the count statistics for every context independently and by fitting a combined log-likelihood\footnote{No relative weighting is required as the Poisson likelihood for larger counts will scale with the number of observations anyway. Maybe this needs to be made more clear.}. By representing rates as $\lambda_{ij} = \exp[z_{ij}]$ we get 
+\begin{align}
+\label{eq:poissonlogl}
+& \logl  = \sum_{ij} \left( p_{ij} z_{ij}  - \frac{e^{z_{ij}}}{S} \right) + const\,.
+\end{align}
+The partial derivatives are simply 
+\begin{align}
+\partial_{z_{ij}} \logl = p_{ij} - \frac{e^{z_{ij}}}S \,.
+\label{poisson:dz}
+\end{align}
+Note that the first order optimality conditions for $c_j$ yield
+\begin{align}
+\partial_{c_j} \logl =  \left[ \sum_i \partial_{z_{ij}} \logl \right] \cdot \underbrace{\partial_{c_j} z_{ij}}_{=1} = \sum_{i} \left( p_{ij} - \frac {e^{z_{ij}}}S \right) \stackrel !=0  \iff
+\sum_{i} e^{z_{ij}} \stackrel != S p_j 
+\label{eq:possion-constraints}
+\end{align}
+which implies that the overall normalization constant in MLE for the Poisson model ends up to be equal to $1$ independent of what the MLE $\hat\theta$ is. It is therefore guaranteed that for every context, the total rate of the model matches the observed context count, i.e.~$\sum_i \lambda_{ij} = \sum_i e^{z_{ij}} = \sum_i n_{ij}=n_j$. So in expectation, counts generated with the MLE $\hat \theta$  will be matching the observed counts $n_j$. A similar argument can be made for words by looking at the optimality condition for $b_i$, leading to $\sum_{j} e^{z_{ij}} = \sum_{j} n_{ij}$. Note that this mean that in the Poisson model, the softmax will self-normalize in the sense that 
+\begin{align}
+\pi_{i|j} =\frac{\exp[z_{ij}]}{\sum_k \exp[z_{kj}]} & = \exp[z_{ij} - \log n_j] 
+\end{align}
+and we do not have to compute the sum explicitly. This is a key advantage in using the model for prediction! However, note that as this property only holds at the MLE, we cannot exploit it naively during training. \\
+
+There is a second important observation to be made here. Basically, no matter how we chose the embeddings, the bias paramerers will enfoce $\sum_{ij} e^{z_{ij}} =S$. This means, the value of the normalization constant is not affected by the embeddings at all. 
+\newpage
+
+
+desired constraints are fulfilled at the unconstrained maximum, provided that our model has bias parameters $c_j$.  The Poisson model is self-normalizing, but not in a mysterious manner, rather the MLE automatically fulfills the desired rate constraints, something that can also be elucidated by the duality to maximum entropy estimation. Note that a similar equation to Eq.~\eqref{eq:possion-constraints} can be derived from the optimality conditions for $\x_i$. \\
+
+What are the gradient equations then? It is straightforward to derive 
+\begin{align}
+\label{eq:poisson-gradient}
+\nabla_\theta \logl = \nabla_\theta^+ \logl - \nabla_\theta^- \logl, 
+\;\;  \nabla_\theta^+ \logl := \sum_{ij} p_{ij}  \nabla _\theta z_{ij}, 
+\;\;  \nabla_\theta^- \logl :=  \frac 1S \sum_{ij} e^{z_{ij}} \nabla _\theta z_{ij}\,. 
+\end{align}
+The main issue with Eq.~\eqref{eq:poisson-gradient} is that while the count matrix will be sparse, this sparseness is only preserved in the positive phase gradient, but not the negative phase gradient. [TH, NEW PART:] Now the key observation in dealing with the negative phase gradient is the following: if we chose biases $c_j$ optimally with respect to any choice of embeddings, then the normalization term leading to $\nabla_\theta \logl^-$ will be a constant equal to $1$. This means, that it is sufficient to optimize the normalization term with regard to the biases $c_j$ and we can train the embeddings purely using $\nabla_\theta^+ \logl$. We thus get the very simple optimality equations
+\begin{align}
+\sum_j \left( p_{ij} -\frac 1S e^{z_{ij}}\right) \y_j = \sum_i \left(  p_{ij} -\frac 1S e^{z_{ij}}\right) \x_i \stackrel !=0 
+\end{align}
+In particular, note that if we perform SGD (e.g.~model A), then we get for a sampled $(i,j)$:
+\begin{align}
+\triangle \x_i =\y_j , \quad \text{and} \quad \triangle \y_j = \x_i
+\end{align}
+
+
+
+\newpage
+
+Under sampling model (A) the stochastic positive phase gradient will be $\nabla_\theta z_{ij}$, which will just update a single $\x_i$ and a single $\y_j$. We are free to chose any sampling model for the negative phase. A natural choice in terms of touching as few parameters as possible in a SGD update is to keep the context index $j$ upon sampling $(i,j)$. Then we can sample some set of word indices $I \subseteq [1:K]$ such that $| I | = \kappa \geq 1$. What value of $\kappa$ to chose depends on how much variance we are willing to tolerate in the stochastic gradients and needs to be chosen in conjunction with other variance reducing methods such as mini-batching. What is the probability of chosing $(k,j)$ in the negative phase? As we sampled $j$ and $k$ independently, it is simply $\frac{\kappa}{K} p_j = \frac{\kappa n_j}{K S}$, so in order to sample the negative phase  gradient in a unbiased manner, we require that we correct for the sampling bias
+\begin{align}
+\triangle \x_i = \y_j, \quad  \triangle \x_k = - \frac{K}{\kappa n_{j}} \, e^{z_{kj}} \, \y_j  \quad (\forall k \in I)
+\end{align}
+so that in expectation over the random sampling 
+\begin{align}
+& \sum_{j} p_{ij} \triangle \x_i = \sum_j p_{ij} \y_j = \nabla^+_{\x_i} \logl \\
+& \sum_{j} p_{j} \frac{\kappa}{K} \triangle \x_k = \frac 1S \sum_j e^{z_{kj}} \y_j = \nabla^-_{\x_i} \logl
+\end{align}
+
+In conclusion, we can learn word embeddings without having to compute local partition functions by  maximizing the Poisson instead of the multinomial likelihood. The approximation is well understood and requires some sort of negative sampling to achieve a provable unbiased stocahstic gradient estimate. 
+
+\section{Polysemy}
+
+We would like to investigate under which assumptions the word embedding of a polysemous word can be modeled as a linear combination of the word embedding of its disambiguated uses. For the purpose of analysis we will assume that we have two word forms $\word_\sigma$ and $\word_\tau$, which get conflated into a single form $\word_s$. 
+\begin{proposition}
+Define $J_i := \{ j: n_{ij} >0\}$ and $Y_i := \{ \y_j: j \in J_i\}$. Assume $\text{span}(Y_\sigma) \cap \text{span}(Y_\tau) = \{ \mathbf 0 \}$, meaning that the subspaces are orthogonal. Assume that $\x^*_\sigma$ and $\x^*_\tau$ are optimal for a given set of context embeddings with regard to the Poisson likelihood. 
+\begin{proof}
+Note that the optimality condition for biases $b_i$ ensures 
+\begin{align}
+\sum_j e^{z_{ij}} = \frac 1S \sum_j n_{ij}  \quad (\forall i) 
+\quad    \Longrightarrow  \quad 
+\nabla_{\x_i} \sum_j e^{z_{ij}} = \mathbf 0 
+\quad    \Longrightarrow  \quad 
+\nabla_{\x_i} \logl = \sum_{ij} p_{ij} \y_j 
+\end{align}
+
+\newpage
+
+The optimality conditions for $\x_\sigma$ and $\x_\tau$ read
+\begin{align}
+\sum_{j} \frac{\partial \logl}{\partial z_{\sigma j}} \y_j \stackrel !=0 \stackrel != 
+\sum_{j} \frac{\partial \logl}{\partial z_{\tau j}} \y_j
+\end{align}
+We get 
+\begin{align}
+\sum_{j} n_{ij} 
+\end{align}
+\end{proof}
+\end{proposition} 
+
+
+
+%%Assume that $\y_k^\top \y_l = 0$ $\forall k \in J^1_i, l \in J_i^2$. Let the $\y_j$ embeddings be given. The optimal embeddings $\x_i$ (for counts $n_{ij}$), $\x^1_i$ (for counts $n_{ij}^1$) and $\x^2_i$ (for counts $n_{ij}^2$) relate to each other as follows
+%\begin{align}
+%\x_i = \x_i^1 + \x_i^2 + \mathbf v, \quad \mathbf v \in \text{span}\{\y_j: n_{ij}>0\}^\perp
+%\end{align}
+%\begin{proof}
+%Note that by the above assumption, we can decompose
+%\begin{align}
+%\Re^d = V_r \oplus V_s  \oplus (V_r \oplus V_s)^\perp, \quad 
+%V_r := \text{span}\{ \y_j: n_{rj}>0\} 
+%\end{align}
+%We get 
+%\begin{align}
+%\sum_{j} n_{ij} 
+%\end{align}
+%\end{proof}
+%\end{proposition} 
+
+
+\newpage
+
+
+
+a word form $\word_i$ such that the contexts of $\word_i$ can be partitioned into $J_i^1$, $J_i^2$, i.e.~$J_i^1 \cap J_i^2 = \emptyset$, $J_i^1 \cup J_i^2 = \{ j: n_{ij} >0\}$. Split the counts accordingly into $n_{ij}^1$ and $n_{ij}^2$ such that $n_{ij}^1 + n_{ij}^2 =n_{ij}$ for all $j$.  We have the following proposition 
+\begin{proposition}
+Assume that $\y_k^\top \y_l = 0$ $\forall k \in J^1_i, l \in J_i^2$. Let the $\y_j$ embeddings be given. The optimal embeddings $\x_i$ (for counts $n_{ij}$), $\x^1_i$ (for counts $n_{ij}^1$) and $\x^2_i$ (for counts $n_{ij}^2$) relate to each other as follows
+\begin{align}
+\x_i = \x_i^1 + \x_i^2 + \mathbf v, \quad \mathbf v \in \text{span}\{\y_j: n_{ij}>0\}^\perp
+\end{align}
+\begin{proof}
+Note that by the above assumption, we can decompose
+\begin{align}
+\Re^d = V_r \oplus V_s  \oplus (V_r \oplus V_s)^\perp, \quad 
+V_r := \text{span}\{ \y_j: n_{rj}>0\} 
+\end{align}
+We get 
+\begin{align}
+\sum_{j} n_{ij} 
+\end{align}
+\end{proof}
+\end{proposition} 
+
+\newpage
+
+
+
+
+Look at optimality conditions on embeddings 
+\begin{align}
+\sum_{j} e^{\langle \x^*, \y_j \rangle}\y_j = \sum_{j} p_j \y_j 
+\end{align}
+Note that 
+\begin{align}
+\mathbf v \in \text{span}\{\y_j\}^\perp \; \Longrightarrow \x^* + \mathbf v \; \text{optimal as well}
+\end{align}
+Thus assume that $J_1, J_2 \subset [1:L]$ and $J_1 \cap J_2 = \emptyset$ such that
+\begin{align}
+\Re^d = \text{span} \{ j \in J_1: \y_j\} \oplus \text{span}\{ j \in J_2: \y_j\} \oplus \mathbf V
+\end{align}
+then we can optimize $\x_1$ over $J_1$ such that $\x_1 \in \text{span} \{ j \in J_1: \y_j\}$ and similarly $\x_2$ over $J_2$ we can re-combine $\x = \x_1 + \x_2$ to get an optimal $\x$ for the combined sum. \\
+
+In order to enforce this, we could also use a "representer theorem" 
+\begin{align}
+\x = \sum_{j} \alpha_j \y_j, \quad  
+\sum_j e^{\langle \sum_{k} \alpha_k \y_k, \y_j \rangle} \y_j = \sum_j p_j \y_j 
+\end{align}
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}

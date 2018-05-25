@@ -1,0 +1,155 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{color,graphicx}
+\graphicspath{{./figures/}}
+
+\renewcommand{\Re}{{\mathbb R}}	
+\newcommand{\E}{{\mathbf E}}	
+\newcommand{\x}{{\mathbf x}}	
+\newcommand{\z}{{\mathbf z}}	
+\newtheorem{lemma}{Lemma}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\title{
+	{\large Notes on Deep Learning} \\[2mm]
+	Implicit Generative Models 
+}
+\author{Thomas Hofmann}
+
+\begin{document}
+
+\maketitle 
+
+\section{Classical Methods} 
+
+\paragraph{Prescribed Models}  Density estimation is a standard problem in statistics and unsupervised learning, which pursues the goal to learn an unknown data distribution over some vector space. The classical  approach is to start with a parametric family of densities $p_\theta$ ($\theta \in \Theta$) and to maximize a fitting criterion, most commonly a log-likelihood function of i.i.d.~data vectors $\x$
+\begin{align}
+\theta^* \; \stackrel{\max}{\longrightarrow} \; \E[\ln p_\theta(\x)], \quad \x \sim p(\x)\,.
+\end{align}
+In practice, as the true distributuon $p$ is unknwon, the expectation will be with regard to an empirical distribution of i.i.d.~training samples, $p(\x) = \frac 1n \sum_i \delta(\x,\x_i)$. One can therefore think of density estimation as a way of smoothing an atomic distribution. In this context, one also speaks of a \textit{prescribed} model definition. 
+
+In the above setting one needs to ensure that $p_\theta$ defines a proper density for any $\theta$, i.e.~that it is normalized to $\int p_\theta(\x) \, d\x=1$, and that $p_\theta$ can be efficiently evaluated at sample points. While this is trivial for model families such as exponential ones,  computing normalization constants (even approximately) can be quite involved in more complex models, for instance, in the context of graphical models or deep neural networks. 
+
+\paragraph{Latent Variable Models}  A classical way to define more complex models is to first augment the sampling space by latent variables $\z$ and then to define a so-called complete data model $p(\x,\z)$, typically in a way such that $p(\x|\z)$ and $p(\z)$ are simple. The distribution on the observables is then obtained via marginalization
+\begin{align}
+p_\theta(\x) = \int p_\theta(\x,\z) \, d\z \quad \text{or}\quad 
+p_\theta(\x) = \sum_\z p_\theta(\x,\z)\,.
+\end{align}
+The power and complexity of the model arises mainly through the process of marginalization. 
+
+Latent variable models allow for approximate MLE via the Expectation-Maximiztion (EM) algorithm \cite{dempster1977maximum}. The basic inequality exploits the concavity of the $\log$ (Jensen's inequality) to bound the evidence via the ELBO (evidence lower bound)
+\begin{align}
+\log p_\theta(\x) & \ge  \E_q\left[ \log p_\theta(\x,\z)\right] + \text{KL}(q(\z) || p_\theta(\z))  =: \text{ELBO}(q,\theta)
+\label{eq:elbo}
+\end{align}
+It is easy to show that the optimal choice of the variational distribution is the posterior, i.e.~$q(\z;\x) = p_\theta(\z|\x)$. As the latter is not always tractable to compute, one can  resort to variational inference as a further approximation and restrict $q$ to a family of variational distributions. The RHS of Eq.~\eqref{eq:elbo} is then optimized over a restricted set, further weakening the inequality. 
+
+Finally, note that in (variational) EM, there is usually  a variational $q$-distribution learned for every $\x$. Alternatively, it is also possible to learn a function $\x \mapsto q(\z;\x)$ via a seperate model (e.g.~another neural network), which leads to the amortized inference appraoch via inference networks pursued in variational autoencoders \cite{kingma2013auto,rezende2014stochastic}.
+
+\paragraph{Unnormalized and Implicit Models} 
+For a larger class of models, we may be able to represent and compute unnormalized density functions $\bar p_\theta(\x) = c_\theta \cdot p_\theta(\x)$, by which we can at least compute density ratios, without the need to have access to the normalization constants $c_\theta$. Going one step further, \textit{implicit} statistical models \cite{diggle1984monte} are described in  terms of a generating stochastic mechanism or a simulation process \cite{hartig2011statistical}, which can be used to generate samples. Such implicit models may be highly complex and can be very powerful, yet raise the question of how to best train them in a ``liklihood-free" manner. Any na\"ive approach of estimating a log-likelihood function from samples \cite{diggle1984monte} is likely to break down, if the model and/or data dimensionality is high. 
+
+
+\paragraph{Score Matching} One of the pioneering techniques to fit unnormalized models is score matching  \cite{hyvarinen2005estimation}. Define score vectors $\psi_\theta:= \nabla \log \bar p_\theta$ and $\psi = \nabla \log p$, then the score matching criterion can be written
+\begin{align}
+J(\theta) = \E  \| \psi_\theta - \psi \|^2
+\end{align}
+A key result of \cite[Theorem 1]{hyvarinen2005estimation} is that one can apply intergation in parts to get rid of the data score function $\psi$ and obtain
+\begin{align}
+J(\theta)  &\stackrel{\pm c}= 
+\E  \left[ \sum_i  \partial_i \psi_{\theta,i} - \tfrac 12 \psi^2_{\theta,i} \right]
+ = \mathbf E \left[ \left( \nabla^2 - \tfrac 12 \langle \nabla, \nabla \rangle \right) \log \bar p_\theta\right] 
+\end{align}
+So the score matching criterion is the expectation of a second-order differential operator, acting on the unnormalized log model density. The ingenuity of score matching is that  $\nabla_\x \log (c_\theta \cdot p_\theta(\x)) = \nabla_\x \log p_\theta(\x)$, so any changes in scale that only depend on $\theta$ and not on $\x$ are irrelevant, showing that model normalization is superflous.  As the expectation can be approximated by an empirical average, this results in a practical procedure. Note that fitting the gradient does not suffer from the degeneracy involved in MLE with unnormalized models. Despite some use cases, e.g.~for estimating image statistics \cite{kingma2010regularized}, score matching has not been widely adapted in practice. 
+
+\paragraph{Noise Contrastive Estimation} Another theme to fit unnormalized models has been to \textit{bootstrap} generative models via classification problems. As proposed in  \cite{gutmann2012noise}, one can reduce density estimation to the problem of binary classification. Set up a two class problem by defining a joint distribution as follows: 
+\begin{align}
+& \tilde p(\x, y=1) = \tfrac12 p(\x), \quad \tilde p(\x,y=0) = \tfrac12 p_n(\x) \,.
+\end{align}
+where $p_n$ is some chosen ``negative" distribution. Note that $\tilde p(\x)$ is an additive mixture. We can now think of the unnormalized model as defining an implicit discriminator for the above classification problem. To that extend, define the probabilistic classifier
+\begin{align}
+q_\theta = \frac{\alpha \bar p_\theta}{\alpha \bar p_\theta + p_n}, \quad \alpha >0
+\end{align}
+which will be Bayes optimal if $\alpha \bar p_\theta = p$. One now simply proceeds by minimizing the logistic classification loss with regard to $\theta$ and $\alpha>0$. Instead of having to compute a normalization function $c(\theta)$, it suffices to learn a single additional parameter $\alpha$.  
+
+Somewhat suprisingly, under mild conditions,  this estimator for $\theta$ is consistent \cite[Theorem 2]{gutmann2012noise} as long as $\text{supp}(p_n) \supseteq \text{supp}(p)$. However, the question of estimator efficiency is a more tricky one. While \cite[Theorem 3]{gutmann2012noise} gives an asymptotic formula for the variance, getting close to the Cram\'er-Rao bound requires to chose the contrastive distribution similar to the data distribution, which obviously defies the purpose as approximating $p$ is the goal of density estimation. Hence, noise contrastive estimation, while consistent, may suffer from statistical inefficiency. Note also, that NCE cannot be applied (as is) to implicit models. 
+
+\section{Generative Adversarial Networks}
+
+
+\paragraph{Deep Implicit Models} It is a powerful insight, inspired from latent variable models in statistics, that one can connect a simple source of randomness to a general function approximator to create complex distributions \textit{implicitly} (see above). This is exploited in state-of-the art approaches to generate univariate random-variables \cite{devroye1986sample}, but it can also be used in a high-dimensional setting to drive neural networks by randomness \cite{mackay1995bayesian}. Starting with a latent code $\Re^d \ni \z \sim p(\z)$, e.g.~$p(\z) = \mathcal N(\mathbf 0, \mathbf I)$, connecting it to a parameterized mechanism $F_\theta: \Re^d \to \Re^m$, one effectively induces a distribution $\Re^m \ni \x \sim p_\theta(\x)$. One can even define the density as the derivative of the cummulative distribution function as follows  \cite{mohamed2016learning}\footnote{To keep thing simple we somtimes equate densities and probability distributions.}
+\begin{align}
+p_\theta(\x) = \frac{\partial}{\partial x_1}  \dots \frac{\partial}{\partial x_m}  \int_{F_\theta(\z) \le \x} p(\z) \, d\z\,.
+\end{align}
+More importantly though, sampling from $p_\theta$ in such a model is trivial: just sample $\z$ and deterministically compute $\z \mapsto F_\theta(\z)=\x$. It is a fundamental statistical question of how one can train such a model.
+
+\paragraph{From Optimal Discrimination to Generation}
+
+The idea of Generative Adversarial Networks (GANs) is conceptually simple, yet powerful \cite{goodfellow2014generative}. Similarly to noise contrastive estimation, we define a binary classification problem,
+\begin{align} 
+\tilde p_\theta(\x, y=1) = \tfrac 12 p(\x), \quad \tilde p_\theta(\x,y=0) = \tfrac 12 p_\theta(\x) \,,
+\end{align}
+i.e.~the model takes the place of the ``negative" distribution. Note that the optimal probabilistic Bayes classifier is given by the posterior $q^*_\theta = p/ (p +p_\theta)$.
+If one had access to it, then one could learn the generator via \textit{minimzing} the logistic likelihood 
+\begin{align}
+\theta \stackrel{\min}{\longrightarrow} \ell^*(\theta):= \E_{\tilde p_\theta} \left[ y \ln q^*_\theta(\x) + (1-y) \ln(1-q^*_\theta(\x))\right] 
+\label{eq:optimal}
+\end{align}
+The generator's goal then is to generate samples that are indistinguishable from real data, even for the best possible classifier. This can be interpreted in an elucidating way as minimzing a statistical divergence between $p$ and $p_\theta$, namely their Jensen-Shannon divergence.
+\begin{lemma}
+Given a distribution $p$ over $(\x,y) \in \Re^m \times \{0,1\}$ with $p(y)=\tfrac 12$. The (Bayes) optimal probabilistic classifier has expected logistic loss 
+\begin{align}
+\ell(\theta)  = \text{JS}(p(\x|y=0),p(\x|y=1)) - \ln 2
+ \nonumber
+\end{align}
+% $\text{JS}(p_+(\x),p_-(\x))$, where $p_{\pm}(\x):=p(\x|y=\pm1)$ are the class conditional distributions.
+% = \text{JS}(p,q_\theta)
+\begin{proof}
+First note that the maximum of the logistic log-likelihood can be written as a negative cross entropy 
+\begin{align*}
+\E\max_{\pi \in  [0;1]} \left\{ y \log \pi + (1-y) \log (1-\pi) \right\} ]= - H(y|\x)
+\end{align*}
+which can be further re-written by using the identity $H(y|\x)= H(\x|y) +H(y)  - H(\x)$. Note that $H(y) = \ln 2$ and $H(\x|y) = \frac 12 H(\x; y=0) + \frac 12 H(\x;y=1)$. The claim follows as 
+\begin{align*}
+\text{JS}(p,q) = H(\tfrac 12 p + \tfrac 12 q) - \tfrac 12  H(p) - \tfrac 12 H(q)
+\end{align*} 
+\end{proof}
+\end{lemma}
+Note that the class-conditional distributions are $p$ and $p_\theta$ in our case, by design.  Hence, optimizing Eq.~\eqref{eq:optimal} is equivalent to 
+\begin{align}
+\theta \stackrel \min \longrightarrow \text{JS}(p, p_\theta)
+\end{align} 
+There have been proposals to replace the JS-divergence by members from a more general class of so-called $f$-divergences \cite{nowozin2016f} or by using distance measures such as the Wasserstein (or earthmover) distance \cite{arjovsky2017wasserstein}. The final word on which divergences are preferred under which circumstances is still out. 
+
+\paragraph{From Real Discrimination to Generation}
+
+Now what is the catch? Obviously, we do neither know the Bayes-optimal $q^*_\theta$ induced by a choice of $\theta$, nor can we minimize the JS-divergence without proper normalization of $p_\theta$, which to avoid was our starting point. However, there is a clever way out of this: Instead of using the optimal classifier $q^*_\theta$, let us define a parametrized family of probabilistic classifiers $q_\phi$, $\phi \in \Phi$. We obviously have 
+\begin{align}
+\ell^*(\theta) \ge \sup_{\phi \in \Phi} \ell(\theta,\phi), \quad \ell(\theta,\phi) :=  \E_{\tilde p_\theta} \left[ y \ln q_\phi(\x) + (1-y) \ln(1-q_\phi(\x))\right] 
+\end{align}
+Our discriminative model may not contain the Bayes-optimal classifier, but we can try to find the best classifier within a restricted class. In practice, one designs $\Phi$ as the weight space of a second neural network, often chosen to mirror the architecture of the generative model $\Theta$. The learning task is then to find the parameter setting for the generative mechanism $F_\theta$, which maximizes the logistic loss obtained by the best classifier in the class. 
+
+\paragraph{Optimizing GANs} The fitting problem associated with GANs is an adverserial one. We would like to find 
+\begin{align}
+\theta^* :=  \argmin_{\theta \in \Theta} \sup_{\phi \in \Phi} \ell(\theta,\phi)
+\end{align}
+which amounts to solving a saddle-point problem and is related to finding equilibria in adverserial (zero-sum) games. Na\"ively implementing this idea would require to compute the $\inf$ function in the inner loop as well as gradients with regard to $\theta$, which typically is impractical. How to find computationally more efficient algorithms is subject of ongoing research in the area. The basic method (which may obey  divergent behavior) is to perform alternating SGD steps (where expectations go over mini-batches of data)
+\begin{align}
+\theta^{t+1} = \theta^t - \eta \nabla_\theta \ell(\theta^t,\phi^t), \quad \phi^{t+1} = \phi + \eta \nabla_\phi \ell(\theta^{t+1},\phi^t)
+\end{align}
+Note the reverse sign, i.e.~the generator performs gradient ascent, while the classifer performs gradient descent on the same objective. To enhance the effectiveness of gradient-based methods, modification of the original GAN objective have been proposed, see e.g.~\cite{goodfellow2014generative,metz2016unrolled,roth2017stabilizing,mescheder2017numerics}.
+
+
+\paragraph{Evaulating GANs} Even if we were to put computational efficiency aside, there still is the conceptual question of how to measure the quality of an implicit model. Note that in liklihood-based method one can typically resort to out-of-sample evaluations of a ``test" likelihood. This is not an option for GANs, unless one approxmates the likelihood. It is also unclear how failure modes are traded-off: For instance, how should one score a mechanism that generates noisy samples (e.g.~blury images), but adequately represents the variability of the data vs.~a mechanism that produces faithful (as in: good looking) samples, but does not yield a representative sample (a problem aka ``mode dropping"). 
+
+\paragraph{GANs in Practice}
+
+There have been a number of impressive attempts to generate realistically looking data, in particular images, by using GANs.  One noteworthy paper  is \cite{radford2015unsupervised} which uses convolutional networks. [...]
+
+\bibliographystyle{acm}
+\bibliography{th}
+
+\end{document}
+

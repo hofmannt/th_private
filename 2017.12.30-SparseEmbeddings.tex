@@ -1,0 +1,340 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm,bm}
+\usepackage{color,graphicx}
+\graphicspath{{./figures/}}
+
+\renewcommand{\Re}{{\mathbb R}}	
+\newcommand{\E}{{\mathbf E}}	
+\newcommand{\x}{{\mathbf x}}	
+\newcommand{\valpha}{{\boldsymbol a}}	
+\newcommand{\vbeta}{{\boldsymbol b}}	
+\newcommand{\vLambda}{{\boldsymbol \lambda}}	
+\newcommand{\y}{{\mathbf y}}	
+\newcommand{\z}{{\mathbf z}}	
+\newcommand{\mN}{{\mathbf N}}	
+\newcommand{\mM}{{\mathbf M}}	
+\newcommand{\mR}{{\mathbf R}}	
+\newcommand{\mQ}{{\mathbf Q}}	
+\newcommand{\mG}{{\mathbf G}}	
+\newcommand{\mK}{{\mathbf K}}	
+\newcommand{\mD}{{\mathbf D}}	
+\newcommand{\mA}{{\mathbf A}}	
+\newcommand{\mB}{{\mathbf B}}	
+\newcommand{\mX}{{\mathbf X}}	
+\newcommand{\mY}{{\mathbf Y}}	
+\newcommand{\mL}{{\mathbf L}}	
+\newcommand{\mP}{{\mathbf P}}	
+\newcommand{\mSigma}{{\mathbf \Sigma}}
+\newtheorem{lemma}{Lemma}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\definecolor{Red}{rgb}{0.9,0.1,0.1}
+\newcommand{\textred}[1]{{\color{Red} #1}}
+
+\title{
+	Sparse Word Embeddings
+}
+\author{Thomas Hofmann}
+
+\begin{document}
+
+\maketitle 
+
+\section{Introduction}
+
+\paragraph{Background.} Word embedding models like skip-gram \cite{mikolov2013distributed} and GloVe \cite{pennington2014glove} are extremely popular and easy to implement, yet have led to a considerable body of research towards deeper understanding of their workings. This includes interpretations in terms of matrix factorization of the pointwise  mutual information matrix  \cite{levy2014neural,levy2015improving, melamud2017information} as well as a  better understanding of the induced geometry in terms of sparseness \cite{faruqui2015sparse,chen2016compressing}, linear structure of word senses \cite{arora2016linear,mu2016geometry} and orthant structure \cite{mimno2017strange}. 
+
+\paragraph{Goal.} We would like to infer sparse word embeddings. Sparseness is often linked to better interpretability, compressed representations, and additive mixture models such as topic models. There have been several attempts to extract sparse representations from word embeddings as a post-processing step, e.g.~in \cite{faruqui2015sparse,arora2016linear,chen2016compressing}, using either modified SGD,  $k$-SVD \cite{aharon2006rm}, or noise contrastive estimation \cite{gutmann2012noise}. By contrast, we are interested in  designing a model and objective that directly induces sparseness in the word representations. A first attempt towards this goal has been made in \cite{chen2017learning}, but the design of the objective as well as the optimization method has been quite \textit{ad hoc}. We try to develop a more systematic approach to combine word embeddings with dictionary learning. 
+
+\paragraph{GloVe.} We take the GloVe model \cite{pennington2014glove} as a concrete starting point as its objective can be explitly understood as a least squares matrix factorization problem. The co-occurrence data is usally summarized in a matrix $\mN = (\log n_{ij})$ of log counts. Embeddings for words and contexts are parameterized as $\x_i, \y_j \in \Re^d$. The objective is then given by
+\begin{align}
+\ell_{glv}(\mX,\mY) = \sum_{i,j}  g_{ij} ( \langle \x_i, \y_j \rangle - \log n_{ij})^2, \quad g_{ij} = g(n_{ij})\,,
+\end{align}
+where $g_{ij}$ are coefficients of some weighting matrix $\mathbf G$. Defining $\| \mA\|_\mG := \| \mG \odot \mA \|_F$, one can re-write $\ell_{glv}(\mX,\mY) = \| \mX^\top \mY - \mN\|_\mG^2$.  Although $\ell_{glv}$ is non-convex, one typically uses  gradient descent for optimization, similar to other word embedding models, e.g.~\cite{mikolov2013distributed}. 
+
+
+\section{Sparse Embeddings}
+
+\paragraph{Setup.} 
+The starting point is clear: each (dense) word vector should be a sparse linear combination of a few \textit{atoms} from a dictionary. Let us simplify the model  by assuming that word and context vectors  share the same dictionary $\mD$ of atoms $\mathbf d_r$ (column vectors of $\mD$),
+\begin{align}
+& \mD \in \Re^{d \times m}, \quad \| \mathbf d_{r}\|_2 =1, \quad r=1,\dots,m, \quad d \le m\,,
+\end{align}
+from which emeddings for words/contexts are derived via
+\begin{align}
+& \x_i = \mD \valpha_i, \quad  \y_j = \mD \vbeta_j, \quad  \; 1 \le i,j  \le n\,, \quad m \ll n\,.
+\end{align}
+The  goal is to find sparse vectors $\valpha_i, \vbeta_j$ summarized in coefficient matrices $\mA, \mB$ jointly with $\mD$.  Predictions of a bilinear model will depend on the gram matrix $\mK := \mD^\top \mD$ as
+\begin{align}
+\langle \x_i, \y_j \rangle = \valpha_i^\top \, \mK \, \vbeta_j = \text{Tr}\left( \mK \cdot \vbeta_j \valpha_i^\top\right)
+\label{eq:sparse-model}
+\end{align}
+Note that the over-completeness of the dictionary implies that $\text{rank}(\mK) \le d < m$.
+
+Innstead of directly learning dense word embeddings, we thus impose structure through Eq.~\eqref{eq:sparse-model}. This results in a fourth-order polynomial progam with additional sparseness and norm constraints. Instead of na\"ively applying  gradient-based methods to learn $\mA, \mB$ and $\mD$, we would like to exploit mathematical properties related to sparse coding to come-up with a more efficient problem formulation and algorithm. 
+
+
+\paragraph{RIP and Self-Coherence.} 
+
+A key concept for dictionary learning introduced by \cite{candes2005decoding} is the restricted isometry property (RIP). Let $s$ denote some sparsity level and $\delta \in (0,1)$. A matrix $\mD$ is $(s,\delta)$-RIP, if for any $s$-sparse vector $\valpha$
+\begin{align}
+(1-\delta) \| \valpha \|^2_2  \leq \| \mD \valpha\|_2^2 \le (1+\delta) \| \valpha\|_2^2
+\label{eq:rip}
+\end{align}
+This says that $\mD$ behaves approximately like the identity map for $s$-sparse vectors,  more precisely for any  $s\times d$ submatrix $\mD_s$, the operator $\mD_s^\top \mD_s$ fulfills
+\begin{align}
+Eq.~\eqref{eq:rip} \; \iff \; \| \mD_s^\top \mD_s - \mathbf  I \|_2 \le \delta \;\; \iff \;\; \lambda(\mD^\top \mD) \in [1-\delta; 1+\delta], \;\; \text{$\lambda$ eigenvalue}
+\end{align}
+
+A related and simpler to measure property is the \textit{self-coherence} of a dictionary, which measures the maximum correlation between columns of $\mD$. This can simply be defined in terms of the off-diagonal elements of the gram matrix 
+\begin{align}
+\rho(\mD) = \max_{r \neq s} | \mK_{rs}|
+\end{align}
+Note that self-coherence is a less relevant property in our context as it purely depends on the dictionary and does not relate to the sparseness of the coefficient vectors. 
+
+The significance of a sensing matrix fulfilling the RIP is that it allows for efficient sparse signal recovery (e.g.~\cite{candes2008restricted}, but there is a wealth of literature on compressive sensing). Clearly, if $m \le d$, this can be accomplished by chosing orthonormal columns for $\mD$ such that $\delta=0$ for any $s$ or $\rho=0$. In the overcomplete case, this trivial solution is no longer possible.
+
+\paragraph{Ideal Dictionary.}
+
+In our context, we can use restricted isometry as a \textit{desired} property, something we want to enforce by design. It is known that, for instance, even random unit vectors (directions) will lead to low distortions w.h.p.~\cite{bah2010improved}.  Moreover, we do not have to actually compute $\mD$ in the course of the optimization as the objective only depends on the gram matrix $\mK = \mD^\top \mD$.  However, RIP exactly tells us that \textit{ideally} $\mK =\mathbf I$ as an operator acting over sufficiently sparse vectors. Consequently, by enforcing sparseness on the columns of $\mA$ and $\mB$, the problem of finding a near-optimal dictionary $\mD$ should become almost trivial. 
+
+\paragraph{Sparse Embeddings} What does that mean? If one performs explicit factorization, then we can first learn $\mA$ and $\mB$ directly as if they were embedding vectors, but in a higher-dimensional space $m>d$ and enforcing sparseness, e.g.
+\begin{align}
+\min \stackrel{\mA, \mB}\longrightarrow \| \mN - \mA^\top \mB\|_{\mG} + 
+\mu \left( \| \text{vec}(\mA)\|_1  + \| \text{vec}(\mB)\|_1\right) 
+\label{eq:l1-glove}
+\end{align}
+If the resulting solution is sufficiently sparse, then it will not be difficult to find a low-RIP dictionary, especially for the learned vectors $\valpha_i$ and $\vbeta_i$.\footnote{Note that RIP puts a requirement on all $s$-sparse vectors. Finding a matrix that is an approximate isometry for a finite set of vectors is strictly simpler.} 
+
+\begin{enumerate}
+\item Thus in a way, this optimization is \textit{optimistic} in the sense that it assumes that once sparse representations $\mA$ and $\mB$ are found, these can be complemented by a suitable dictionary without introducing much additional distortion. 
+\item One can make the argument above more precise by studying random matrices $\mD$ (e.g.~Gaussian ensembles). A learned dictionary will strictly improve on such an unoptimzied random solution. The weighting matrix $\mG$ is a complicating factor.
+\item Note that 
+\begin{align}
+\{ \mM = \mA^\top \mB : \; \mA, \mB \in \Re^{m \times n} \} 
+\supseteq \{ \mM =  \mA^\top \mK \mB: \; \text{rank}(\mK)\le m\}
+\end{align}
+and clearly a model that approximates $\mK \approx \mathbf I$ is strictly more powerful as it does not introduce any distortions by intermediate projection to a $d$-dimensional space. 
+\item \textbf{Todo:} It has to be discussed what the best way to tackle Eq.~\eqref{eq:l1-glove} is. The non-smoothness probably makes proximal gradient methods most suitable.
+\item \textbf{Todo:} Check relevant literature on enforcing sparseness on word embeddings. 
+\end{enumerate} 
+
+\paragraph{Optimizing the Dictionary.} 
+
+Once $\mA$ and $\mB$ have been learned, we can learn the dictionary matrix on top via solving a second optimization problem, e.g.
+\begin{align}
+\min \stackrel{\mD}{\longrightarrow} \| \mN -  \mA^\top \mD^\top  \mD \mB\|_{\mG}, \quad \mD \in \Re^{d \times m}, \quad d \le m
+\end{align}
+where the sparse matrices $\mA$ and $\mB$ are held fixed (and which we assume to have maximal rank $m$).
+
+\begin{enumerate} 
+\item \textbf{Q}: Can we ``massage" this expression with pseudoinverses to get a standard matrix approximation problem? With the right pseudo-inverse of $\mB$, i.e.~$\mB \mB^\dagger = \mathbf I_{m}$, then 
+\begin{align}
+ \mN -  \mA^\top \mD^\top  \mD \mB = \mR \; \Longrightarrow  \mN \mB^\dagger - \mA^\top \mD^\top \mD =  \mR \mB^\dagger 
+\end{align}
+Repeating this from the left, we would get a $m \times m$ problem, but how would we translate the $\| \cdot\|_\mG$?
+... \textbf{Todo!} ...
+\item We can  also use the nuclear norm relaxation as we have removed the problematic $n$ dependency and finding a $m \times m$ gram matrix $\mK$ may be tractable. However, note that we also need to enforce $\mK = \mD^\top \mD$ which may lead to a relative expensive semidefinite program. However, this seems an artifact  of sharing the dictionary, which is not a necessity. Hence, one may penalize the nuclear norm and recover seperate dictionaries via low-rank approxmation (rounding) $\mK \approx \mD_x^\top \mD_y$. 
+% \item Of course, in general, the dictionary can only be identified up to orthogonal transformations. 
+\item One can further improve this solution by performing joint gradient descent. The above argument suggests that the two stage algorithm will yield a good starting point. Thus, the higher-order couplings between the sparse coordinates and the dictionary may not be as problematic by comparison as when started from random conditions. \textbf{Todo:} Check this empirically. 
+\item \textbf{Q}: There is the question of how much additional structure is really gained by learning the dictionary on top of the sparse embedding. This may require further analysis of a simplified setting as well as experimental evidence (for instance, how much better than a random dictionary is the found solution?).
+\end{enumerate}
+
+\paragraph{Mixed Representations}
+
+Sparseness may account for topical structure in word semantics, yet there are many other factors that influence word co-occurrences that are not related to topics. It may thus make sense to combine sparseness with ordinary (dense) representations, so that different effects can be separated out.  We thus suggest the following model,
+\begin{align}
+\mM = \mA^\top \mD^\top \mD \mB  + \mX^\top \mY
+\end{align}
+with a regularizer 
+\begin{align}
+\Omega = \mu \left( \| \text{vec}(\mA) \|_1 + \| \text{vec}(\mB) \|_1 \right) + \nu \left( \| \mX\|_F^2 + \| \mY\|_F^2 \right)
+\end{align}
+By chosing the regularization constants, we can trade-off the sparseness of the model and the relative importance of the dense vs.~the sparse model. 
+
+If we match the dimensions of the direct embeddings and the atoms, then we can effectively recover embeddings vectors for each word and context, which consist of an additive combination of a spare and dense components,
+\begin{align}
+\tilde \x_i = \mD \valpha_i + \x_i, \quad \tilde \y_j = \mD \vbeta_j + \y_j 
+\end{align}
+
+\paragraph{Negative Sampling.} In the skip-gram approach with negative sampling, one repeatedly samples pairs $(i,j)$ and performs SGD updates. In such a setting, we can alternatively impose sparsity directly on the inner product matrix, e.g.~using $\|\text{vec}(\mA^\top \mK \mB)\|_1$. It is important to include bias terms in the model in order to account for the marginals. Effectively this means that one will factorize the PMI (pointewise mutual information) matrix instead of the raw log-counts. Sparseness in this context means that most co-occurrences $(i,j)$ are explained by an independent model (i.e.~$\text{pmi}_{ij}=0$). Dependencies are implied by shared atoms. 
+
+\paragraph{Non-Negativity.} It is interesting to check whether generally $\valpha_i, \vbeta_j \geq 0$.  This may be sensible as PMI takes rarely large negative values and small values are clipped to $0$ by the regularizer. 
+
+
+
+\newpage
+
+\section{Fragments \\(irrelevant for current argument, possibly reuse)}
+
+
+\paragraph{Low Rank Approximation.} 
+Before proceeding, we have to manage expectations. It is known that solving 
+\begin{align}
+\mM \stackrel{\min}{\longrightarrow} \ell(\mM) = \tfrac 12 \| \mM - \mN \|^2_\mG, \quad \text{s.t.} \;\; \text{rank}(\mM) \le d
+\end{align}
+is NP-hard \cite{gillis2011low} even for $d=1$. This hardness result also holds for approximations with prescribed accuracy. 
+%
+It is a common approach to weaken the non-convex rank constraint by a convex relaxation via the nuclear norm (in some way the tightest convex relaxation, see \cite[Eq.~(1.1)]{cai2010singular})
+\begin{align}
+\mM \stackrel{\min}{\longrightarrow} \ell_\tau(\mM) = \tfrac12 \| \mM - \mN \|^2_\mG + \tau \| \mM \|_*
+\label{eq:nuclear} 
+\end{align}
+There are several approaches available to tackle the resulting optimization problem, including the proximal method of \cite{cai2010singular}, which makes use of a prox-operator based on SVD-shrinkage. These methods are theoretically well understood, but it is a challenge to work directly on $n\times n$ matrices, as $n \gg m$ is often in the millions. \\
+
+\paragraph{SVD Thresholding Method} 
+A special case of this problem with binary $\mG$ (aka.~matrix completion) is the starting point  in \cite{cai2010singular}, where an iterative method based on SVD-thresholding is presented. Let us first review this method. First, it is observed that the unweighted version of Eq.~\eqref{eq:nuclear} has a simple solution, namely the {singular value shrinkage operator}
+\begin{align}
+\mathbb D_\tau(\mM) = \mathbf U (\mSigma)^{\tau}_{+} \mathbf V^\top, \quad \mM = \mathbf U \mSigma \mathbf V^\top, \quad (\mA)_+^\tau = (\max(0,a_{ij}-\tau))\,.
+\end{align}
+Another way of stating this result is that $\mathbb D_\tau$ is the proximity operator associated with $\| \cdot\|_*$. Based on this operator, one can solve matrix completion problems via linearized Bregman iterations
+\begin{align}
+\mM^t = \mM^{t-1} + \eta_t \mathbb P_{\mG}  (\mN - \mathbb D_\tau(\mM^{t-1})),
+\end{align}
+where $\mathbb P_\mG$ is the projection operator onto those elements for which $\mG_{ij}=1$.
+
+
+\paragraph{Projection Operator.}
+
+As described in the context of the quadratically constraint problem as described in \cite[Section 3.3.2]{cai2010singular} we need to adapt the projection operator for our purposes. Essentially, we are intersted in the set $(\theta,\zeta)$, $\zeta \in \Re_+$, such that
+\begin{align}
+\| \mM - \mN \|^2_{\mG} = \sum_{ij} \left( \sqrt{g_{ij}} q_{ij}(\theta) - \sqrt{g_{ij}} \log n_{ij} \right)^2 \le \zeta^2 \,.
+\end{align}
+This is basically stating that we want to achieve a desired tolerance for the approximation in the sense of the the weighted Frobenius norm. However, this condition can be understood as an instantiation of the second order cone, if we vectorize $\z = (\sqrt{g_{ij}} q_{ij}(\theta) - \sqrt{g_{ij}} \log n_{ij})_{ij}$ and then $\mathcal K := \{ (\z,\zeta): \| \z\| \le \zeta \}$. The projection operator is easy to compute and explicitly given by
+\begin{align}
+\mathbb P_{\mathcal K}:  (\z,\zeta) \mapsto
+\begin{cases}
+(\z,\zeta), & \| \z\| \le \zeta \\
+(\mathbf 0,0), & \zeta \le -\| \z\| \\
+\frac{\|\z\| + \zeta}{ 2} \left(\frac{\z}{\|\z\|}, 1\right) & \text{otherwise}
+\end{cases}
+\end{align}
+Note that in our case $\| \z\| = \| \mQ - \mN \|_\mG$ and the projection amounts to a simple re-scaling rule in the relevant case. The algorithm in the satured case now becomes very simple. \textit{Details to be worked out, see \cite[Eq.~(3.12)]{cai2010singular}.}.\\
+
+What does this achieve? We would need to maintain an $n \times n$ matrix. Empirically, there is hope that the rank of the intermediate results will be as low as the final one, which would be $d$ (see discussion in \cite{cai2010singular}), but this remains a worry. In our case, $\mM$ has a specific structure and this raises the question of whether this specific way of factorizing $\mM$ should be made explicit in the optimization problem. If we factorize $\mM$ we would like to leave as much of the matrix ``intact'' as possible. One compromise would be to work with the gram matrix of the dictionary $\mM = \mA^\top \mK \mA$. Then we could regularize via $\| \text{vec}(\mA) \|_1$, enforcing sparseness. We would then only need to maintain an $m \times m$ matrix. We could possibly also just enforce a small nuclear  norm on $\mK$, meaning ideally the SVD-shrinking operations can be done on $\mK$. (Need to verify generalization of the prox operator.) The positive definiteness constraint $\mK \succeq 0$ may make this expensive. A remaining question would be, what else we can do to $\mK$ to facilitate sparse representations. One property of particular interest is the \textred{restricted isometry property}. That poperty basically says that any matrix $\mD_s$ with $s$ random columns taken from $\mD$ is such that $\mD_s^\top \mD_s \approx \mathbf I_{s \times s}$. We could enforce deviations in expectation, e.g.~using some norm on $\mD_s - \mathbf I_{s \times s}$  and -- in the course of the optimization -- sample such matrices (this would be natural, if  we were to use some form of SGD). Note that we can easily get this information by looking at random $s \times s$ submatrices of $\mK$ (where the same $s$ columns and rows are selected). \\
+
+Moving back to $\mM$ -- what does RIP mean for $\mM$? We can see that essentially we will be getting $\mA^\top \mD^\top \mD \mA \approx \mA^\top \mA$ due to the assumed spareness of $\mA$ and the approximate property of $\mK = \mD^\top \mD$.  Intuitively: a good RIP matrix has a gram matrix that essentially is ``inivisible" to sparse vectors. Obviously, if $\mA$ is sparse, $\mA^\top\mA$ will have to be extremely sparse as it is only non-zero if words $i$ and $j$ have an overlapping support set of atoms. If $\mA$ is $k$ sparse, then the gram matrix will be approximately ... sparse (work out the combinatorics). Of course, the spareness pattern will not be random as there ``approximate" transitivity properties (true transitivity in the case of $1$ sparseness). So how about imposing $\min \rightarrow \|\text{vec}(\mM)\|_1$ in addition?
+\\
+
+
+\textit{Independent Idea:} Pragamtic algorithm. Find embedding $\mX$ using standard method. Pump-up $\x_i \in \Re^d \mapsto \valpha_i \in \Re^m$, via some random matrix $\mB$. Alternatively, directly find embeddings in $\Re^m$ (more expensive). Initialize $\mK = \mathbf I$. Now anneal optimization problem from these starting conditions by increasing the penalties for non-spareness of $\mA$ and ``non-dictionary-likeness" of $\mK$ (including $\| \mK \|_*$). This way, we could possible move towards sparse solutions more ``gradually".
+
+
+
+
+\bibliographystyle{acm}
+\bibliography{th}
+\end{document}
+
+
+
+\newpage
+
+
+
+The algorithm is a special case of Uzuma's algorithm, whch can be thought of as a subgradient descent algorithm on the dual problem. Most relevant in our context is the adaptation to a quadratically constraint problem as described in \cite[Section 3.3.2]{cai2010singular}. To that extend let us vectorize the GloVe objective 
+\begin{align}
+\mathbf b = (\sqrt{g_{ij}} \log n_{ij})_{(ij)}, \quad \mathcal A(\theta) = (\sqrt{g_{ij}} q_{ij}(\theta))_{(ij)},
+\end{align}
+and write a Lagrangean 
+\begin{align}
+\mathcal L(\theta) = \tau \| \mQ(\theta) \|_* + \frac 12 \| \mQ(\theta)\|^2_F + \langle \mathbf \vLambda, \mathbf b - \mathcal A(\theta)  \rangle - s \epsilon, \quad \| \mathbf y\| \le s
+\end{align}
+
+
+
+\newpage
+
+
+
+\newpage
+
+
+
+For this case, conditions are known under which exact recovery of the original matrix is possible.  \textit{TH: Let us assume that this method also works for more general weighting schemes...} 
+
+\newpage
+
+
+ Let us first assume that the factors would be independent (and sparsity not an issue). The resulting problem would be 
+\begin{align}
+\ell(\mL, \mR) = \| \mL \mR - \mX \|^2_\mG,
+\end{align}
+a problem that is known to be
+
+
+
+Let us first try to solve the problem 
+\begin{align}
+\ell(\mR) = \| \mR - \mN\|_\mG^2, \quad \text{s.t.} \; \text{rank}(\mR)=d
+\end{align}
+
+\section{Dictionary Learning} 
+What is the structure of this problem? In a way, we can think of either the rows or the columns of $\mN$ as observed data vectors. If we were to treat $\mA$ as fixed, then we would obtain a dictionary learning problem with effective dictionary $\mA^\top \mD^\top \mD$ and sparse weights $\mB$. A symmetric problem is recovered, if we treat $\mB$ as given. 
+
+
+
+
+\paragraph{Fragment $\#1$: SVD Thresholding} The above problem is non-convex and we expect it to be difficult to optimize. Let us first assume that $\valpha_w$ and $\vbeta_w$ are given and that we have a target for each word pair using a squared error criterion, then 
+\begin{align}
+\min_{\text{rank}(\mK) = d} \rightarrow  \| \mA \mK \mB - \mY\|^2_F, \quad \mA^\top = [ \valpha_{w_1} \dots \valpha_{w_n} ], \; \mB  = [ \vbeta_{w_1} \dots \vbeta_{w_n} ]
+\end{align} 
+Note that as $n \gg m$ and typically $\text{rank}(\mA)=\text{rank}(\mB) = m$. We can transform this problem by using the left/right matrix  pseudo-inverse of $\mA$ and $\mB$, respectively\footnote{Sloppy, hopefully this is correct.}
+\begin{align}
+\min_{\text{rank}(\mK) = d} \rightarrow  \| \mK- \mX\|^2_F, \quad \mX := \mA^\dagger \mY \mB^\dagger\
+\end{align}
+While this is simply solved via truncated SVD, in more complicated settings, we will not be able to minimize over the non-convex set of rank-$d$ matrices. One remedy is to work with a convex relaxation that can be expressed by the nuclear norm (in some way the tightest convex relaxation, see \cite[Eq.~(1.1)]{cai2010singular}),
+\begin{align}
+\min_{\mK} \rightarrow  \frac 12 \| \mK- \mX \|^2_F + \mu \| \mK \|_*
+\end{align}
+The solution to this problem can be obtained by the SVD thresholding algorithm (with threshold $\mu \ge 0$  \cite[Theorem 2.1]{cai2010singular})
+
+\paragraph{Fragment $\#2$: Kernel Learning} \cite{lanckriet2004learning} is a reference paper on using SDP (semi-definite programming) and in some cases QCQP (quadratically constraint quadratic programs) for jointly learning weights as well as the gram matrix for a kernel-based method. 
+
+
+\newpage
+
+\cite{sadeghi2014learning}
+
+\newpage
+
+ and thus $\mK$ will be determined uniquely  $\mK =  (\mA^\dagger)^\top \mY \mB^\dagger$.\footnote{Somewhat imprecise argument, but sufficient for the current purpose.}
+
+\newpage
+
+
+We will need to relax the above problem by replacing the rank constraint by a bound on $\|\mK\|_*$, the nuclear norm of $\mK$. Moreover, we will use the general $1$-norm relaxation to enforce spareness on the coefficients.
+
+
+
+
+\newpage
+
+
+Obviously, if we do not restrict the dictionary matrices in any way, we can directly parameterize this model by a rank $d$  matrix $\mathbf A$, from which we can recover the atoms via SVD. Note that, of course, the model is non-identifiable in the same manner as the original skip-gram model up to transformations in $\text{GL}(d)$.
+
+Let us consider the simplfied setting, where $\x_w = \y_w$ and $\mathbf C = \mathbf D$. 
+
+\newpage
+
+
+It seems that much is still not completely understood.\\
+
+Another line of research has tried to modify the model in a way that makes additional structure of interest more explicit, most notably \cite{,li2015embedding}
+
+
+
+
+\begin{itemize}
+\item \cite{arora2016linear}
+\item \cite{park2017rotated}
+\item compression point of view: 
+\item sparse embeddings without dense \cite{chen2017learning}
+\item \cite{subramanian2017spine}
+\item \cite{senel2017semantic}
+\end{itemize}
+
+
+
+

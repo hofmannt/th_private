@@ -1,0 +1,502 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm,bbm}
+\usepackage{color,graphicx}
+\graphicspath{{./figures/}}
+
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\y}{{\mathbf y}}
+\newcommand{\w}{{\mathbf w}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\E}{{\mathbf E}}
+\renewcommand{\P}{{\mathbb P}}
+\newcommand{\Q}{{\mathbb Q}}
+\newcommand{\sign}{\text{sign}}
+\newtheorem{theorem}{Theorem}
+%\newtheorem{lemma}[theorem]{Lemma} % use same counter as theorem
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{assumption}{Assumption}
+
+
+\title{
+	Distributional Robustness via Adversarial Learning
+}
+\author{
+	Thomas Hofmann \\[1mm] Department of Computer Science, ETH Zurich
+}
+
+\begin{document}
+
+\maketitle 
+
+\section{Introduction and Motivation}
+
+Robustness is a fundamental and important concept in statistical estimation. Generally speaking, robustness expresses the desire  that the outcome of an estimate or decision should not be overly sensitive to the specifics of the (training) data. Often, robustness has been discussed in the context of outliers or when faced with sources of noise that cannot be accurately specified, e.g.~non-normal, heavy-tail distributions. This has led to classical theories such as M-estimators \cite{huber1981robust}.
+
+The concept of \textit{distributional robustness} deals with the challenge of reducing the sensitivity of an estimator with regard to the data distribution. Learning models from a finite sample requires a special case of distributional robustness, where the outcome should be insensitive to the difference between the data generating distribution $\P$ and the empirical distribution $\hat \P$. Learning theory has developed analyses and techniques to deal with this scenario and to avoid overfitting the model to the sample at hand. Most popular approaches combine the principle of \textit{empirical risk minimization} (ERM) with regularization, i.e.~they substitute the minimization of an expected loss by an empirical quantity
+\begin{align}
+\theta^* \rightarrow \min_\theta \E_\P[\ell (\x; \theta)], \quad \text{replace by:} \quad
+\hat\theta \rightarrow \min_\theta \left\{ \E_{\hat \P}\left[\ell(\x; \theta) \right]+ \Omega(\theta) \right\} \,.
+\end{align} 
+Here the regularizer $\Omega$ is designed to counteract the sampling noise present in $\hat \P$. Note that $\Omega$ does not operate on $\hat \P$, but rather corresponds to a data-independent, \textit{a priori} choice, to favor more regular or simpler models compared to overly complex models. 
+
+Empirical risk minimization is just one -- albeit an important -- case of distributional robustness, of which there are many more. In real-world situations, the mechanism generating the training data may be different from the mechanism experienced during operation (i.e.~at test time). A special case of this is \textit{co-variate shift} \cite{shimodaira2000improving} in supervised learning, where the dependencies $\P_{\y|\x}$ between targets $\y$ and co-variates $\x$  are invariant, yet where the input distribution $\P_\x$ changes. Other scenarios include non-stationarity (i.e.~the world changing over time) or the transfer between different populations (e.g.~different geographies, etc.), or data collected with different sensors (e.g.~different imaging devices, etc.). Such distributional changes may also be induced by intervention: an agent that learns from the environment, but also acts in it, will by its own doing change the distributions of what it observes. This is also important for causal models, where one is interested in minimizing some loss after changing a policy of intervention (e.g.~changing a treatment plan). Finally, one may even face adversarial situations, where the natural data distribution is altered by an adversary in a way to break a prediction system, say. Such adversarial examples \cite{szegedy2013intriguing, goodfellow2014explaining} have received a great deal of attention recently. 
+
+\section{Distributional Robustness}
+
+\subsection{General Setting}
+
+We consider an adversarial setting, where instead of minimizing an empirical expectation, one minimizes the expected loss with regard to an entire class of distributions $q \in \mathcal Q$, i.e.
+\begin{align}
+\theta^* \rightarrow \min_\theta \E_p[\ell (\x; \theta)], \quad \text{replace by:} \quad
+\hat\theta \rightarrow \min_\theta  \sup_{q \in \mathcal Q} \E_{q}\left[\ell(\x; \theta) \right]
+\end{align}
+Here one may  think of $\mathcal Q$ as being some $\epsilon$-ball around the empirical distribution
+\begin{align}
+\mathcal Q_\epsilon = \{ q: D(\hat p||q) \le \epsilon \}
+\end{align}
+where $D$ is a non-negative divergence function such that $D(p||p)=0$. Examples may include $f$-divergences \cite{namkoong2016stochastic,namkoong2017variance}
+\begin{align}
+D(p||q) = \int_\Omega f\left(\frac{p(x)}{q(x)}\right) q(x) \; dx
+ \end{align}
+or metrics such as the Wasserstein distance \cite{sinha2017certifiable}. 
+
+
+\subsection{Discrete Distributions}
+
+We will focus on the discrete case, where we have outcomes $x_i$, $1 \leq i \leq n$ and a collection of loss functions $\ell_i$, such that $\E_p[\ell(x,\theta)] = \frac 1n \sum_{i=1}^n  p_i \; \ell_i(\theta)$, with the shorthand $\ell_i(\theta) = \ell(x_i,\theta)$. 
+
+\paragraph{Divergences}
+
+Let us elucidate how $f$-divergences behave at the two extreme ends of the spectrum, where the empirical reference distribution is either high entropy or low entropy. We first investigate the partial derivative with regard to one of the probabilities
+\begin{align}
+\frac{\partial}{\partial q_i} \sum_i f\left( \frac{p_i}{q_i} \right) q_i  
+=   f \left( \frac{p_i}{q_i} \right) - \frac{p_i}{q_i^2}  f'\left(\frac {p_i}{q_i} \right) 
+\end{align}
+Let us investigate three special cases of divergences, $\chi^2$, KL, and Jensen-Shannon
+\begin{align}
+f(t)  = 
+\begin{cases} 
+	 (t-1)^2 \in \mathbf O(t^2)  		& \text{$\chi^2$} \\
+	 -\log t \in \mathbf O(\log 1/t) 	& \text{(reverse) KL}  \\
+						  	& \text{Jensen-Shannon} 
+\end{cases} 
+\end{align}
+%
+\begin{align}
+t^2 f'(t)  = 
+\begin{cases} 
+	2 t^2 (t-1) \in \mathbf O(t^3) 	& \text{$\chi^2$} \\
+	- t						& \text{(reverse) KL}  \\
+	  						& \text{Jensen-Shannon} 
+\end{cases}
+\end{align}
+
+\begin{itemize}
+\item $\chi^2$: $f(t)=(t-1)^2$, $f'(t) = 2(t-1)$ \\
+Behavior at $q_i\to 0$: $\lim_{t \to \infty} f(t) \to \infty$, , $\lim_{t \to \infty} f'(t) = \infty$ $\Longrightarrow$ instable
+%
+\item (reverse) KL: $f(t) = -\log t$, $f'(t) = -\frac{1}{t}$ \\
+Behavior at $q_i\to 0$: $\partial[...]/\partial q_i \lim_{t \to \infty} \frac t{p_i} - \log t $
+\end{itemize}
+
+
+For concreteness. we work in the discrete setting. In the low entropy case, we require stability with regard to perturbations of small probabilities, in particular at zero. Let us look at the derivative 
+
+
+
+
+
+\paragraph{Bernoulli Distribution.}
+Let us look at the simplest possible case of estimating a Bernoulli success probability $p$. Let $\mathcal Q = (a;b) \subset [0;1]$ and use the negative log-loss $\ell_1(p) = - \log p$, $\ell_0(p) = -\log (1-p)$ such that the expected loss is the cross entropy 
+\begin{align}
+\ell(q,p) := \E_q[\ell(x,p)] & = -q \log p - (1-q) \log (1-p), \quad \arg\min_p \ell(q,p) = q\,.
+\end{align}
+Let us examine the surrogate (robust) loss, which we define as
+$\ell(\mathcal Q,p) = \sup_{q \in (a;b)} \ell(q,p)$.
+Note that 
+\begin{align}
+\frac{d \ell(q,p)}{dq} & = - \log p + \log (1-p) = \log \frac{1-p}{p} 
+\begin{cases} 
+\ge 0, & \text{if }p \le\frac 12 \\
+<0, & \text{otherwise}
+ \end{cases}
+\end{align}
+This implies that the $\sup$ is attained at the boundaries of the interval: If $p < \frac 12$, we should take $q$ as large as possible, $q^* = b$, yet if $p  > \frac12$, we should take $q$ as small as possible, $q^* = a$. For $p=\frac12$ the choice of $q$ is arbitrary. For the outer minimization of the surrogate loss with respect to $p$, we get different cases, dependent on how $(a;b)$ relates to the reference point $p = \tfrac 12$, namely
+\begin{align}
+p^* = 
+	\begin{cases} 
+		\frac{1}{2} & \text{if $\tfrac 12 \in (a;b)$} \\
+		b & \text{if $b \le \frac 12$} \\
+		a & \text{if $a \ge \frac 12$}
+	\end{cases}
+\qquad \text{and then} \quad
+\sup_{q \in (a;b)} \ell(q,p^*) = \sup_{q \in (a;b)} H(q) 
+\end{align}
+Bottom line: we favor the estimate $p$ with the largest entropy in $[a;b]$. 
+
+\paragraph{Multinomial Distribution.}
+
+Let us look at the multinomial case, where we want to estimate a probability vector $p \ge 0$ such that $\sum_i p_i=1$ relative to a set of distributions $q \in \mathcal Q$ defined by interval constraints $q_i \in (a_i,b_i)$.
+\begin{proposition}
+\label{prop:opt-q}
+Let $p \in \mathcal S_n$ be given such that w.l.o.g.~$p_1 \leq p_2 \leq ... \leq p_n$. Let $\mathcal Q = \{ q \in S_n: q_i \in (a_i;b_i) \} \neq \emptyset$. Then 
+\begin{align}
+\sup_{q \in \mathcal Q}  \ell(q,p) = \ell(q^*,p), \quad  \text{where} \quad 
+q^*_i = 
+\begin{cases} 
+b_i & \text{if $i < k$} \\
+a_i & \text{if $i > k$} \\
+c_k \in (a_k;b_k) & \text{otherwise} 
+\end{cases}
+\end{align}
+Here  $k$ is the largest integer such that $\sum_{i=1}^{k} (b_i-a_i) \le 1 - \sum_{i=1}^n a_i := M$. More specifically, $c_k = a_k + M - \sum_{i=1}^{k} (b_i-a_i)$. 
+\begin{proof} By contradiction: Assume that $i<j$ and that $q^*_i < b_i$, yet $q^*_{j} > a_j$. Then there is probability mass $m = \min\{ b_i-q^*_i, q^*_{j} - a_{j}\} >0$ that can be redistributed from $q^*i$ to $q^*_j$, increasing the loss by $m \left( - \log p_i + \log p_{j} \right)  \ge 0$ with strict inequality whenever $p_i < p_{j}$. The special case of $k$ is left as a simple exercise.
+\end{proof}
+\end{proposition}
+
+Intuitively speaking, the adversary will put as much weight as possible ($=b_i$) on the outcomes with largest loss (smallest $i$), while making sure the minimum probability mass ($=a_i$) is assigned to the outcomes with smaller loss (larger $i$). The critical value $k$ just receives whatever is left ($\in [a_i; b_i]$). 
+
+\begin{proposition}
+\label{prop:opt-p}
+Assume that we have a distribution $q$ such that $q_1 \le q_2 \le \dots \le q_{k-1}$ and $q_{k+1} \le \dots \le q_n$ (note that nothing is said about the order between $q_{k-1}$, $q_k$, and $q_{k+1}$). Denote $\mathcal P_{o} := \{ p \in S_n: p_{i} \le p_{i+1}, \, \forall i\}$. Then there exist $k^- \le k \le k^+$ such that $p^* = \arg\min_{p \in \mathcal P_o} \ell(q,p)$ has the form 
+\begin{align}
+p^*_i = \begin{cases}
+	\rho & \text{if $i \in [k^-; k^+]$} \\
+	q_k/\mu & \text{otherwise}
+\end{cases}, \quad \text{where}\;\; 
+\mu = \frac{\sum_{i \not\in [k^-; k^+]} q_i}{1 - (k^+-k^-+1)\rho}
+\end{align}
+\begin{proof}
+We form the Lagrangian, requiring that $p_i \le \rho \le p_j$ whenever $i<k<j$
+\begin{align}
+\nonumber \mathcal L(p;\lambda,\rho,\mu) = 
+ 	- \sum_i q_i \log p_i
+	+ \mu \left( 1 - \sum_i p_i \right) 
+	+ \sum_{i<k} \lambda_i (p_i - \rho) - \sum_{j>k} \lambda_j (p_j - \rho) \,.
+\end{align}
+which leads to first order optimality conditions
+\begin{align*}
+p_i^* = \frac{q_i}{\mu \pm \lambda_i}, \quad \lambda_i \ge 0 \,.
+\end{align*}
+For fixed $\mu, \rho$, there will be a (possibly empty) initial range $i < k^-$for which $q_i/\mu >\rho$ and a (possibly empty) final range $j > k^+$ for which $q_j/\mu > \rho$, both of which are implied by the monotonicity of the $q$ sequence for $i<k$ and $j>k$, respectively. For those indices $\lambda_i=0$ by the KKT complementary slackness condition.  For the in-between range $i \in [k^-:k^+]$, the optimal $\lambda_i$ will result in $q_i/(\mu  \pm \lambda_i) = \rho$. Putting things together yields the claim.
+\end{proof}
+\end{proposition}
+The argument so far is as follows: pick a $p$. Permute indices such that $p_{\pi}$ has monotonically increasing components. The inner $\sup$ will lead to a $q_\pi^*$ that is monotonically increasing over the ranges $[1:k-1]$ and $[k+1:n]$ by Proposition \ref{prop:opt-q}. Re-visiting $p_\pi$ without changing its order structure, we see that within the partition defined by $\pi$, $p^*_\pi$ has a simple structure described by Proposition \ref{prop:opt-p}. The remaining question is: which ordering $\pi$ is best with regard to the outer minimization? The general case seems complex to analyze (but straightforward to solve numerically). We focus on a special case. 
+
+\begin{proposition}
+W.l.o.g.~require that $a_k$ is monotonically increasing. Moreover assume that $b_k < b_{k+1}$ whenever $a_k < a_{k+1}$ and $b_k = b_{k+1}$ whenever $a_k = a_{k+1}$. Then the minimizer $p^* = \arg\min_{p \in S_n} \sup_{q \in \mathcal Q} \ell(q;p)$ takes the form as in Proposition \ref{prop:opt-p} with regard to the ordering defined by the sequences $a_i$ (or, equivalently $b_i$). 
+\end{proposition}
+
+In plain English, the robust estimator will have the following form: it will prefer the upper bound $b_i$ at the lower range $i<k^-$ and will prefer the lower bound $a_i$ in the upper range $i>k^+$. In the in-between range, it will chose a constant $\rho$. 
+
+\paragraph{Variations Around Uniform.}
+
+Let us review the key initial insight presented in \cite{namkoong2017variance}, where a setting is considered that allows for variations of a multinomial distribution around the uniform distribution.  Specifically, they define a ball 
+\begin{align}
+\mathcal Q = \{ q \in S_n:\tfrac 12 \| n q - \mathbf 1\|^2 \le 2\delta \}
+\end{align}
+which can be seen to be equivalent to a $\chi^2$-divergence ball w.r.t.~the uniform distribution as 
+\begin{align}
+\chi^2(p||q) = \frac 12 \sum_i \frac{(p_i-q_i)^2}{q_i}, \quad \chi^2(p|| \tfrac 1n \mathbf 1) = \frac{n}{2} \| p - \mathbf 1 /n \|^2
+= \frac{1}{2n} \| np - \mathbf 1\|^2
+\end{align}
+Let us consider fixed parameters, leading to losses $\ell_i$ then the following proposition, re-stating a result from \cite{namkoong2017variance}, gives insights into the inner maximization.
+
+\begin{proposition} 
+The solution to the maximization problem 
+\begin{align}
+\max_q \sum_{i=1}^n q_i \ell_i, \quad  \text{subject to} \quad q \in \mathcal Q' = \left\{ q: \sum_i q_i  = 1, \; \| n q - \mathbf 1\|^2_2 \le 2\delta \right\}  \supseteq \mathcal Q
+\end{align}
+is given by 
+\begin{align}
+q^*_i = \frac{\sqrt{2 \delta n}}{n^2}  \; \frac{\ell_i - \bar \ell}{s} +  \frac 1n, \qquad 
+\bar \ell := \frac 1n \sum_{i=1}^n \ell_i, \quad 
+s^2 := \frac 1n \sum_{i=1}^n (\ell_i - \bar \ell)^2
+\end{align}
+\begin{proof}
+Let us form a Lagrangian
+\begin{align}
+\mathcal L(\mu, \lambda) = \sum_i q_i \ell_i - \mu \left(1- \sum_{i=1}^n q_i \right) + \lambda \left( \delta - \tfrac 12 \sum_i (n q_i - 1)^2 \right),\quad \lambda \ge 0 
+\end{align}
+from which we can derive the first order optimality conditions:
+\begin{align}
+\frac{\partial \mathcal L(\mu, \lambda)}{\partial q_i} \stackrel !=0 \iff \ell_i -\mu  - n \lambda (n q_i -1) \stackrel != 0 \iff q_i^*  = \frac{\ell_i - \mu} {n^2 \lambda} + \frac 1n
+\end{align}
+Plugging this back in, we can solve the dual, 
+\begin{align}
+& \frac{d \mathcal L (\mu,\lambda)}{d\mu} \stackrel !=0 \iff 
+\sum_i q_i^* = \sum_i \left[ \frac{\ell_i - \mu} {n^2 \lambda} + \frac 1n \right] \stackrel !=1 \iff \mu = \bar \ell  \\
+& \frac{d \mathcal L (\mu,\lambda)}{d\lambda} \stackrel !=0 \iff 
+\frac 12 \sum_i (nq_i^*-1)^2 = \frac{1}{2n \lambda^2} s^2 \stackrel != \delta \iff \lambda = \frac{s}{\sqrt{2 n \delta}}
+\end{align}
+which can be inserted back into the first order optimality condition to yield the claim.
+\end{proof}
+\end{proposition}
+It is then argued in \cite{namkoong2017variance} that when the variance of the loss is sufficiently large, the solution will automatically be non-negative.  We state this as a corollary.
+\begin{corollary}
+If the condition below is fulfilled, then  $q^* \geq \mathbf 0$. 
+\begin{align}
+n s^2 \ge 2 \delta \left( \bar \ell - \min_i   \ell_i \right)^2
+\end{align}
+\begin{proof}
+Straightforward. 
+\end{proof}
+\end{corollary}
+\noindent Note that the condition in the corollary can be achieved, if $n$ is large enough (assuming that $s^2$ is a good approximation of the true variance).
+\begin{corollary}
+If $q^* \in \mathcal Q$, then 
+\begin{align}
+\max_{q \in \mathcal Q'} \sum_i q_i \ell_i 
+= \bar \ell +  s \sqrt{\frac{2 \delta}n} 
+\end{align}
+\end{corollary}
+
+It is also possible to solve the implicit maximization of the adversarial surrogate loss without any further assumptions. 
+\begin{proposition}
+Sketched.
+\begin{proof},
+Augment the Lagrangian by the additional term $-\sum_{i} \xi_i q_i$, $\xi_i \ge 0$, to enforce non-negativity of all $q_i$. The first order optimality conditions are modified to 
+\begin{align}
+\frac{\partial \mathcal L(\mu, \lambda,\xi)}{\partial q_i} \stackrel !=0 \iff \ell_i - \mu  - n \lambda (n q_i -1) + \xi_i  \stackrel != 0 \iff q_i^*  = \frac{\ell_i - \mu + \xi_i} {n^2 \lambda} + \frac 1n
+\end{align}
+Plugging this back in, we can solve the dual, 
+\begin{align*}
+& \frac{d \mathcal L (\mu,\lambda,\xi)}{d\mu} \stackrel !=0 \iff 
+\sum_i q_i^* = \sum_i \left[ \frac{\ell_i - \mu+ \xi_i} {n^2 \lambda} + \frac 1n \right] \stackrel !=1 \iff \mu =
+\frac 1n \sum_i (\ell_i + \xi_i) = \bar \ell_\xi\\
+& \frac{d \mathcal L (\mu,\lambda,\xi)}{d\lambda} \stackrel !=0 \iff 
+\frac 12 \sum_i (nq_i^*-1)^2 = \frac 1{2n\lambda^2} \frac 1n \sum_i \left( \ell_i -\mu + \xi_i\right)^2 \stackrel !=\delta
+\iff \lambda = \frac {s_\xi}{\sqrt{2 \delta n}}\\
+& \frac{d [  L (\mu,\lambda,\xi) - \zeta_i \xi_i] }{d\xi_i} \stackrel !=0 \iff 
+\frac{\ell_i - \mu + \xi_i} {n^2 \lambda} + \frac 1n \stackrel != \zeta_i \geq 0
+\iff \xi_i = \max\{ \mu - \ell_i - n \lambda, 0\}
+\end{align*}
+Inserting the solutions for $\mu$ and $\lambda$, we get 
+\begin{align}
+\xi_i = \max\left\{ \bar\ell_\xi - \ell_i -  \sqrt{\frac{n}{2 \delta}} s_\xi, 0\right\}
+\end{align}
+This is not an explicit formula as $\bar \ell_\xi$ depends on all $\xi$, which interact through  $\mu$. 
+However one can see that the effect of the additional Lagrange multipliers $\xi_i$ is that they effectively increase the loss $\ell_i \mapsto \ell_i + \xi_i$.  Sample mean and variance are then computed with regard to this modified loss. 
+\end{proof}
+\end{proposition}
+
+\paragraph{Estimating Probabilities}
+
+Let us now go back to the problem of estimating a probability mass function. Assume that we have observed relative frequencies $\hat p_i$, some of which may be zero. What divergence should we use? The $\chi^2$ divergence would have $\hat p_i$ occurring in the denominator, which would make it highly unstable for sampling noise. Let us, therefore, consider the Kullback-Leibler divergence ball,
+\begin{align}
+\mathcal Q_\delta := \left\{ q \in \mathcal S_n: -\sum_i \hat p_i \log \frac{q_i}{\hat p_i} \le \delta \right\}
+\end{align}
+Note that the KL-divergence enourages moving probability mass to outcomes $x_i$ with $\hat p_i =0$ as there is only an indirect penalty that comes from assigning the mass $M = \sum_{i: \hat p_i=0} q_i$ to unobserved outcomes by inreasing the loss for the observed ones.  We thus propose to use the surrogate loss
+\begin{align}
+\ell (\mathcal Q,p) = \sup_{q \in \mathcal Q} \ell(q.p), \quad \ell(q,p) = \sum_i q_i \ell_i(p), \quad \text{typcailly} \quad \ell_i(p) = -\log p_i
+\end{align}
+This leads to the Lagrangian 
+\begin{align}
+\mathcal L(q, \lambda, \mu) = \sum_i q_i \ell_i + \mu \left( 1- \sum_i q_i \right) + \lambda \left( \delta + \sum_i \hat p_i \log \frac{q_i}{\hat p_i} \right)
+\end{align}
+with first order optimality conditions 
+\begin{align}
+\frac{\partial \mathcal L}{\partial q_i}  = \ell_i - \mu + \lambda \frac{\hat p_i}{q_i} \stackrel !=0
+\iff q_i^* = \frac{\lambda \hat p_i}{\mu - \ell_i}  
+\end{align}
+where can read-off that $\mu > \max_{i} \ell_i$ to ensure non-negativity as $\lambda \ge 0$. 
+It is clear that $\lambda$ appears as a normalization constant, which can be made explicit by 
+\begin{align}
+ \frac{d \mathcal L}{d \mu} \stackrel !=0  & \iff \sum_{i} \left( \frac{\lambda }{\mu - \ell_i} \right) \hat p_i \stackrel != 1 
+\iff \frac{1}{\lambda} = \sum_i \frac{\hat p_i}{\mu - \ell_i}
+\end{align}
+Qualitatively, $q_i$ is larger for larger $\hat p_i$ (coming from the KL-divergence term) as will as for larger losses (coming from the expected loss). If all the losses are the same $\ell_i = const.$ we simply get $q = \hat p$ as expected (where there is one-dimensional subspace of possible values for $(\mu,\lambda)$). Moreover
+\begin{align}
+\frac{d \mathcal L}{d \lambda} \stackrel !=0 & \iff \sum_{i} \hat p_i \log \left( \frac{\mu - \ell_i}{\lambda}\right) \ \stackrel != \delta
+\iff \log \frac{1}{\lambda}= \delta - \sum_i \hat p_i \log (\mu - \ell_i )
+\end{align}
+Equating both expressions for $-\log \lambda$, one gets
+\begin{align}
+\delta  = \log  \sum_i \hat p_i \frac{1}{\mu - \ell_i} - \sum_i \hat p_i \log \frac{1}{\mu - \ell_i} \ge 0
+\end{align}
+So $\mu$ has to be chosen in a way that the difference induced by Jensen's inequality is equal to $\delta$. If one defines $r_i = 1/(\mu - \ell_i) \ge 0$, then one can also write this intuitively as
+\begin{align}
+\text{arithmetic mean} \quad  \sum_i \hat p_i r_i  = e^\delta  \prod_i r_i^{\hat p_i}  \quad \text{geometric mean}
+\end{align}
+where $e^\delta \ge 1$ is the multiplier that captures the ratio of arithmetic over geometric mean of the quantities $r_i=\mu - \ell_i$, e.g.~for log-loss $\mu + \log p_i$.
+
+For $\delta \to 0$, we have to achieve $r_i = const.$, which requires to take $\mu \to \infty$, anhilating differences between the losses. We then get $q_i^* = \hat p_i$ as expected.  Moreover, the optimal $\mu$ as a function of $\delta$ is strictly monotonically decreasing (unless $r_i = const.$), which can be verified via 
+\begin{align}
+& \frac{d}{d\mu} \left[  \log  \sum_i \hat p_i \frac{1}{\mu - \ell_i} - \sum_i \hat p_i \log \frac{1}{\mu - \ell_i}  \right] = 
+\sum_{i} \frac{\partial [...]}{\partial r_i}  \frac{d r_i}{d\mu} , \quad
+ \frac{d r_i}{d\mu} = - \frac{1}{(\mu - \ell_i)^2} = -r_i^2 \\
+& \frac{d}{d\mu} \left[ ... \right] = - \frac{\sum_i  \hat p_i r_i^2}{\sum_i \hat p_i r_i} + \sum_i \hat p_i r_i = 
+\frac{(\sum_i \hat p_i r_i)^2 - \sum_i \hat p_i r_i^2}{\sum_i \hat p_i r_i} < 0 \,.
+\end{align}
+We can thus determine $\mu$ through a simple line search. 
+
+\newpage
+
+\paragraph{Simple Case: $n=2$} Let us look at the simple Bernoulli case $n=2$, where we only have one degree of freedom. We first consider the extreme case of $\hat p=1$. The slope of the expected loss is constant as it depends linearly on $q$
+\begin{align}
+\frac{\partial}{\partial q} \left[ - q \log p - (1-q) \log (1-p) \right] = \log \frac{1-p}{p} =: \rho  \in \Re\,.
+\end{align}
+\begin{itemize}
+\item If we use KL-divergence, we get
+\begin{align}
+\frac {\partial}{\partial q} \left[ -\hat p (=1) \log q - (1-\hat p) (=0) \log (1-q) \right] = - \frac 1q \in (-\infty;-1] \,.
+\end{align}
+As opposed to say a quadratic penalty, the KL-divergence starts with a finite slope of $-1$ at $q = \hat p=1$. Unless $\rho > 1$, i.e.~$(1-p)/p >e \iff p < (1+e)^{-1} \approx 0.269$, we will have $q^*= 1$, no matter how large the $\delta$-ball around $\hat p$. 
+\item If we use $\chi^2 $ distance, then we have 
+\begin{align}
+\chi^2(q, \hat p) = \frac{(q-\hat p)^2}{\hat p} + \frac{[(1-q) - (1-\hat p)]^2}{1-\hat p}
+\end{align} 
+As said before, if $\hat p=1$, then $q=\hat p$ and the slope is infinite (e.g.~we will never move probability mass to unobserved outcomes. 
+\item If we use JS,  then
+\begin{align}
+2JS(q,\hat p) = \left[ \hat p \log \frac{\hat p}{\frac{\hat p +q}2} + (1-\hat p) \log \frac{1-\hat p}{\frac{(1-\hat p) + (1- q)}{2}}\right]
++\left[ q \log \frac{q}{\frac{\hat p +q}2} + (1-q) \log \frac{1-q}{\frac{(1-\hat p) + (1- q)}{2}} \right]
+\end{align}
+which is at $\hat p=1$ 
+\begin{align}
+2JS(q,1) = \log \frac{2}{q+1} + q \log \frac {2q}{q+1} + (1-q) \log 2
+\end{align}
+And the slope is at $q=1$
+\begin{align}
+\frac{\partial JS(q,1)}{\partial q}_{\Big|q=1} = -\frac{1}{2} + \log  1 +q \frac{...}{...} - \log 2
+\end{align}
+\end{itemize}
+
+
+\newpage
+
+. As the log-barrier already ensures that $q>0$, we only need to enforce $q\le 1$ with an additional Lagrange multiplier $\nu$
+\begin{align}
+\mathcal L & = -q \log \left( \frac{p}{1-p} \right) - \log (1-p) + \lambda ( \delta +\hat p \log q + 0) + \nu (1-q)\\
+%
+\frac{\partial \mathcal L}{\partial q} &= - \log \rho +  \frac{\lambda }{q} - \nu \stackrel != 0 
+\iff
+q^* = \frac{\lambda}{\nu + \rho }, \quad \rho = \log \frac{p}{1-p}
+\end{align}
+Note that $\lambda \ge 0$ and $q \ge 0$. We have to distinguish two cases: if $\lambda>0$ (active KL constraint), then  $\nu \ge \max\{0,-\rho\}$, else if $\lambda = 0$ (inactive KL constraint), then $\nu$ arbitrary, but $q=0$.  
+ 
+
+\begin{align}
+% 
+\\
+ \frac{d \mathcal L}{d \lambda} &=  \delta +  \log \lambda - \log(\nu + \rho)  + \tilde \lambda \stackrel !=0 
+\iff \lambda = e^{-\delta- \tilde \lambda} (\nu + \rho)   \\
+q^* & = e^{-\delta}
+\end{align}
+
+\newpage
+
+Now 
+\begin{align}
+& \frac{\partial \mathcal L}{\partial q} = \log \frac{1-p}{p} + \lambda\left( \frac{\hat p}{q} - \frac{1-\hat p}{1-q}\right) \stackrel != 0 \\
+& \iff \frac{\hat p}{q} - \frac{1-\hat p}{1-q} = \frac 1 \lambda \log \frac{p}{1-p} 
+ \iff \hat p-q  = q(1-q) \frac 1 \lambda \log \frac{p}{1-p} \\
+ q = \frac 12 -\frac 1{2c} + \frac{\sqrt{}}{2c}
+\end{align}
+\begin{align}
+\frac{\lambda}{q} \stackrel != \log \frac{p}{1-p}   \iff q^* = \frac{\lambda}{\log \frac{p}{1-p}} \\
+& \frac{d \mathcal L}{d \lambda} = \delta +  \log \lambda - \log \log \frac{p}{1-p} \stackrel !=0 
+\iff \lambda = e^{-\delta} \log \frac{p}{1-p}   \\
+& q^* = e^{-\delta}
+\end{align}
+
+\newpage
+
+
+Assume some $p$ is given with $\ell_{1/2} = - \log p_{1/2}$. Then $q_{1/2} \propto \frac{\hat  p_{1/2}}{\mu(p) + \log p_{1/2}}$. 
+
+
+\newpage
+
+%
+
+\newpage
+
+
+Then note that $\frac{1-\epsilon}{\mu + \log (1-\epsilon)} \to \frac{1}{\mu}$, thus
+\begin{align}
+q_1 = \frac{\frac{1}{\mu}}{\frac{1}{\mu} + \frac{\epsilon}{\mu + \log \epsilon}} =
+\frac{1}{1 + \frac{\epsilon \mu}{\mu + \log \epsilon}} 
+\end{align}
+
+\newpage
+
+
+We consider a $\chi^2$-ball around $\hat p$,
+\begin{align}
+\mathcal Q_\delta = \{ q \in \mathcal S_n: \chi^2(q,\hat p) \le \delta\}
+\end{align}
+Let us write-down the constraint for clarity 
+\begin{align}
+\chi^2(q,\hat p) = \frac 12 \sum_i \frac{(q_i-\hat p_i)^2}{\hat p_i}
+\end{align}
+
+\bibliographystyle{acm}
+\bibliography{th}
+\end{document}
+
+
+
+\paragraph{Smoothing Finite Distributions.}
+
+What does this mean for smoothing empirical estimates over finite event sets. We will have empirical estimates $\hat p_k = n_k/N$, from counts $n_k$, $N = \sum_k n_k$, many of which may be zero. Assume we order events by increasing probability.  Typically the ordering of $a_k$ and $b_k$ is simply induced by $\hat p_k$ and the interval size will shrink with $k$ (as larger counts will lead to smaller variance/uncertainity). The robust estimator will increase the estimates $\hat p_k \to b_k$ for small counts, decrease large counts $\hat p_k \to a_k$, whereas the in-between range is kept at a constant. 
+
+
+\section{Sample Reweighting}
+
+\subsection{Simplified Analysis}
+Let us rewrite the objective 
+\begin{align}
+\sum_{i=1}^n q_i z_i = \bar z + \sum_i \left(q_i-\frac 1n\right) (z_i - \bar z), \quad \text{where} \quad \bar z = \frac 1n \sum_i z_i
+\end{align}
+Now we can switch to a new parameterization and translate $\mathcal Q$ into  $\mathcal U$,
+\begin{align}
+u_i := q_i - \frac 1n, \quad u \in \mathcal U = \left\{ u:  u \geq -\frac 1n \mathbf 1, \; \langle u, \mathbf 1 \rangle =0, \; \| u\|^2_2 \le \frac{2 \rho}{n^2} \right\}
+\end{align}
+Now this form allows to upper bound the objective via the Cauchy-Schwarz inequality 
+\begin{align}
+\langle u, z - \bar z \rangle \le \frac{s \sqrt{2 \rho}}{\sqrt n}, \quad s^2 = \frac1n \| z - \bar z\|^2_2
+\end{align}
+where equality would be obtained for a co-linear $u$, with maximal constant (w.r.t.~the norm constraint on $u$)
+\begin{align}
+u^*_i = c^* (z_i  -\bar z), \quad c^* = \frac{\sqrt{2 \rho}}{s n \sqrt n}
+\end{align}
+Clearly $u^*$ is zero mean by definition. However, it may not always be feasible with regard to the inequality constraints
+\begin{align}
+\label{eq:inequalities-u}
+\min_i u^*_i \ge - \frac 1n  \iff \frac{\sqrt{2 \rho}}{s \sqrt n} \min_i (z_i - \bar z) \ge -1
+\end{align}
+However, if one can ensure that the variance $s^2$ is large enough, then Eq.~\eqref{eq:inequalities-u} will be fulfilled. 
+
+\subsection{Theorem 1 of \cite{namkoong2017variance}}
+
+Let us look at a more general case of a random variable $Z$, which we assume to be zero mean and bounded from below by $-M$, then $Z - \bar Z = Z \geq -M$ so that we get\footnote{Appendix A of the paper requires two-sided boundedness, why? They also throw in a square, i.e.~$M^2$ instead of $M$.}
+\begin{align}
+\frac{\sqrt{2\rho}}{\sqrt{n s^2}} |Z - \bar Z| \ge - \frac{\sqrt{2\rho}}{\sqrt{n s^2}} M \stackrel !\ge -1
+\iff n s^2 \ge 2 M \rho
+\end{align}
+which can be either read as a minimal requirement on the sample size $n$ or the variance $s^2$. What if we have $s^2 < 2M \rho/ n$. Then we can possibly only achieve a strict Cauchy-Schwarz inequality\footnote{This is the same as after Eq.~(30) in the paper, only with $M$ instead of $M^2$.}
+\begin{align}
+\sqrt{\frac{2 \rho s^2 }{n}} \ge \frac{2 \rho}{n} \sqrt{M}
+\end{align}
+
+How does the $\chi^2$-distance come into play? Definition for the finite case 
+\begin{align}
+\chi^2(p||q) 
+= \tfrac12 \sum_{i} \left( \frac{p_i}{q_i}-1 \right)^2 \! q_i \;
+= \sum_{i} \frac{(p_i - q_i)^2}{2q_i}
+\end{align}
+For reference distribution $q_i = \frac 1n$, this simply reduces to 
+\begin{align}
+\chi^2 \left(p|| \tfrac 1n \mathbf 1\right) 
+= \frac{n}{2} \left\| np - \mathbf 1 \right\|^2 
+\end{align}
+
+\newpage
+
+\paragraph{Estimating Frequencies} Let us look at the discrete case and a likelihood $z_i =- \log p_i$. 
+
+From here, look again at the discrete case. No upper bound, but lower bound on loss.

@@ -1,0 +1,81 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{color,graphicx}
+\graphicspath{{./figures/}}
+
+\renewcommand{\Re}{{\mathbb R}}	
+\newcommand{\E}{{\mathbf E}}	
+\newcommand{\x}{{\mathbf x}}	
+\newcommand{\xp}{{x^+}}	
+\newcommand{\xx}{{x}}	
+\newcommand{\xm}{{x^-}}	
+\newcommand{\mI}{{\bf I}}	
+\newcommand{\mN}{{\bf 0}}	
+\newcommand{\z}{{\mathbf z}}	
+\newtheorem{lemma}{Lemma}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\title{
+	{\large Thoughts on} \\[2mm]
+	Hyperbolic Neural Networks
+}
+\author{Thomas Hofmann}
+
+\begin{document}
+
+\maketitle 
+
+\paragraph{Background.} These are notes in response to the mid-term presentation by Igor Petrovski.
+
+\paragraph{Transformations on Hyperbolic Spaces.}  What operations are we going to (have to) perform in the hyperbolic space?
+\begin{enumerate}
+\item  \cite{nickel2017poincar} only makes use of Riemannian distances, \cite{chamberlain2017neural} uses inner products
+\item It would be a first step to ask how we can perform a sum or an average. 
+\item It would be a further step to be able to compute the equivalent of a linear function or a ``simple'' function. 
+\item Finally, it would be even more to develop standard DNN elements such as layers, convolutions and memory units.
+\end{enumerate}
+
+\paragraph{Centroids.} The average of a set of vectors $\mathcal X$, $|\mathcal X|=:n$, can be defined as the solution to an extremal problem, the so-called centroid condition 
+\begin{align}
+x^* = \argmin_{x'} \sum_{x \in \mathcal X} d(x,x'), \quad \text{e.g.~$d(x,x') = \| x-x'\|^2$ then } x^* = \frac{1}{n} \sum_{x \in \mathcal X} x\,.
+\end{align}
+\begin{enumerate}
+\item In particular, in the case of $n=2$ the centroid is the mid-point on the arc-length parameterized geodesics connecting the two points. 
+\item This definition does not require a linear space structure, which $\mathbb H$ does not possess.
+\item It would be interesting to know how expensive it is to compute centroids. (... and also to prove uniqueness). Note that some learning schemes require leave-one-out calculations, which are easy to do with standard vector space addition, but which may be computationally more involved in $\mathbb H$. 
+\end{enumerate}
+
+
+\paragraph{Simple Maps on $\mathbb H$.}
+What are other simple operations? 
+\begin{enumerate}
+\item Scaling can be done by moving along the special geodesics that connects $p \in \mathbb H$ with the origin in the Poincare model. This is in analogy to a polar coordinate system, where the origin is the pole.
+\item  Another simple $\mathbb H \to \mathbb H$ set of operations are orthogonal transformations. In the disk/sphere model, we can directly apply orthogonal matrices $Q \in O(d)$ to the vector representations. (Note: again, this is obvious in polar coordinates)  
+\item Note that by the SVD representation, we can represent linear maps via orthogonal transformations (back/forth) and a diagonal linear map. It is is the latter that does not have an analogue in $\mathbb H$. 
+\item One could think about a way of defining a substitute for such a (diagonal) map, but it is unclear what guidance one would use for that (i.e.~in which ways should one mimic a linear map). For instance, one could stretch all vectors by linearly interpolating between stretch factors for the basis vectors (the diagonal elements), but would that be canonical in any way? 
+\end{enumerate}
+
+\paragraph{Deep Hyperbolic Networks}
+
+\begin{enumerate}
+\item If the goal is to device a compositional (deep) architecture for hyperbolic spaces, then the above direction is interesting and should be expanded, although this may be moving away from concrete applications and competitive results\footnote{Personally, I would be totally OK with that.}. For instance, one could try to define standard feedforward or convolutional architectures, where all representations are in hyperbolic spaces. That would be an interesting contribution with a nice story. 
+\item One could even define ``interface'' layers between standard neural network layers and would add to the ``vocabulary'' of deep learning architectures. This may make sense as we may want the word embeddings to be Euclidean (for instance, why not?). 
+\item It is very popular to use CNN-based sentence encoders \cite{kalchbrenner2014convolutional} and -- more recently -- even for sentence decoders \cite{zhang2017deconvolutional}, so this seems a relevant direction, if one wants to go beyond simple additive composition rules, where sentence embeddings are formed by additively combining word embeddings. However note that the latter have proven to be surprisingly powerful \cite{wieting2016charagram,hill2016learning,pagliardini2017unsupervised}. 
+\end{enumerate}
+
+
+\paragraph{Comments on ``Ideas'' Section}
+\begin{enumerate}
+\item Embedding sentences in $\mathbb H$ in an unsupervised manner should be the high level (at least motivating) goal.
+\item It needs to be made more clearly what type of order relation should be enforced. Is it really necessary to think about it that way? We could possibly also just optimize a predictive likelihood. This would especially true, if we could build hyperbolic-CNNs for encoding and decoding. 
+\item I am not convinced that the next word prediction is a good way to model entailment. Recursive sentence models \cite{socher2013recursive} may be more suitable in this regard. 
+\item There are two approaches we can take here. (a) Build Hyperbolic NNs and see how well they do, investigate whether they embed sentences in an interesting manner etc. This would be largely phenomenological, after one has designed a proper architecture that is efficient enough to be practically implementable. (b) Device a learning task, such as textual entailment that is more directly tied to an order relation between sentences. If we go this route, I would like to see a clear proposal of what task that would be and how to address the question of ``negative'' examples.
+\end{enumerate}
+
+\bibliographystyle{acm}
+\bibliography{th}
+
+\end{document}
+

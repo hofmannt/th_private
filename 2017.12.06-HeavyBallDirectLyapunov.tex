@@ -1,0 +1,89 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{color,graphicx}
+\graphicspath{{./figures/}}
+
+\renewcommand{\Re}{{\mathbb R}}	
+\newcommand{\E}{{\mathbf E}}	
+\newcommand{\x}{{\mathbf x}}	
+\newcommand{\xp}{{x^+}}	
+\newcommand{\xx}{{x}}	
+\newcommand{\xm}{{x^-}}	
+\newcommand{\mI}{{\bf I}}	
+\newcommand{\mN}{{\bf 0}}	
+\newcommand{\z}{{\mathbf z}}	
+\newtheorem{lemma}{Lemma}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\title{
+	{\large Notes on Optimization} \\[2mm]
+	Analyzing Heavy Ball Algorithms with \\  Lyapunov's  Direct Method
+}
+\author{Thomas Hofmann}
+
+\begin{document}
+
+\maketitle 
+
+\paragraph{Setting.} We would like to reconstruct the Lyapunov function argument of \cite{zavriev1993heavy}. The heavy-ball algorithm produces an iterate sequence $x^t$ in the gradient field of a function $f$ 
+\begin{align}
+x^{t+1} = x^t  - \alpha \nabla f(x^t) + \beta (x^t-x^{t-1})
+\end{align}
+One can augment the state space and write this as a one-step method
+\begin{align}
+(\xp, \xx) = \Phi(\xx,\xm) :=
+(\xx, \xm)
+\begin{pmatrix} (1+\beta) \mI & \mI \\  -\beta \mI & \mN  \\  \end{pmatrix} 
+  - \alpha (\nabla ,0), \quad \nabla := \nabla^\top f(x^t) 
+\end{align}
+For this process a (candidate) Lyapunov function over can be defined as 
+\begin{align}
+V(x,x^-) = f(x) + \frac \mu 2 \| x-x^-\|^2
+\end{align}
+which (by analogy) can be thought of  as a finite difference approximation of the mechanical energy  of a particle (potential + kinetic). 
+
+\paragraph{Key Lemma.} We want to understand under which conditions $V$ is indeed a Lyapunov function of the iterate sequence. 
+\begin{align}
+V(x^+,x) - V(x,x^-) = \underbrace{f(\xp) - f(\xx)}_{:=\delta V_1} +\frac\mu2 \underbrace{\left( \| \xp - \xx\|^2 - \| \xx - \xm\|^2 \right)}_{=:\delta V_2}
+\end{align}
+
+Let us first consider bounding $\delta V_1$. Very elementary, we need some condition that would guarantee that the change in the function value at consecutive iterates does not change too much. An elementary condition of this type is to assume that $\nabla f$ is $L$-Lipschitz. This then gives a quadratic upper bound
+\begin{align}
+\delta V_1 & \le  \langle \nabla, \xp-\xx \rangle + \frac L2 \| \xp - \xx \|^2, \quad \left(\text{reminder:} \; \xp - \xx = - \alpha \nabla +  \beta ( \xx - \xm) \right)\\
+& = \alpha \left( \frac{L \alpha}{2}-1 \right) \|\nabla\|^2 
++ L \beta (1-\alpha) \langle \nabla, \xx - \xm \rangle  
++ \frac{L\beta^2}{2} \| \xx - \xm\|^2
+\end{align}
+and similarly 
+\begin{align}
+\delta V_2 & =  \alpha^2 \| \nabla \|^2 - 2 \alpha \beta \langle \nabla, \xx - \xm \rangle + \left( \beta^2 -1 \right) \| \xx - \xm\|^2  +
+\end{align}
+We can now group the three types of terms together to get 
+\begin{align}
+V(x^+,x) - V(x,x^-) & \le \gamma_1 \| \nabla \|^2 + 2\gamma_2 \langle \nabla, \xx - \xm \rangle + \gamma_3 \| \xx - \xm\|^2
+\end{align}
+with
+\begin{align}
+\gamma_1 = \frac\alpha2 \left( (L+\mu) \alpha-2\right), \; 
+\gamma_2 = \frac\beta2 (1-(L+\mu)\alpha) , \; 
+\gamma_3 = \frac12 \left( (L+\mu) \beta^2-\mu\right)
+\end{align}
+The analysis can be augmented to take inaccuracies in the computation of the gradient into account and put into matrix form to yield \cite[Lemma 1]{zavriev1993heavy}\\
+
+
+Note that we cannot \textit{a priori} easily relate the gradient norm with the previous update step length. If the two directions were orthogonal, then we could require positivity of the coefficients $\gamma_1$ and $\gamma_3$. 
+\newpage
+
+Moreover the squared norm term can be expanded as follows
+\begin{align}
+\delta V_{2} & = \delta V_{1b} + \frac{\alpha^2}{2} \| \nabla'\|^2 - \alpha \beta \langle \nabla', \xx - \xm \rangle + \frac{\beta^2}{2} 
+\| \xx - \xm\|^2 
+\end{align}
+
+\bibliographystyle{acm}
+\bibliography{th}
+
+\end{document}
+

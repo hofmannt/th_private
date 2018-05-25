@@ -1,0 +1,329 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{stmaryrd}
+\usepackage{todonotes}
+\usepackage{hyperref}
+\usepackage{pgfplots}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{placeins}
+\usepackage{tikz}
+\usepackage{pgfplotstable}
+\usepackage{placeins}
+\usepackage{changepage}
+\usepackage{appendix}
+\usepackage{changepage}
+
+\usepackage[textheight=592pt, textwidth=330pt]{geometry}
+
+
+\usepackage{bm}
+\usetikzlibrary{positioning,arrows,shapes.geometric,calc, matrix}
+%\usetikzlibrary{arrows,chains,matrix,positioning,scopes}
+
+\usepgfplotslibrary{statistics}
+
+\definecolor{rosso}{RGB}{220,57,18}
+\definecolor{giallo}{RGB}{255,153,0}
+\definecolor{blu}{RGB}{102,140,217}
+\definecolor{verde}{RGB}{16,150,24}
+\definecolor{viola}{RGB}{153,0,153}
+\definecolor{babyblue}{RGB}{0,129,255}
+\definecolor{darkgreen}{RGB}{6,148,60}
+
+\newcommand\argmax[1]{\underset{#1}{\operatorname{{argmax}}}}
+\newcommand\bfeta{{\pmb\eta}}
+
+\newcommand\Perp{\operatorname{\mathrm{Perp}}}
+\newcommand\BLEU{\operatorname{\mathrm{BLEU}}}
+\newcommand\softmax[1]{\underset{#1}{\operatorname{{softmax}}}}
+\newcommand\enc{\operatorname{enc}_\theta}
+\newcommand\ngramset{\operatorname{Ngram}}
+\newcommand\score{\operatorname{score}}
+
+\newcommand\ngram{$n$-gram}
+\newcommand\h{\mathbf h}
+\newcommand\x{\mathbf x}
+\newcommand\z{\mathbf z}
+\newcommand\A{\mathbf A}
+\newcommand{\normal}{{\mathcal N}}
+
+\newcommand\ts{{1\dots t}}
+\newcommand\Ts{{1\dots T}}
+
+\newcommand\bftheta{{\bm\theta}}
+\newcommand\E{\mathbb E}
+\newcommand\onetot{1\dots t}
+\newcommand\onetoT{1\dots T}
+\newcommand\ks{{(k)}}
+
+\newcommand\ijs{{\langle i\dots j\rangle}}
+\newcommand{\rpm}{\raisebox{.2ex}{$\scriptstyle\pm$}}
+
+\newcommand\name{\text{name}}
+\newcommand\noname{\text{noname}}
+
+\newcommand\DKL[2]{D^\text{KL}\!\left(#1||#2\right)}
+
+\def\changemargin#1#2{\list{}{\rightmargin#2\leftmargin#1}\item[]}
+\let\endchangemargin=\endlist 
+
+\title{VAE for Sequence Models}
+\author{Thomas Hofmann \& Florian Schmidt}
+
+
+
+\begin{document}
+\maketitle
+
+
+\section{Motivation}
+
+Recent successes in deep learning have led to powerful new generative models for sequential data \cite{graves2013generating}. There exist two main paradigms: The first is based on state space models, where temporal dependencies between observations are mediated through a (Markovian) chain of continuous latent variables. 
+\begin{align}
+p(x_{1:T}, z_{1:T}) = \prod_{t=1}^T p(x_t |z_t) p(z_t | z_{t-1}), \quad p(x_{1:T}) = \int p(x_{1:T}, z_{1:T}) dz_{1:T}\,.
+\label{eq:state-space}
+\end{align}
+The best known example of such a model is the Kalman filter \cite{kalman1961new}  (a.k.a.~hidden Gaussian model \cite{roweis1999unifying}), where 
+\begin{align}
+z_{t+1}|z_t \sim A z_t + B u_t + \normal(\mathbf  0, \mathbf \Gamma), \quad 
+x_t | z_t \sim C z_t + \normal(\mathbf 0, \mathbf \Sigma)
+\end{align}
+and $(u_t)$ is some control input sequence. By integrating out $(z_t)$ this defines a conditional model $p(x_{1:T}|u_{1:T}, z_0)$.  State space models possess proper probabilitic semantics and can be trained (albeit often not efficiently) with standard inference methods, provided that local models are simple  (e.g.~exponential families). 
+
+The second paradigm makes use of deep learning models, in particular recurrent networks, often incorporating powerful memorization units such as LSTMs \cite{hochreiter1997long} or GRUs \cite{chung2014empirical}. As RNNs are deterministic mechanisms, the simplest approach to turn them into a generative model is to generate outputs stochastically at every step, i.e.~$x_t \sim p(h_t)$. 
+
+\newpage
+
+
+
+to drive them via a random initialization. A distribution over random initializations (a.k.a.~codes) then induces a distribution over sequences. Injecting randomness at the beginning is often insufficient to capture long-term variability of data sequences.
+
+\newpage
+
+Thus, a common approach suggested by \cite{graves2013generating} is to generate outputs step-by-step stochastically
+
+
+, and to feed the generated data back as inputs
+\begin{align}
+h_{t} = F(h_{t-1},u_{t}), \quad  x_t  \sim p(h_t), \quad u_{t+1} = x_t  \,. 
+\end{align}
+The same approach has also been used in the design of enocder networks in decoder-encoder architectures such as \cite{sutskever2014sequence}. This feedback mechanism has two effects: it introduces stochasticity variability into the evolution of the 
+
+
+
+\newpage
+
+of \cite{mackay1995bayesian} and drives the deterministic mechanism with one or more sources of randomess, an approach that has become extremely popular in the context of generative adverserial networks \cite{goodfellow2014generative}. In the context of sequential models, one 
+
+application to generation of music \cite{eck2002first,boulanger2012modeling}
+
+\newpage
+
+For instance, in the popular encoder-decoder models 
+
+RNNs limit stochasticity to the choice of the initial $z_0$ and -- possibly -- to the final step of generating observables.
+
+
+ In the context of natural language processing, the typical observation model is a softmax with word embeddings. 
+
+
+
+\newpage
+
+Posterior inference is not needed as one relies  on  backpropagation or -- in some cases -- reinforcement learning. 
+
+Signficiant challenges remain, for instance, with regard to feeding-back groundtruth outputs during learning (a.k.a.~teacher forcing) and, generally, with regard to capturing data variability. 
+
+Following prior work, in particular \cite{chung2015recurrent} and  \cite{fraccaro2016sequential}, we investigate models that aim at combining state space models and recurrent DNNs in a way that keeps the best of both worlds or at least allows for a more explicit control of the trade-offs between modeling power and computational efficiency. 
+
+\section{Generative Models}
+
+In designing generative models with more stochasticity, we first isolate the deterministic skeleton or backbone of a model. In a recurrent network, this is basically a parameterized state transition function
+\begin{align}
+F_\theta: \Re^n \to \Re^n, \quad \text{which maps} \quad h_t \mapsto h_{t+1}=F_\theta(h_t)
+\end{align}
+homogenously at each time step. Here, we would like to re-use the powerful DL mechanisms that are in successful use today. 
+
+Conceptually, one viable approach is to complement this deterministic sequence by a stochastic one, e.g.~a chain $z_t \in \Re^m$ as was suggested in \cite{fraccaro2016sequential}. This approach does not allow for stochasticity to leak from $z_t$  into $h_t$ and thus the dependency structure reflects missing back-arcs from the  $z_t$ to the $h_t$ sequence. For clarity, we can identify the deterministic part of the chain evolution with a state evolution function
+\begin{align}
+G_\vartheta: \Re^n \times \Re^m \to \Re^m, \quad (h_{t+1}, z_t) \mapsto \bar z_{t+1}\,. 
+\end{align}
+The stochastic part adds in i.i.d.~random variables, e.g.~Gaussian randomness $\eta_t \sim \mathcal N(0, \Sigma(h_{t+1},z_t))$ so that then determinstically $z_{t+1} = \bar z_{t+1} + \eta_{t+1}$. While this generative model of \cite{fraccaro2016sequential} keeps the  determinisitic state sequence, this raises the question of how much is really gained by the complementary sequence $z_t$. Effectively, the $z_t$ sequence is a lossy version of $h_t$ (though with its own memory mechanism) and thus the benfit of using $z_t$ jointly with $h_t$ in generating $x_t \sim p(x_t| h_t, z_t)$ is questionable. However, on the other hand the $z_t$ sequence can capture consistent variability over multiple time steps as it can propagate information along the chain $z_t$. This model does not address challenges in generating and back-feeding observations. 
+
+Our main goal is to design a model that can generate sequences without having to rely on training with teacher forcing. To that extend we also introduce a sequence $z_t$, but enforce that $z_t$ is sufficient to generate $x_t$, i.e.~$x_t \sim p(x_t| z_t)$, dropping the dependency on $h_t$. So we have a simple chain $h_t \to z_t \to x_t$ with a potential information bottleneck at $z_t$. The idea is that independent randomness of $x_t$ can be captured by a $p(x_t | z_t)$, whereas variability extending over time is modeled by $z_t$ and the global structure (determinsitically driven from some initial condition) is encoded in $h_t$. There are several variants possible: (1) the seperated chain structure of \cite{fraccaro2016sequential}, which keeps $h_t$ purely determinstic and (2) a mixed dependency structure, where $z_t$ feed back into both, $h_{t+1}$ and $z_{t+1}$ as well as a model (3) where all information is fed back through $h_{t+1}$, the corresponding factorizations are 
+\begin{align}
+\text{(1)} \quad & p(h_{t+1}, z_{t+1} | h_t, z_t) = p(h_{t+1} | h_t) \cdot p(z_{t+1}| h_{t+1}, z_t) \\
+\text{(2)} \quad & p(h_{t+1}, z_{t+1} | h_t, z_t) = p(h_{t+1} | h_t, z_t) \cdot p(z_{t+1}| h_{t+1}, z_t)\\
+\text{(3)} \quad & p(h_{t+1}, z_{t+1} | h_t, z_t) = p(h_{t+1} | h_t, z_t) \cdot p(z_{t+1}| h_{t+1})
+\end{align}
+Model (1) has the advantage that we can systematically re-use the evolved chain $h_t$ in the approximate inference mechanism. This has been exploited in both  \cite{chung2015recurrent} and  \cite{fraccaro2016sequential} and is a non-trivial benefit. Models (2) and (3) contaminate the RNN state sequence with randomness, so that the latter becomes a random variable chain. 
+
+\section{Inference Models}
+
+\subsection{Expectation Maximization and ELBOW}
+
+\bibliographystyle{acm}
+\bibliography{thall}
+\end{document} 
+
+\newpage
+\section{Varational Inference for RNNs}
+
+\subsection{Expectation Maximization}
+
+Joint model $p_\theta(x,z)$ with observed $x$ and latent $z$ parameterized by $\theta$. MLE:
+\begin{align}
+\theta^* \stackrel \arg \to \max \mathcal L(\theta) = \sum_{i} \ell_i(\theta), \quad \ell_i(\theta) = \int \log p_\theta(x_i,z) dz, \quad \text{i.i.d.}
+\end{align}
+Integration of latent variables intractable $\Longrightarrow$ use Jensen's inequality\footnote{Generally, I do not like to use differential entropy, because it has undesirable properties.}
+\begin{align}
+\ell_i(\theta) & 
+% = \int \frac{q_i(z)}{q_i(z)} \log p_\theta(x_i,z) dz 
+\ge \int q_i(z) \left[ \log p_\theta(x_i,z) -  \log q_i(z) \right] dz
+\\
+\label{eq:elbow-single}
+&  = \E_{q_i}\left[ \log p_\theta(x_i,z) -  \log q_i(z) \right]
+ =  D(q_i | p_\theta(\cdot|x_i)) + \log p_\theta(x_i)
+\end{align}
+Optimal choice $q_i^* = p_\theta(\cdot|x_i)$ (posterior) at which point $D(\cdot|\cdot)=0$ and the lower bound becomes exact. This can be combined into an evidence lower bound (ELBOW) 
+\begin{align}
+\mathcal L(\theta) \ge \mathcal E(\theta,q) := \sum_{i} \E_{q_i}\left[ \log p_\theta(x_i,z) -  \log q_i(z) \right]
+\label{eq:elbow}
+\end{align}
+EM algorithm: 
+\begin{align}
+\theta \mapsfrom \arg\max \mathcal E(\theta,q) \quad \stackrel{\text{alternate}}\longleftrightarrow \quad q \mapsfrom \arg\max \mathcal E(\theta,q)
+\end{align}
+
+\subsection{Variational Autoencoder}
+
+Basic idea, model variational distributions by a model, i.e.~$q_i = q_\phi(\cdot; \x_i)$. One can now maximize the ELBOW $\mathcal E(\theta,\phi)$ with regard to both $\theta$ and $\phi$ (variational EM). There are no longer free variables per training point as all $q_i$ are coupled. One additional advantage is that the cost of estimating $q_i=q_\phi(\cdot; x_i)$ is amortized. 
+
+Usually one parameterizes the (generative) model in a way that (1) allows for efficient forward (or ancestral) sampling, (2) seperates out the stochastic variables from the deterministic mechanism, and (3) appropriately restricts the injection of randomness so to be able to perform stochastic backprogagation. 
+
+To address (1) one typically writes $p_\theta(x,z) = p_\theta(z) p_\theta(x|z)$ as one often implements $p_\theta(x|z)$ as a deterministic function with a complex function approximator (e.g.~a DNN). All randomness in such a model is captured in $z$. Note that this is neither an additional assumption, nor a restriction.\footnote{One can always introduce auxiliary noise variables to capture the stochastic part in the mapping $z \to x$ and then add these to $z$. Effectively this means $z$ gets augmented, but as it is an abstract latent variable anyway, it does not change the general form.} The generative model now consists of the mapping $z \mapsto \x$ as well as a prior distribution $p_{\theta}(z)$. It is common (as a convenience, but in no way necessary) to chose $p_\theta(z) = p_0(z)$ as a fixed prior model, e.g.~one may assume that $z$ is distributed according to an  isotropic normal distribution with fixed variance. 
+%
+For illustartive purposes, one can insert this special form $p_\theta(x,z) = p_0(z) p_\theta(x|z)$ into Eq.~\eqref{eq:elbow} to get
+\begin{align}
+\ell(\phi,\theta) & = \int q_\phi(z|x) \left[ \log p_0(z) + \log p_\theta(x|z) - \log q_\phi(z|x) \right] dz \\
+& = D(q, p_0) +  \E_{q}\left[ \log p_\theta(x|z) \right], \quad q = q_\phi(\cdot|x)
+\end{align}
+
+To address (2) one can possibly partition the latent variables $z$ and (intelligently) inject noise into the generative process, for instance, by $z=(\xi_1,\dots,\xi_l, \dots,\xi_L)$, where $\xi_l$ denotes the noise introduced in the $l$-th layer of a generative, deep mechanism \cite{rezende2014stochastic}. In the case of sequence data, one can partition $z$ over time steps. 
+
+Finally, (3) can often be guaranteed by limiting the interaction of independent noise variables and latent representations to be of a simple additive form. Moreover, one typically restricts the noise distribution to a simple class, e.g.~multivariate Gaussian random variables (see e.g.~[Eqs.~(1)-(4)]\cite{rezende2014stochastic}). 
+
+
+\subsection{Recurrent Network as HMM} 
+
+Let us now focus on a model, where we have an HMM dependency structure. Our model can be written:
+\begin{align}
+p_\theta(z) = p_\theta(z_1) \prod_{t=2}^T p_\theta(z_t|z_{t-1}), \quad p(x|z) = \prod_t p_\theta(x_t|z_t)\,.
+\end{align}
+% For instance, a simple generative model may chose  $z_t | z_{t-1} \sim \mathcal N(z_{t-1}, \sigma^2 I)$, where $z_0 =0$ for some given $\sigma$. Given $z$ the data generation factorizes in a time-homogeneous manner. 
+%
+In RNNs, we assume that there is some mechanism that deterministically generates the next state. Partition $z_t = (y_t, \eta_t)$ into a RNN state sequence $y_t \in \mathcal Y$ and an auxiliary noise sequence $\eta_t \in \Xi$, then deterministically 
+\begin{align}
+F: \mathcal Y \times \Xi \to \mathcal Y\,, \quad \text{e.g.} \quad y_{t+1} = \bar F(y_t) + H \eta_t, \quad \eta_t \sim \text{i.i.d}
+\end{align}
+The parameters of the generative process now partition into three parts $\theta = (\theta_\eta, \theta_y, \theta_x)$, where $\theta_\eta$ models the noise distribution (including the matrix $H$ in the additive case), $\theta_y$ parametrizes the next state distribution $F$ or $\bar F$ (e.g.~parameters of an LSTM), and $\theta_{x}$ models the observation model $x_t|z_t$. 
+
+In sequence decoding models (e.g.~seq2seq), we would like to feed the generated inputs back and the next state function has the  signature 
+\begin{align}
+F: \mathcal Y   \times  \Xi \times \mathcal X \to \mathcal Y, \quad \text{e.g.} \quad y_{t+1} = \bar F(y_t,x_t) + H \eta_t
+\end{align}
+The noise distribution may be fixed as before  (e.g.~isotropic normal, linearly transformed via $H$) and $\theta_x$ may parameterize a softmax via word embeddings, while $\theta_y$ represents all other weights of the LSTM. 
+
+In order to be able to train the generator with stochastic backpropagation, we assume a simple additive normal noise structure with covariance matrix as in \cite{rezende2014stochastic}.  We can then sample instantiation of $\eta$ from the variational distribution $q$ and stochastically backpropagate through that link (cf.~\cite[Figure 1]{rezende2014stochastic}).
+
+\subsection{Variational Inference for RNNs} 
+
+It is clear, what needs to be done conceptually. The auxiliary noise sequence $\eta_t$ need to be modeled by a variational network, so that -- conditioned on a sample of $\eta$ -- the generative process becomes determinstic and can be trained via backpropagation. Let us -- for simplicity -- focus on the case, where we just model the means of the latent random variables as estimates of the co-variance structure can easily be added later. 
+
+It is customary to mirror the architecture of the generative model in the variational model. So assume that we condition on the sequence $x_1,\dots,x_T$ (we assume that the word embeddings are fixed or shared for simplicity) then we can define an RNN with a $\phi$-parametrized next state function 
+\begin{align}
+G: \mathcal Y  \times \mathcal X \to \mathcal Y 
+\end{align}
+The dimensionality of the states $y_t$ may (in principle) be different from what is used in the generative model. Given $y_t$, we predict a distribution of the noise vector. i.e.~we have some mechanism (say an MLP) that maps
+\begin{align}
+g_\psi: \mathcal Y \to \mathcal P(\Xi)
+\end{align}
+e.g.~by mapping to a mean and covariance output of a normal. 
+
+
+\section{Related Work}
+
+\paragraph{A recurrent latent variable model for sequential data \cite{chung2015recurrent}}
+\begin{itemize}
+\item Introduces a variational RNN model to answer the question: How do we encode observed variability via latent random variables?
+\item Observation sequence $x_t$, recurrent state sequence $h_t$, latent variable sequence $z_t$
+\item State evolution equation of generative model
+\begin{align}
+h_{t+1} = G(h_t; x_{t}, z_{t}), \quad E[x_t] = g_x(z_t,h_{t}), \quad E[z_t] = g_z(h_t)
+\label{eq:dynamics}
+\end{align}
+All distributions are normal with diagonal (co-)variance structure.\footnote{They make a big fuzz about feature functions and such. However, the dependency structure is just described by Eq.~\eqref{eq:dynamics}. Terrible write-up.}
+\item Inference model 
+\begin{align}
+E[z_t] = f_z(x_t,h_t)
+\end{align}
+However, they reuse (!) the generative mechanism to compute $h_{1:T}$. This leads to a complex computational graph described in  \cite[Figure 1]{chung2015recurrent}.
+\end{itemize}
+
+\newpage
+
+
+\paragraph{Discussion of Related Work}  
+The argumentation in \cite{bowman2015generating}
+
+
+\newpage
+ 
+
+
+
+
+As $\eta_t$ are iid in the generative model, the variational model can also parametrize each $\eta_t$ independently, for instance by a multivariate normal that may depend (mean and possibly variance/co-variance structure) on inputs $x_t$ as well as the recurrent states $y_t, y_{t+1}$. So intuitively, $q^\eta$ will estimate the posterior of $\eta_t$, given its Markov blanket (say). The problem is, of course, that the $y_t$ sequence is itself not observed. In order to break the dependencies, one can instead approximate $q^\eta$ by  using $x_t$ and $x_{t+1}$ as inputs.
+
+
+\newpage
+
+\section{Variational Inference}
+As described i.e.\ in \url{https://www.cs.princeton.edu/courses/archive/fall11/cos597C/lectures/variational-inference-i.pdf}
+\paragraph{Goal} Find an approximation $q(\z|\x$) to the true, intractable posterior  $p(\z|\x)$ under a maximum likelihood framework.
+\paragraph{Example} Mean field. Find $\theta$ parametrizing $q(\z|\x)=\prod p_\theta(\z_i)$ .
+\paragraph{Approach}
+\begin{align}
+	\mathcal L=\log p(\x)&=\log\int_\z p(\x,\z)d\z\\
+	&=\log\int_\z \frac{q(\z)}{q(\z)}p(\x,\z)d\z\\
+	&\geq\E_{q(\z)}[-\log q(\z) + \log p(\x,\z)]\qquad\qquad\text{(Jensen's)}\\
+	&=H[q(\z)] + \E_{q(\z)}[\log p(\x,\z)]
+\end{align}
+At this point we are usually happy -- the log acts on the joint instead of the marginal likelihood and the model factorizes. optimization becomes traceable. To highlight that we are looking for the best $q$ approximating the true posterior, we continue further by expanding the second term
+\begin{align}
+	H[q(\z)] + \E_{q(\z)}[\log p(\x,\z)]&=H[q(\z)] + \E_{q(\z)}[\log p(\z|\x)] + \E_{q(\z)}[\log p(\x)]\notag\\
+	&=-\DKL{q(\z)}{p(\z|\x)} + p(\x)
+\end{align}
+For \emph{finding the best $\theta$} the the last term is a constant so we see that we are actually minimizing a KL-divergence
+\section{Variational Autoencoder}
+\`a la Rezende et al.
+\paragraph{Goal}Find a posterior $q_\theta(\z|\x)$ \emph{and} a generative model $p_\phi(\x|\z)$ in a joint maximimum likelihood framework.
+\paragraph{Approach}
+The first three steps are identical to VI until we assume an uninformative prior $p_0$ over the latent space
+\begin{align}
+\mathcal L=\log p(\x)&=\log\int_\z p(\x,\z)d\z\\
+	&=\log\int_\z \frac{q(\z|\x)}{q(\z|\x)}p(\x,\z)d\z\\
+	&\geq\E_{q(\z|\x)}[-\log q(\z|\x) + \log p(\x,\z)]\qquad\qquad\quad\text{(Jensen's)}\\
+	&=\E_{q(\z|\x)}[-\log q(\z|\x) + \log p(\z) + \log p(\x|\z)]\\
+	&=\E_{q(\z|\x)}[-\log q(\z|\x) + \log p_0(\z) + \log p(\x|\z)]\ \text{(assump.)}\\
+	&=\E_{q(\z|\x)}[\log p(\x|\z)] - \DKL{q(\z|\x)}{p_0(\z)}\\	
+\end{align}
+\section{Difference}
+To me, the differences are a) in the goals (finding $q$ and $p$ vs.\ only finding $q$) and in the fact that VAE assumes a prior $p_0(\z)$ which VI does not (need to).
+\section{My RNN approach}
+I guess one first needs to decide on what regime I am in. To me, it looks like I want to learn a posterior (over $\z$ and $\h$) \emph{and} a generative model (also over $\z$ and $\h$). That is why I decided to stick to the VAE setup with its prior\dots 
+\end{document}

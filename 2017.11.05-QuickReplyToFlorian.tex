@@ -1,0 +1,70 @@
+\documentclass{article}
+\usepackage{subcaption}
+\usepackage{braket}
+\usepackage{amsfonts,amsmath}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{graphicx}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\z}{{\mathbf z}}
+
+\author{Thomas Hofmann}
+\title{Thoughts on Write-up Dated Nov 1, 2017}
+\begin{document}
+\maketitle
+
+\paragraph{Forward-Backward Splitting.} Let us look at a simple hidden Markov chain with factorization 
+\begin{align}
+p(\x, \z) = p(\z) p(\x|\z), \quad p(\z) = \prod_{t=1}^T p(z_{t}|z_{t-1}), \quad p(\x|\z) = \prod_{t=1}^T p(x_t|z_t)
+\end{align}
+Posterior inference from Bayes rule
+\begin{align}
+p(\z|\x) = \frac{ p(\z) p(\x|\z)}{p(\x)}
+\end{align}
+Often we are content to compute marginal posterior probabilities for each $z_t$. Then the forward-backward inference algorithm can be used, which works by splitting (follows from Bayes' rule)
+\begin{align}
+\label{eq:fwbw}
+p(z_t | \x) \propto 
+\underbrace{p(x_{t+1:T} | z_t)}_{\text{forward}} \cdot 
+\underbrace{p(z_t | x_{1:t})}_{\text{backward}}
+\end{align}
+
+\textit{
+Discussion:
+\begin{itemize}
+\item I don't underatand the factorization in your write-up. It seems wrong to me.
+\item there also seem to be inaccuracies: eq.~(1) should be conditioned on the observations?
+\item eq.~(2): there should be a dependency on observations up to $t-1$. Are these absorbed somewhere? Why, how? 
+Why should this equality hold? Very confusing...
+\end{itemize}
+}
+
+\paragraph{Chain with Internal Structure.}
+Now, we have a situation, where we split $z_t = (h_t, s_t)$ and modify the internal (!) dependency structure in the latent chain by an additional conditional independence assumption:
+\begin{align}
+p(z_{t+1} | z_t) = p(h_{t+1}| h_t, s_t) \cdot p(s_{t+1} | h_{t+1})
+\end{align}
+This, however, has no effect on the global structure of inference. If we want to work in a factorial model (which seems the only one feasible), then  one could still exploit the forward-backward splitting idea. \\
+
+\textit{Discussion:
+\begin{itemize}
+\item I think that we should first figure out how VAE should work for the more general class of models. Then the internal transition structure could be ``patched" on top of this.
+\end{itemize}
+}
+
+
+\paragraph{Inference Network Structure: the Future.} In VAE, it is crucial to construct a suitable inference model. In doing so, one needs to pay attention to the generative model in order to provide the ``right'' learning signal. As the generative model proceeds naturally in a left-to-right manner (from past to future), there is no information about  the future encoded in $z_t$, when we run in forward mode. Hence, the inference network needs for sure (!) to bring information about $x_{t+1:T}$ back to time step $t$.  We would thus expect that a dependency $q(z_t ; \x_{t+1,T}, \dots)$ is crucial. A typical way to capture this information would be through an RNN.\\
+
+\textit{
+Discussion:
+\begin{itemize}
+\item Looking at Eq.~\eqref{eq:fwbw}, one would actually hope that one could multiplicatively combine two functions. This may not be advisable in case of approximations, but it still something that could potentially be exploited.
+\item What does the RNN encoding that you describe actually mean? Shouldn't this be identical to the $z_t$ computed via the inference model? More details, please. 
+\end{itemize}
+}
+
+\paragraph{Inference Network Structure: the Past.}  The second question is then how to encode the dependencies on the past. For sure, we do not want to directly encode information from $x_t$ into $z_t$ as this would defy the purpose of learning. The generative model, once it produces $z_t$ needs to have captured all the necessary information in $x_{1:t-1}$ to predict $x_t$. The inference model cannot and should not relief it of learning this!\footnote{Can such arguments be made more rigorous?}  
+
+Then, in order to understand how to define a suitable target to train the generative model through the ELBOW objective, the inference network should take into account, what the generative model has already generated up to a certain point in time, rather then looking again at the past data $x_{1:t-1}$ already generated. It is most natural to condition  $z_{t-1}$. Thus resulting in a model $q(z_t | \text{enc}(x_{t+1:T}), z_{t-1})$.  Note that the specific  internal structure of the chain transitions yields $h_t$ from $z_{t-1}$ deterministically ($q$ is not needed for this). So it seems plausible to use $q(z_t | \text{enc}(x_{t+1:T}), h_{t})$ as the inference model.
+
+\end{document}

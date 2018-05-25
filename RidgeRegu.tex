@@ -1,0 +1,107 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts}
+\title{Adaptive Regularization in Ridge Regression}
+\author{Thomas Hofmann}
+
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\X}{{\mathbf X}}
+\newcommand{\Z}{{\mathbf Z}}
+\newcommand{\Cov}{{\mathbf \Sigma}}
+\newcommand{\Covxx}{{\Cov_{xx}}}
+\newcommand{\Covxy}{{\mathbf s_{xy}}}
+\newcommand{\Covyy}{{s_{yy}}}
+\newcommand{\Y}{{Y}}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\I}{{\mathbf I}}
+\newcommand{\w}{{\mathbf w}}
+\renewcommand{\v}{{\mathbf v}}
+\newcommand{\s}{{\mathbf \Sigma_{XY}}}
+\newcommand{\y}{{\mathbf y}}
+\newcommand{\mU}{{\mathbf U}}
+\newcommand{\mL}{{\mathbf \Lambda}}
+\newcommand{\mV}{{\mathbf V}}
+\newcommand{\mSigma}{{\mathbf \Sigma}}
+\newcommand{\mS}{{\mathbf S}}
+\newcommand{\cP}{{\mathcal P}}
+\newcommand{\diag}[1]{{\text{diag}\left(#1\right)}}
+\renewcommand{\vec}[1]{{\mathbf #1}}
+\newcommand{\E}{\mathbf E}
+\begin{document}
+
+
+\maketitle
+
+Assume data are  generated i.i.d.~from an unkown distribution $(\X,\Y) \sim \cP$, where $\X \in \Re^d$, $\Y \in \Re$ and $\E\X = \mathbf 0$, $\E\Y =0$. Define the variance-covariance matrix and the relevant sub-matrices
+\begin{align}
+\Cov = 
+\begin{bmatrix} \Covxx & \Covxy \\[1mm] \Covxy^\top & \Covyy \end{bmatrix} =:
+\E\left[ (\X, \Y) (\X, \Y)^\top \right]
+\end{align}
+Ridge regression aims at minimizing the regularized least squares criterion 
+\begin{align}
+\w^*_\mu \stackrel{\min}{\longrightarrow}  \E \left[ (\Y - \w^\top \X)^2 \right] + \frac \mu 2 \| \w\|^2
+\end{align}
+the solution of which is explicitly given as 
+\begin{align}
+\w^*_\mu = \left( \Covxx + \mu  \I \right)^{-1} \Covxy \,.
+\end{align}
+This can be explicated by diagonalizing $\Covxx = \mU \mL \mU^\top$ so that 
+\begin{align}
+\left( \Covxx + \mu \I \right)^{-1} = \left( \mU (\mL + \mu \I ) \mU^\top \right)^{-1} = \mU^\top \diag{\frac{1}{\lambda_i + \mu}} \mU
+\end{align}
+We are interested in the norm function $r(\mu) = \| \w_\mu^*\|$.  
+\begin{align}
+\| \w_\mu^* \| = \left\| \diag{\frac{1}{\lambda_i + \mu}} \mU \Covxy \right\|
+\end{align}
+Define $\lambda_{\min} := \min\{  \lambda_i: \lambda_i >0\}$, then 
+\begin{align}
+\| \w_\mu^* \| \le \frac{\| \Covxy \|}{\lambda_{\min} + \mu} 
+\label{eq:simple-bound}
+\end{align}
+Note that this bound is very conservative as it assumes the input-output co-variance may be high for directions of small input variations. For instance, if we add a random feature with variance $\sigma^2 \to 0$ to the input, which is uncorrelated with the output, then the bound Eq.~\eqref{eq:simple-bound} can become arbitrarily bad. 
+
+\newpage
+
+
+What can we conclude from that  is that the trivial bound $r(\mu) \le \frac{C}{\mu} \in \mathbf O(1/\mu)$ is too pessimistic in the regime $\mu < \lambda_{\min}$. Since $\lambda_{\min}$ is a characteristics of the data generating mechanism, and $r(0) \le \frac{C}{\lambda_{\min}} \in \mathbf O(1)$.
+
+
+\newpage
+
+
+%\underline{Proof}
+%\begin{align}
+%& \min \rightarrow \E \left[ \frac12 \Covyy^2 + \frac 12 \w^\top (\Covxx + \lambda \I) \w - \Covxy \w \right] \\
+%\iff\;\; & (\Covxx + \lambda I ) \w = \Covxy
+%\end{align}
+
+
+\newpage
+
+
+\noindent Data matrix $\X \in \Re^{d \times n}$, targets $\y \in \Re^n$, data is assumed to be centered. \\
+Ridge regression, explicit solution 
+\begin{align}
+\w = \frac 1n \left( \frac 1n \X \X^\top + \lambda  \I \right)^{-1} \X \y
+\end{align}
+SVD of $\X = \mU \mSigma \mV^\top$, sample covariance $\mS = \frac 1n \X \X^\top  = \mU \mSigma^2 \mU^\top \in \Re^{d \times d}$.\\ Solution  
+\begin{align}
+\w = \mU \cdot \text{diag}\left( \frac{\sigma_j^2}{\sigma_j^2 + \lambda} \right) \hat \y, \;\; \hat \y := \mV^\top \y, \quad 
+\end{align}
+We get for the norm: 
+\begin{align}
+\| \w\|^2 = \sum_{j=1}^d \left[ \frac{\sigma_j^2}{\sigma_j^2 + \lambda} \, \hat y_j \right]^2
+\end{align}
+Note that for $\lambda=0$, we simply get the least squares solution with $\|\w\| = \| \mU\hat \y\| = \| \hat \y\|$.
+\newpage
+
+\begin{align}
+\frac{d\| \cdot \|^2}{d\mu} = 
+\end{align}
+%reconstruction and minimal loss
+%\begin{align}
+%\hat \y = \mU \diag\left( \frac{\sigma_j^2}{\sigma_j^2 + \mu} \right) \mU^\top \y,\quad
+%\| \hat \y - \y\|^2 = 
+%\end{align}
+
+\end{document}

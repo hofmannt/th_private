@@ -1,0 +1,266 @@
+\documentclass{article}
+\usepackage{subcaption}
+\usepackage{braket}
+\usepackage{amsfonts,amsmath}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{graphicx}
+
+\title{Hyberbolic Order Embeddings}
+\author{Octavian, Gary, Thomas \\[2mm] Department of Computer Science, ETH Zurich}
+
+\newcommand{\mat}[1]{{\mathbf #1}}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\hyperspace}{{\mathcal X}}
+\newcommand{\z}{{\mathbf z}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand*{\QEDB}{\hfill\ensuremath{\square}}%
+
+\begin{document}
+\maketitle
+
+We want to define the equivalent of an affine Euclidean cone in a hyperbolic space. A linear cone is characterized via the closure property for rays
+\begin{align}
+V \subseteq \Re^n \text{ is a cone}  \quad \iff \quad  (v \in V \Longrightarrow \alpha v \in V, \; \forall \alpha >0)
+\end{align}
+Then $V_x$ is an affine cone at $x$, if $V_x -x$ is a cone. The same definition can be used in the hyperbolic case by replacing the notion of a Euclidean line by a hyperbolic line. \\
+
+Let us study this concretely in the Poincar\'e half space model\footnote{Equivalently this can be done for the Poincar\'e disk, of course.} $\mathbb H$  by fixing a point $z$ such that $\text{Re}(z)=0.$\footnote{w.l.o.g.~because of isotropy.}  The lines through $z$ consist of the imaginary axis as well as (Euclidean) circular arcs that intersect the real axis perpendicularly. We can represent such a hyperbolic line either by its angle $\theta$ relative to the imaginary axis or by the intercept $r$ with the real line. We are specifically interested in cones that contain $\{ti: t>0\}$. Such cones are then described by $\theta_1 \geq 0 \geq \theta_2$\footnote{Or, equivalently, by $r_1 \geq 0 \geq r_2$.} and can be defined via
+\begin{align}
+\frak S(\theta_1,\theta_2;z) = \bigcup_{\theta \in [\theta_1; \theta_2]} L(\theta,z), \quad L(\theta,z) = \text{line ... }
+\end{align}
+These are cones as any $p \in \frak S$ is on a line $L(\theta,z)$ and none of these lines intersects with $L(\theta_1,z)$ or $L(\theta_z,z)$ as $\theta \in [\theta_1; \theta_2]$.\footnote{By virtue of geodesics being unique.}\\
+
+We want to use cones to model transitiv relations, in particular partial order relations.  Restrict attention to symmetric cones $\theta_1 = \theta$ and $\theta_2 = -\theta$. We would like to find a (monotonically increasing) function $\phi: [0; z] \to \Re_{\geq 0}$ such that for any $z' = is + r$, $\frak S(\phi(s), -\phi(s); z') \subseteq \frak S(\theta, -\theta; z)$.\footnote{And $\phi$ is not majorized by any other function with the same property.} This would guarantee that we can define a family of cones (depending only on the imaginary part of the point in question) that fulfills transitivity. It is clear that it is sufficient to consider points $z'$ on the boundary of the cone $\partial \frak S$. Clearly, then (the respective branch of) the boundary of the cone at $z$ needs also to be part of the boundary of the cone at $z'$ (if the latter cone is maximal). So we simply need to compute the angle of the tangent of the circle at $z'$ with the imaginary axis. Clearly that angle gets smaller as $s$ decreases and it approaches $0$ as $s \to 0$. What remains to do: derive an explicit formula either in the halfspace or the disk model. 
+
+
+\end{document}
+
+\newpage
+
+
+ Note that this indeed describes cones as any line with $\theta \in [\theta_2;\theta_1]$ is contained in the cone. 
+
+
+
+Assume w.l.o.g.~(symmetry) that $\theta > 0$ and look at the cone described  
+
+\newpage
+
+
+Let us work in the Poincar\'e half space model $\mathbb H$ of hyperbolic $1$-space. 
+
+
+ The boundary surface of a hyperbolic cone at $z$ is then described by two hyperbolic line elements, which start at $z$. In the model of $\mathbb H$, lines are half circles with center on $\Re$ as well as lines perpendicular to $\Re$. For simplicity, let us assume $\text{Re}(z)=0$, then $z = ri$ and each cone at $z$ can be described by $\beta_, \beta_+ \in \Re$, $\beta_- \le \beta_+$. We are particularly interested in symmetric cones for which $\beta_+ = \beta$, $\beta_- = - \beta$, $\beta \ge 0$. 
+
+\newpage
+
+
+centered at some point $z \in \mathbb H$. Specifically, we are intersted in cones that do not contain $\infty$ and that are symmetric around the line $\{z + ir: r \in \Re\}$. Cones in Euclidean spaces are built from lines and rays. 
+
+\newpage
+
+
+Basics:
+
+Models of the hyperbolic planes: 
+\begin{itemize}
+\item Half-plane model: points and angles; lines: circles centered on real line + lines perpendicular to the real line 
+\item What things are different: no unique parallel line (Th 1.4);
+\item Stereographic projection: bijection between $\mathbb S^1-\{i\}$ and $\Re$; Riemannian sphere (one-point compactification). Generalizes straight lines: line + $\infty$ = circle; equation describing circle (p.14); homeomorphisms 
+\item Unique hyperbolic line: Prop.~1.13
+\item Homemorphisms that preserve circles, example complex linear functions (Prop.~2.1), example: $1/z$ (Prop.~2.2); more general: M\"obius transform Def.~2.3; matrix representation (p.43)
+\item Derivation of hyperbolic length through invariance under M\"obius transforms; $1/Im(z)$ Def.~3.12
+\item Theorem 3.16 relates this back to metric and geodesics; formulas for length: pp.101
+\item Poincare disk: Th.~4.1: length; circles are just the euclidean ones (with different radii and centers). 
+\end{itemize}
+
+\end{document}
+
+\section*{Problem of Interest}
+We are interested in the entailment problem, i.e. the task of predicting if two concepts $u$ and $v$ satisfy the \texttt{Is-Subconcept} antisymmetric relation. Applications include word hypernym prediction, image caption retrieval, natural language inference, or link prediction in networks. See \cite{vendrov2015order}, \cite{nickel2017poincar}. \\
+
+We want to use representation learning and, more specifically, leverage the power of hyperbolic geometry to learn embeddings that exhibit entailment properties.
+
+\section*{Poincar\'e Disk Model}
+
+We follow \cite{nickel2017poincar} and use the Poincar\'e disk model of the hyperbolic space, i.e.~$\frak B^d := \{ x \in \Re^d: \| x\| <1\}$. The Riemannian metric tensor of the resulting manifold is the product of the Euclidean metric $g_*$ and a simple isotropic scalar field, i.e.
+\begin{align}
+g_x = \left( \frac{2}{1-\|x\|^2} \right)^2 g_*
+\end{align}
+which induces a distance function that can be calculated to be 
+\begin{align}
+d(x,y) = \cosh^{-1}\left(1+ 2 \frac{\| x-y\|^2}{(1-\|x\|^2) \cdot (1-\|y\|^2)} \right) \,.
+\end{align}
+Obviously, the Euclidean distances get stretched without bound as one approaches the border $\partial \frak B^d$ of $\frak B^d$, which is the unit sphere. 
+
+As a special case let us compute the distances for points $x,x'$ with norm $r=\|x\|$ and $r'=\|x'\|$ that are on the same spoke, assuming $0 < r' \le r < 1$. Then 
+\begin{align}
+d(x,x') = \ln \left( \frac{1+r}{1-r} \cdot \frac{1-r'}{1+r'} \right) = 2 \left( \tanh^{-1}(r) - \tanh^{-1}(r') \right)
+\end{align}
+
+
+\section*{Order Embeddings and Entailment Cones}
+
+Entailment between concepts (e.g. words) defines a partial ordering relation. We would like to represent it geometrically, in the concept embedding space. The natural option is to represent the "entailment region" corresponding to a point $x$ as a hypercone $\frak S_x$ that is symmetric around the spoke passing through $x$. 
+
+We can use any construction of a cone to define a canonical (i.e.~isotropic, symmetric) partial order on $\frak B^d$ as follows
+\begin{align}
+x \succeq y \quad \iff y \in \frak S_x
+\end{align}
+
+\subsection*{Example: Euclidean Order Embeddings}
+The single known example used in machine learning literature is the Euclidean order embedding of \cite{vendrov2015order} which we denote as $\frak S^{OE}_x$. Formally, $\frak S^{OE}_x = \{ y \in \Re^d | y_i \geq x_i, \forall i = \overline{1,d} \}$, for any $x \in \Re^d$ in the Euclidean space.
+
+\subsection*{Cones' Desired Properties}
+What are the most important properties that the definition of an {\bf entailment cone} $\frak S_x$ should satisfy in order to be able to use them for embedding an arbitrary number of arbitrary depth trees with arbitrary branching factor? We intuitively and formally describe them below, highlighting their names in bold:
+
+\begin{itemize}
+\item {\bf Partial order} properties:
+  \begin{itemize}
+  \item reflexivity: $x \in \frak S_x$ 
+  \item antisymmetric: if $x \in \frak S_y$ and $y \in \frak S_x$, then $x = y$
+  \item transitivity: $y \in \frak S_x$ and $z \in \frak S_y$ should imply $z \in \frak S_x$. This is equivalent with: if $y \in \frak S_x$, then $\frak S_y \subset \frak S_x$
+  \end{itemize}
+\item {\bf Vector norm encodes generality}: similar to  \cite{nickel2017poincar,vendrov2015order}, we would like that the distance to origin encodes generality, which implies that if $y \in \frak S_x - \{x\}$, then $\|y\| > \|x\|$.
+\item {\bf Non collapsing cones}: if we want to embed b-ary trees of arbitrary depths in the same space, then we need to make sure that there is "enough volume" in any $\frak S_x$, for every $x$. A necessary and sufficient condition (assuming cones are unbounded) is that the "opening" of any cone $\frak S_x$ is constant. Formally, this translates to the following: for any $x$ and any $\epsilon > 0$, we define the notion of \textit{$\epsilon$-opening volume of cone $\frak S_x$} as the volume of $\frak S_x \cap \frak B(0, d(0,x) + \epsilon)$. Now, the non-collapsing property can be formally expressed as : for any fixed $\epsilon > 0$, the \textit{$\epsilon$-opening volume of cone $\frak S_x$} is constant $\forall x$.
+\item {\bf Non heavy cone intersections}: Embedding a tree inside a cone requires that only the region disjoint from cones of other trees can be used, e.g. the subtree embeddings of all words denoting "cars" cannot have any intersection with the cone of "animals". Thus, we need to make sure that this "disjoint" region has enough capacity. For example, the $\frak S^{OE}_x$ cones run rapidly out of capacity due to heavy intersections: out of any $d + 1$ such cones in $\Re^d$, there exist at least one cone whose disjoint region is bounded in all dimensions (from Dirichlet principle). {\color{red} We can be more formal here.}
+\item {\bf Capacity improves exponentially when adding embedding dimensions}: $\frak S^{OE}_x$ are oriented in the same unique direction, i.e. positive direction in each coordinate. Thus, adding more space dimensions results only in a linear capacity improvement. A model where trees can be expanded in more than one direction would benefit exponentially from higher space dimensions. {\color{red} We can be more formal here in defining the notion of "capacity".}
+\item When embedding a b-ary tree\footnote{regular tree with branching factor b}, {\bf each node should be closer to all its descendants than to its siblings}. E.g. "cat" and "dog" are siblings in the animal tree (both being children of "mammal"), but "dog" should be closer in the embedding space to any type of dog, like "poodle" or "chihuahua", than to "cat". This problem is related to the space structure and we want to formally articulate why the hyperbolic space is better suited than the Euclidean space for embedding trees. Since the number of nodes in a b-ary tree with L levels is $O(b^L)$, \cite{nickel2017poincar} and \cite{krioukov2010hyperbolic} informally argue that trees need an exponential amount of space for branching, and only the hyperbolic spaces are suited for embedding trees because they expands exponentially, while Euclidean spaces expand polynomially. To see this, \cite{nickel2017poincar} remind that circles centered in the origin have lengths, areas and volumes that grow only polynomial with regard to the radix $r$ in Euclidean space, but exponential in the hyperbolic space\footnote{In 2 dimensions, Euclidean circle of radius $r$ has length $O(r)$ and area $O(r^2)$, whereas the hyperbolic circle has both length and area $O(e^r)$.}. We would like to formalize this using the above argument of similarity higher for descendants than for siblings. On a different line of work, \cite{krioukov2010hyperbolic} argue that heterogeneous degree distributions and strong clustering appear as natural reflections of the basic properties of underlying hyperbolic geometry. They prove that if $N$ points are uniformly distributed in the Poincar\'e disk, then the density of points at radial coordinate $r$ is exponential $\rho(r) \propto e^r$. Furthermore, if one connects a pair of nodes by a link iff the hyperbolic distance between them is at most 1, then the average degree in this graph of nodes located at distance $r$ from the origin is $\bar{k}(r) \propto \frac{4}{\pi}Ne^{-r/2}$. {\color{red} We can be more formal here.}
+\end{itemize}
+
+
+\section*{Angular Cones}
+
+We now propose a definition of cones, which we call \textbf{angular cones}. They are defined similarly in Euclidean ($\frak S^{AE}_x$) and hyperbolic ($\frak S^{AH}_x$) spaces. The name comes from the fact that they are symmetric around the spoke passing through $x$, and their "opening" is given by an angle $\alpha(x)$ that we define below.\\
+
+Before introducing them formally, we highlight in Table~\ref{tab:properties} the above properties for each type of cone, showing why $\frak S^{AH}_x$ is preferred over the others:
+
+\begin{table}
+\centering
+\begin{tabular}{ l || l || l || l }
+  Property & $\frak S^{OE}_x$ & $\frak S^{AE}_x$ & $\frak S^{AH}_x$ \\
+  \hline			
+  \hline			
+  Partial order (including transitivity) & \checkmark & \checkmark & \checkmark \\
+  \hline			
+  Vector norm encodes generality/specificity & \checkmark (L1 norm) & \checkmark & \checkmark \\
+  \hline			
+  Non collapsing cones (ct opening volume) & \checkmark & & \checkmark \\
+  \hline			
+  Non heavy cone intersections & & \checkmark & \checkmark \\
+  \hline			
+  \begin{tabular}{@{}c@{}}Capacity improves exponentially \\ when adding embedding dimensions\end{tabular} & & \checkmark & \checkmark \\
+  \hline			
+  \begin{tabular}{@{}c@{}}Each node should be closer to \\ all its descendants than to its siblings\end{tabular} & & & \checkmark \\
+\end{tabular}
+\caption{Properties of different types of cones in Euclidean and hyperbolic spaces.}
+\label{tab:properties}
+\end{table}
+
+
+\subsection*{Angular Cones - Derivation and Definition}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.7\textwidth]{angular_def}
+  \caption{Angular cones can be defined by imposing the transitivity constraint for points on the cone border.}
+  \label{fig:ang_def}
+\end{figure}
+
+Angular cones are defined as symmetric regions of angle $\alpha(x)$ around the spoke through $x$. We now define the function $\alpha(x)$, first in Euclidean space, and then in hyperbolic space. The first required property is that of transitivity of the partial order which should be satisfied for all points in $\frak S_x$, and especially for the ones on the border. Following figure~\ref{fig:ang_def}, we denote by $\beta(x,y) = \angle XYO$. The transitivity property holds iff $\beta(x,y) \geq \alpha(y), \forall y \in \frak S_x$. In Euclidean space we can apply the law of sines to derive:
+
+\begin{align}
+\sin(\beta) \cdot OY = \sin(\alpha(x)) \cdot OX
+\end{align}
+
+Thus, we have the constraint
+
+\begin{align}
+\sin(\alpha(y)) \leq \sin(\alpha(x)) \cdot \frac{d_E(0,x)}{d_E(0,y)} , \quad \forall y \in \frak S_x
+\end{align}
+
+where $d_E(x,y)$ is the Euclidean distance. We see that we need to restrict the set of points around the origin that can have such a cone. Otherwise, if $d_E(0,x)$ is allowed to be arbitrarily small, then $\sin(\alpha(y))$ needs to be set to 0 for any point $y$\footnote{Assuming that we decided that $\alpha(x)$ should only depend on $d_E(0,x)$ and not on the angular coordinate of $x$.}. Thus, if we choose a fixed $K \in \Re^*_+$, then the following definition of the Euclidean angle will satisfy the above constraint and the transitivity property:
+
+\begin{align}
+\sin(\alpha^{AE}(x)) = \frac{K}{d_E(0,x)} , \quad \forall x \in \Re^d \quad  s.t. \quad  d_E(0,x) \geq K
+\end{align}
+
+In hyperbolic case, we apply the same idea, but using the hyperbolic law of sines. This gives:
+
+\begin{align}
+\sin(\alpha^{AH}(x)) = \frac{K}{\sinh(d_H(0,x))} , \quad \forall x \in \frak B^d \quad  s.t. \quad \sinh(d_H(0,x)) \geq K
+\end{align}
+
+where $d_H(x,y)$ is the hyperbolic distance. The last condition corresponds to the following constraint on the Euclidian norm of $x$:
+
+\begin{align}
+\sinh(d_H(0,x)) \geq K \quad \iff d_E(0,x) \geq \frac{\sqrt{K^2 + 1} - 1}{K}
+\end{align}
+
+ Examples of hyperbolic angular cones corresponding to points $x$ located at different radii from the origin are shown in Figure~\ref{fig:hyp_angular}. We also show an example of how transitivity is satisfied for points on the border of the hypercones. 
+
+\begin{figure}[h]
+\centering
+\begin{subfigure}{.5\textwidth}
+  \hspace{-0.5cm}
+  \includegraphics[width=1\linewidth, height=1\linewidth]{angular_cones}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+  \hspace{-1cm}
+%  \centering
+  \includegraphics[width=1.3\linewidth]{angular_cones_transitivity}
+\end{subfigure}
+\caption{Hyperbolic angular cones for K=0.2. Left: examples of cones for points of radii from 0.1 to 0.9. Right: transitivity for various points on the border of their parent cones.}
+\label{fig:hyp_angular}
+\end{figure}
+
+In the hyperbolic space, we can now formally write the definition of the cone $\frak S^{AH}_x$ by making use of the hyperbolic cosine law (derivation skipped, it is based on the condition $\angle YXO \geq \pi - \alpha_H(x)$):
+
+\begin{align}
+\hspace{-1cm}
+\frak S^{AH}_x = \Set{ y \in \frak B^d | \frac{\cosh(\|y\|_H) - \cosh(\|x\|_H) \cosh(d_H(x,y))}{\sinh(\|x\|_H) \cdot \sinh(d_H(x,y))} \geq  \cos\left(\arcsin\left(\frac{K}{\sinh(\|x\|_H)}\right)\right) }
+\label{eq:hyp_ang_def}
+\end{align}
+\vspace{0.3cm}
+
+where $\|x\|_H := d_H(0,x)$ and $\frak S^{AH}_x$ is defined only for $x$ with $\sinh(\|x\|_H) \geq K$. \\
+
+For the Euclidean case we have:
+\begin{align}
+\frak S^{AE}_x = \Set{ y \in \frak B^d | \frac{\|y\|_E^2 - \|x\|_E^2 - d_E(x,y)^2}{2 \|x\|_E \cdot d_E(x,y)} \geq  \cos\left(\arcsin\left(\frac{K}{\|x\|_E}\right)\right) }
+\label{eq:euc_ang_def}
+\end{align}
+where $\|x\|_E := d_E(0,x)$ and $\frak S^{AE}_x$ is defined only for $x$ with $\|x\|_E \geq K$. \\
+
+
+\subsection*{Angular Cones - Properties}
+We now prove the properties mentioned in Table~\ref{tab:properties}.\\
+
+{\bf 1. Vector norm encodes generality}:
+\begin{itemize}
+\item Euclidean case: $y \in \frak S^{AE}_x $ implies $\|y\|_E^2 - \|x\|_E^2 - d_E(x,y)^2 \geq 0 $ which obviously implies $\|y\|_E \geq \|x\|_E$. \QEDB
+\item Hyperbolic case: $y \in \frak S^{AH}_x $ implies $\cosh(\|y\|_H) \geq \cosh(\|x\|_H) \cosh(d_H(x,y))$. Because $\cosh(\cdot) \geq 1$, we derive that $\cosh(\|y\|_H) \geq \cosh(\|x\|_H)$ which implies both $\|y\|_H \geq \|x\|_H$ and $\|y\|_E \geq \|x\|_E$. \QEDB
+\end{itemize}
+
+{\bf 2. Non collapsing cones}. We analyse it in 2 dimensions only. 
+\begin{itemize}
+\item Euclidean case: does not hold because the $\epsilon$-opening area of cone $\frak S^{AE}_x$ goes to 0 as $\|x\|_E \rightarrow \infty$. No formal proof yet, but checked with Wolframalpha. See \href{https://www.wolframalpha.com/input/?i=plot+(sqrt(+(x%5E2+*+cos(arcsin(1%2Fx))%5E2+%2B+1+%2B+2+*+x))+-+x+*++cos(arcsin(1%2Fx)))%5E2+*+arcsin(1%2Fx)}{this link}.
+\item Hyperbolic case: TODO(derivation seems quite complicated at first sight)
+\end{itemize}
+
+{\color{red} The rest of properties: TODO once we formalize them}
+
+\subsection*{Geodesics}
+
+Is there a way to define cones that are closed under geodesics between pairs of points? Basically, in the disk model, we can chose at any point two symmetric circle segments. One half cone then is given by a circular arc that starts at $x$ and crosses the unit circle/sphere at a point $z$. It is required that the tangent of the arc at $z$ is a line passing through the origin (orthogonality). We can parameterize such cones by their ``angle'', measured in the tangent space at $x$ relative to the spoke. 
+
+Can we get a similar condition $\alpha(r)$, i.e.~how fast do we need to decrease the angles to guarantee transitivity? 
+
+
+
+
+\bibliographystyle{acm}
+\bibliography{th}
+
+\end{document}

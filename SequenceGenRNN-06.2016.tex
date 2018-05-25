@@ -1,0 +1,131 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{mathtools}
+\usepackage[margin=3cm]{geometry}
+\usepackage{marginnote}
+\usepackage{stmaryrd}
+\usepackage{color}
+\usepackage{xcolor}% http://ctan.org/pkg/xcolor
+
+%%% COLORS
+\definecolor{Blue}{rgb}{0.3,0.3,0.9}
+\definecolor{Orange}{rgb}{0.8,0.4,0.1}
+\definecolor{Red}{rgb}{0.9,0.1,0.1}
+\newcommand{\up}[1]{_{#1}}
+\newcommand{\textblue}[1]{{\color{Blue} #1}}
+\newcommand{\textbblue}[1]{{\bf\color{Blue} #1}}
+\newcommand{\textred}[1]{{\color{Red} #1}}
+\newcommand{\textbred}[1]{{\bf\color{Red} #1}}
+\DeclareMathOperator*{\argmin}{\arg\min}
+\DeclareMathOperator*{\argmax}{\arg\max}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{define}[theorem]{Definition}
+
+%%%
+\newcommand{\pro}[2]{{\left\langle #1, #2 \right\rangle}}
+\newcommand{\simplex}{{\mathcal P}}
+\newcommand{\E}{{\mathbf E}}
+\renewcommand{\P}{{\mathcal P}}
+\newcommand{\G}{{\mathcal G}}
+\newcommand{\D}{{\mathcal D}}
+\renewcommand{\L}{{\mathcal L}}
+\newcommand{\obj}{{\mathcal J}}% objective
+\newcommand{\mX}{{\mathbf X}} % matrix X
+\newcommand{\mU}{{\mathbf U}} % matrix U
+\newcommand{\mV}{{\mathbf V}} % matrix U
+\newcommand{\mZ}{{\mathbf Z}} % matrix Z
+\newcommand{\mY}{{\mathbf Y}} % matrix Z
+\newcommand{\mW}{{\mathbf W}} % matrix Z
+\newcommand{\mXi}{{\mathbf \Xi}} % matrix Z
+\newcommand{\vu}{{\mathbf u}} % vector u
+\newcommand{\vz}{{\mathbf z}} % vector z
+\newcommand{\vxi}{{\mathbf \xi}} % vector \xi
+% \newcommand{\opt}[1]{{#1}^{{\text{\tiny opt}}}}
+\newcommand{\opt}[1]{{#1}^{{\dagger}}}
+\newcommand{\pri}{{\pmb \beta}}
+\newcommand{\dua}{{\pmb \alpha}}
+\newcommand{\mI}{{\mathbf I}}
+\newcommand{\mT}{{\mathbf T}}
+\newcommand{\y}{{\mathbf y}}
+\newcommand{\trace}{{\text{Tr}}}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\z}{{\mathbf z}}
+\newcommand{\vzeta}{{\pmb \zeta}}
+\newcommand{\adual}{{\mathbf a}}
+\newcommand{\bdual}{{\mathbf b}}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\W}{{\mathbf W}}
+\newcommand{\V}{{\mathbf V}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\bigO}{{\mathbf O}}
+% \setlength\parindent{0pt}
+
+\title{Sequence Generating RNNs}
+\author{Thomas Hofmann}
+
+\begin{document}
+
+\maketitle
+
+\section{Setting} 
+
+Recurrent neural networks (RNNs) are connectionist models that propagate activity not just in a layered feedforward manner, but also through feedback loops. RNNs are in widespread use today and in addition to simple RNNs \cite{elman1990finding}, models that use memory units such as LSTMs \cite{hochreiter1997long} or GRUs \cite{chung2015gated} are most popular. As for deep neural networks, backpropagation (through time) has found to be an effective training instrument \cite{werbos1990backpropagation}, which essentially unrolls the networks dynamics. 
+
+
+However, a number of challenges remain. Here we focus on a specific task and a concrete challenge, namely how to train RNNs that generate sequences of symbols.  We will take the following starting point: an RNN evolves a latent state sequence $\z_t \in \Re^m$ based on a sequence of inputs\footnote{For simplicity, we will drop this dependency in the sequel.}. It outputs a sequence of symbols (e.g.~words) $\sigma \up t$ based on a conditional distribution $p(\sigma | \z_t)$. The canonical way to implement such a pmf over $\Omega$ is by soft-maxing the state $\z_t$ using symbol embeddings, i.e.
+\begin{align}
+p(\sigma | \z) = \frac{\exp[ \phi_\sigma^\top \z]}{\sum_{\tau \in \Omega} \exp[ \phi_{\tau}^\top \z]}, \quad \phi_\sigma \in \Re^m, \quad \sigma \in \Omega\,.
+\end{align}
+We are particularly interested in models that stochastically sample symbols  and feed them back into the state evolution. These networks \cite{jordan1997serial} are common in sequence-to-sequence or sequence generation models \cite{sutskever2014sequence}. We therefore define the next-state function 
+\begin{align}
+f: \Re^m \times \Omega \to \Re^m, \quad \text{such that} \quad \z\up {t+1} = f(\z\up t, \sigma\up t), \quad \text{where} \quad \sigma \up t \sim p(\sigma | \z_t)\,.
+\end{align}
+While the softmax and next state functions are deterministic, the actual state evolution is stochastic due to sampling of symbols. More specifically it is atomic as $\z \up{t+1} | \z\up t$ can only take on maximally $k$ different values, given by the choice of $\sigma \up t \in \Omega$. So while we get a stochastic system, it has a very specific constrained form. 
+
+\section{Existing Work} 
+
+\subsection{Perplexity Minimization} 
+Most commonly one learns parameters of sequence generating model  via maximizing the next symbol likelihood. Here one determines the state $\z \up t$ by feeding the correct target prefix $\sigma^*_{1:t-1}$ and then uses $\log p(\sigma^* \up t | \z_t )$ as the utility  from which to derive SGD updates. This learning scheme can be justified by observing that by virtue of the chain rule of probabilty (and the Markov assumptions inherent to the RNN)
+\begin{align}
+\log p(\sigma_{1:T}) = \sum_{t=1}^T \log p(\sigma_t | \sigma_{1:t-1}) = \sum_{t=1}^T \log p(\sigma_t | \z_t \mapsfrom \sigma_{1:t-1})\,.
+\end{align}
+Thus  the log-likelihood of a model is given as a sum of log-probabilities of predicting the next observed output (e.g.~symbol) in a sequence. In the context of language models this is often equivalently referred to as perplexity minimization. Note that the injection of a target signal, results in a truncation of back-propagation through time, i.e.~the RNN is operated in a mode that does not actually produce a stochastic output.
+
+
+Perplexity minimization is simple and effective for RNN training as has been observed early on \cite{pineda1988dynamics,williams1989learning}. However, it has the main disadvantage of exposure bias \cite{ranzato2015sequence}:  under production/test condition the model has to freely generate symbol sequence, while it only has been trained on ground truth symbol sequences. 
+%
+There are at least three reasons, why  we may want to go beyond guided training. (i) If were to allow for flexibility in symbol ordering, then it is unclear whether it is always a good idea to enforce the ground truth sequence. (ii) During unguided generation, the dynamics of the latent state sequence may be quite different and hence the guided learning may not have provided enough training signal for these conditions. (iii) One may be interested in other utility functions than likelihood, e.g.~in a supervised learning context. 
+
+\subsection{Mixing Free and Guided Modes} 
+
+One popular direction that has been explored is to evolve the latent state sequence in some mixed mode by sometimes using the guided input $\sigma^*_t$ to determine $\z_{t+1}$ and other times feeding back the previously generated output $\sigma_t$. This is a  suggestion made in \cite{bengio2015scheduled}, where it is related to curriculum learning \cite{bengio2009curriculum}. The simplest mechanism is to randomize each symbol generation. As training progresses, one usually moves from a purely guided setting towards a predominantly free setting.\footnote{As explicitly stated in \cite{bengio2015scheduled}, backpropagation is truncated, even in the case of output-feedback.} A similar idea has been proposed in a control context in \cite{venkatraman2015improving}.
+
+\paragraph{Idea: Multi-step Learning} Essentially, the randomization approach leads to a situation where we run in free mode a random number of steps (geometric distribution induced by the independent biased coin flips). Instead, one could try to control this more carefully and to investigate other mixing schemes. For instance, one could train on
+\begin{align}
+\sigma^*_{1:t} = \text{guided}, \quad 
+\sigma^*_{1:t-1} :: \sigma_t = \text{one step free}, \quad 
+\sigma^*_{1:t-2} :: \sigma_{t-1}:: \sigma_t = \text{two step free}
+\end{align}
+and schedule some relative weighting of these SGD contributions. This would increase the effort as we need to keep track of three latent states, yet, it would allow for more fine-grained control on the learning objective. 
+
+\paragraph{Idea: Smart Sampling} The scheduled sampling approach of  \cite{bengio2015scheduled} always uses a single sample from the model. However, there may be decision points, where it may pay off to generate multiple outputs and to do some importance sampling. One could use geometric arguments (need to be fast to implement) to derive a sample set that promotes diversity of continuations. 
+
+\paragraph{Idea: Smart Mixing} Instead of a random or fixed scheme for mixing, one could use a geometric criterion. Evolve both with $\sigma^*_t$ and $\sigma_t$ and perform weighted updates. Then continue with $\z_{t+1}=f(\z_t, \sigma_{t})$, provided that $\| \z_{t+1} - \z_{t+1}^*\| \le \epsilon$. where $\z^*$ is a reference trajectory, for instance, determined by an end-to-end guided pass. 
+
+\subsection{Assessing Trajectories}
+
+In recent work, it has also been shown that it can help to assess the latent space sequences produced in free mode by comparing it to the ones produced in guided mode. However in \cite{lamb2016professor} this has been done using mechanisms from adverserial learning with a complex bi-directional RNN as a discriminator, leaving the question of whether there are simpler, yet more effective manners to provide trajectory-based training signals. 
+
+
+\paragraph{Idea: interpolated Latent Trajectories}
+
+As latent states are linearly projected (and normalized) to define a conditional distribution over symbols, the affine structure in state space should be ``meaningful'' (as much as word embeddings are).  Is it possible to convexly combine trajectories in latent space as opposed to mixing the way symbols are fed back? This would offer a computational advantage as one could collapse multiple states into an interpolated one. The main difference between sampling vs.~convexly combining the scores is in the partition function of the soft-max. Due to convexity of $\log \sum \exp$ one can relate the averaged partition functions to the partition function of the convex combination. However, this results in a lower (not upper) bound in the log-likelikood.
+
+\bibliographystyle{acm}
+\bibliography{th}
+
+\end{document}

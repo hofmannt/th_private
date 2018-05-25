@@ -1,0 +1,88 @@
+\documentclass{article}
+\usepackage{amsfonts,amsmath}
+\usepackage{hyperref}
+\title{Learning Invariant Representations}
+\author{Thomas Hofmann, Gary Becigneul, Yannic Kilcher\\[2mm] Department of Computer Science, ETH Zurich}
+
+\newcommand{\mat}[1]{{\mathbf #1}}
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\z}{{\mathbf z}}
+\renewcommand{\Re}{{\mathbb R}}
+
+\begin{document}
+\maketitle
+
+\subsection*{Research Program}
+
+Most people agree that modeling and learning invariances is important, maybe even the holy grail of machine learning \cite{ferenc2015holy}. However most approaches that explicitly incorporate invariances into a model architecture such as deep symmetry networks \cite{gens2014deep} or group equivariant networks \cite{cohen2016group} have not found much practical use. The same is true for the previous generation of approaches such as invariant kernels \cite{burges1999geometry}. It seems that for known invariances, generating virtual examples \cite{niyogi1998incorporating} and using other data augmentation heuristics has been the more fruitful path forward. The situation is even more grim in cases, where invariances are only partially known and need to be learned. \\
+
+We would like to understand and analyze mechanisms for successfully learning hidden invariances in data. Initially reducing our practical ambitions, we will focus on learning invariances as a goal in its own right, postponing claims that this can provide improvements for supervised or unsupervised learning tasks. In fact, we will turn the dependencies around and ask a simpler question: How can we learn invariances that are relevant for a classification task, if we had access to a perfect (i.e.~Bayes-optimal) classification oracle? Even if such a classifier would need to implicitly deal with the modes of variations induced by invariances, there can be additional value and insight from making invariances explicit. Also, understanding data transformations that do not affect semantics (as represented by the classes) is a key step in learning generative models and insights may be gained on how to bootstrap generative models from discriminative ones (e.g.~in the context of Generative Adversarial Networks \cite{goodfellow2014generative}). 
+
+
+\subsection*{Conceptual Sketch}
+
+\paragraph{Leaky Residual Layers.} Inspired by approaches such as drop-out \cite{srivastava2014dropout} and residual networks \cite{he2016deep} with random depth \cite{huang2016deep}, let us consider a deep neural network with additional leaky layers. Instead of zeroing-out units or weights at random, we inject a structured perturbative random process between (some, any) two layers as follows: There are a pre-specified number of transformation units that deterministically apply a parameterized (think `small' as in residual networks) perturbation to the activities of the down-stream layer. The up-stream layer then continues to operate on the perturbed version. A generic transformation unit is parameterized by $\mat A$ and for some $t$ applies the transformation 
+\begin{align}
+\x \mapsto (\mat I + t \mat A) \x, \quad \mat A \in \text{GL}(n,\Re), \quad t \in [-\epsilon; \epsilon] 
+\label{eq:lintrans}
+\end{align}
+% , where $\text{det}(\mat A)  \in \{\pm 1\}$. 
+Randomness is added by randomly selecting some transformations (with replacement) and by composing them in a random order. For fixed perturbative transformations, the remaining weights of the network are optimized in the same manner as they would in the perturbation-free case. \\
+
+The question is, how can we train the transformation units? Assume that the up-stream layer is the input layer. If we have access to a differentiable oracle, then we can propagate gradient information back to the parameters that define the transformation (i.e.~the matrix $\mat A$ above), respecting the (randomized) order in which the transformations have been applied. This will tell us, at what rate the Bayes error (or any other chosen classification objective) will increase (or decrease), as we apply an infinitesimal transformation $t \to 0$. In fact, we can propagate the gradient information back to all entries $a_{ij}$ of $\mat A$ or to whatever parameters $\phi$  may define $\mat A$ (in the constrained case). We will seek a trade-off between a possible decrease in classification accuracy (due to the degradation of the input via Eq.~\eqref{eq:lintrans}) and the amount of change caused by the transformation, e.g.~as measured by $\| \mat A \tilde \x\|$, where $\tilde \x$ is the (possibly already transformed) input $\x$ that $\mat A$ operates on. \\
+
+How can we generalize this when transformations are operating on intermediate representations $\z = F(\x)$(i.e.~hidden layers)? Assume for simplicity that we have applied just a single transformation. We then suggest to find a pre-image $\x^* = \x + t \, \delta \x$ such that 
+\begin{align}
+( \mat I + t \mat A) F(\x) \stackrel {t\to 0}\approx F(\x^*) \quad  \iff \quad \mat A \, \z \approx \mat J_F \, \delta\x\,.
+\end{align}
+Thus in the invertible case $\delta \x = \mat J_F^{-1} \mat A\z$, whereas in general, we may have to resort to approximate pre-image calculations. In a practical situation, we may often first train a DNN classifier in a noise-free ($t=0$) manner and then use this model as an approximate classification oracle. In this case, we do not need to perform any pre-image calculations, because we can directly back-propagate the change performed on $\z$. \\
+
+Maybe we can even jointly learn the regular network parameters with the transformations? It seems plausible that some sort of annealing, starting from small $\epsilon$ may help. 
+
+
+\paragraph{Matrix Lie Groups and Algebras.} How can we motivate the above architecture and further refine it? We now switch to a discussion of symmetry groups, restricting attention to the (special, but still very powerful) case of matrix Lie groups $G$. Matrix Lie groups come with natural matrix representations, where the group operation corresponds to matrix products. Moreover, any matrix Lie group is a closed subgroup of the set of invertible matrices. We are interested in small perturbations, which can be well approximated by the tangent space at the identity, also known as the \textit{Lie algebra} $\mathfrak{g}$. The Lie algebra $\mathfrak g$ determines $G$ uniquely up to local isomorphisms. Moreover the dimensionality of the Lie algebra matches the dimensionality of $G$ as a manifold. The form chosen in Eq.~\eqref{eq:lintrans} can be seen to be a truncated version of the exponential map, which -- as a refinement -- we may also chose to truncate at higher order terms.\footnote{So for instance, once could define $\x \mapsto (\mat I + t \mat A + \frac{t^2}{2} \mat A^2) \, \x$, if one would be willing to increase the computational burden.}
+
+\paragraph{Pooling.} 
+
+The above sampling approach of selecting transformations or factors $t$ as well as an ordering seems inefficient. Maybe there is a way to solve this more elegantly and efficiently through the use of pooling operators. We can identify the chosen transformations with $t \in [-\epsilon; \epsilon]$ as defining a neighborhood $\mat I \in G_\epsilon \subseteq G$ near the identity. Then the contraction theorem on the $p$-pooling operator guarantees that orbits contract. This means that pooled representations will become more stable for subsequent representations to learn from. This may be interesting, if we jointly train the model: as soon as we find meaningful transformations, the learning of the regular parameters can profit from it.  However, if we pool over non-meaningful groups (i.e.~ones that are not corresponding  to true invariances), then we will possible increase the loss of information. Therefore, pooling may make the learning problem of finding the correct matrix Lie groups easier. 
+
+\paragraph{Experiments.} One could do the following proof of concept. Plant a simple low-dimensional symmetry group in the data, i.e.~start with some smallish data set and chose a random (or practically motivated) symmetry group to massively augment the data. Train a classifier on the augmented training data. Now check whether the planted symmetry group can be identified. 
+
+\paragraph{Use of Existing Results}
+
+\begin{itemize}
+\item The contraction theorem can be motivated to use pooling. Does it really improve the efficiency in learning? 
+\item Is there a way to make use of the theorem to determine a good choice of neighborhood? I guess one would need to know in practice how a typical $g$ will look like? Then one could look at the upper bound on the  contraction in some sort of expectation. 
+\item The contraction experiments/visualizations are OK, but maybe we can also look at the above scenario and see whether we observe successful contraction for a planted invariance. I feel, translation invariance is super boring. This way, maybe we can lift some of the methodology used and connect it with something more interesting. 
+\end{itemize}
+
+
+\subsection*{Literature Overview} 
+\begin{itemize}
+\setlength{\itemsep}{0.3mm}
+\item Invariances as a key challenge in deep learning.\footnote{\url{http://www.inference.vc/the-holy-gr/}} 
+\item Wavelet-based scattering networks, no feature recombination, horizontal translation invariance \cite{bruna2013invariant}
+\item Translation invariance through depth in generalized scattering nets \cite{wiatowski2015mathematical}
+\item Application of Gabor scattering networks to music \cite{bammer2017invariance} and audio analysis \cite{bammer2017gabor}
+\item Improved generalization error bounds for invariant classifiers \cite{sokolic2016generalization}
+\item M-theory \cite{anselmi2016unsupervised,anselmi2013unsupervised}
+\item Tangent distance as a locally linear approximation of invariances \cite{simard1993efficient}
+\item Deep symmetry networks \cite{gens2014deep}
+\begin{itemize}
+\item main benefits: multiple symmetries at every layer, symmetries are not ``pooled-out" completely, discriminative training 
+\item archtecture 
+\begin{itemize}
+\item elements of a symmetry group are represented by matrices, thought of as points $P \in \Re^D$.
+\item features are numbered within each layer; each feature induces a feature map by the additional index $P$ 
+\item a symmetry group is discretized around the identity element ($k$ values) to result in transformations $\mathcal T$ -- this corresponds to the notion of ``small'' deformations
+\item each filter has a $k$ weight vector that represents a kernel which computes the value at $P$ based on linear combinations of vectors indexed by points $P'$ in the neighbhorhood of $P$. 
+\item the combined vectors have one entry for each feature at the previuos layer and are obtained by some additional pooling operator
+\end{itemize}
+\end{itemize}
+\end{itemize}
+
+
+\bibliographystyle{acm}
+\bibliography{invariance}
+
+\end{document}

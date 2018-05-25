@@ -1,0 +1,69 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\renewcommand{\th}{{\tilde \theta}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\E}{{\bf E}}
+\newcommand{\w}{{\bf w}}
+\newcommand{\x}{{\bf x}}
+\newcommand{\y}{{\bf y}}
+\newcommand{\z}{{\bf z}}
+\newcommand{\X}{{\bf X}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\Z}{{\bf Z}}
+\newcommand{\Xcal}{{\cal X}}
+\renewcommand{\S}{{\cal S}}
+\newcommand{\Ccal}{{\cal C}}
+\newcommand{\C}{{\bf C}}
+\newcommand{\Zcal}{{\cal Z}}
+\newcommand{\tgamma}{{\stackrel{\gamma}{\longleftarrow}}}
+\newcommand{\mycomment}[1]{}
+\newcommand{\loglike}{{\mathcal L}}
+
+\title{Learning Document Entity Priors}
+\author{Thomas Hofmann, ETH Zurich}
+
+\begin{document}
+
+\maketitle
+
+\paragraph{Motivating Problem.} 
+Consider the following problem: Given a training set of Web pages that contain links to entities (e.g.~Wikipedia). We are interested in learning a model over joint mentions of entities. However, there is a complicating factor:  entities are typically not comprehensively linked. Some entities are only linked once, although they are mentioned multiple times. Other entities may not be linked at all. We would like to have a model that takes such sources of degradation and noise in the training data into account. 
+
+\paragraph{LDA for the Fully Observed Case.}  Given are documents $d_n$ ($n=1,\dots,N$) and  entities $e_m$ ($m=1,\dots,M$). We first assume that every mention in every document is linked to its respective entity. We call this the \textit{fully observed case}. We can summarize the data into a $N \times M$ count matrix $\C= (c_{nm})$.  Then we can use a model such as LDA to learn a joint model for entity occurrences. For given Dirichlet prior with parameters $\alpha$ and with fitted multinomial topic distributions $\beta_k$ ($k=1,\dots,K$) we thus get the following distribution over a mention vector $v$ of length $L$:
+\begin{align}
+P(v=(e^1,\dots,e^L); \beta, \alpha) = \int_\theta p(\theta | \alpha) \left( \prod_{l=1}^L \sum_{k=1}^K \theta_k \beta_{k,e^l}  \right) d\theta
+\end{align}
+
+\paragraph{Pairwise Marginals from LDA.}  What pairwise probabilities does the LDA model induce? Assume that we have two mentions and that $(m_1=e_i,m_2 = e_j)$.  If we condition on the first one, then we get  
+\begin{align}
+P(v=e_j | e_i, \beta,\alpha) = 
+\int p(\theta | e_i, \alpha) \left( \sum_{k=1}^K \theta_k \beta_{kj}  \right) d\theta
+\end{align} 
+Note that due to conjugacy $p(\theta | e_i, \alpha)$ is again a Dirichlet distribution with parameters $\alpha'_k = \alpha_k + P(z_k|e_i, \alpha, \beta)$. As we only have one more observation, we can simplify 
+\begin{align}
+P(v=e_j | e_i, \beta,\alpha) = 
+\sum_{k=1}^K\beta_{kj} \int p(\theta | e_i, \alpha) \theta_k d \theta 
+ = \sum_{k=1}^K \left[ \frac{\alpha'_k}{\sum_{k'=1}^K \alpha'_{k'}}\right]  \beta_{kj} 
+\end{align} 
+
+\paragraph{Incompletely Observed  Case.} Let us now assume that counts are mapped to binary outcomes according to a parameterized noise model and that we only observe binary variables $b_{nm}$ instead of the counts $c_{nm}$. Assume that the noise model is such that $c_{nm}=0 \Rightarrow b_{nm}=0$, i.e.~the mapping is faithful in one direction. 
+
+\newpage
+
+
+
+\paragraph{Conditioning in LDA.} We are interested in observing a count of $c$ for $e$ in a document of length $L$
+\begin{align}
+p(v^{-e}| v_e=c, \beta, \alpha) = 
+\int_\theta p(\theta | v_e=c, \alpha ) \left( \prod_{l=1}^{L-c} \sum_{k=1}^K \theta_k \beta^{-e}_{km}  \right) d\theta
+\end{align}
+
+
+\maketitle 
+
+\end{document} 

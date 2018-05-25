@@ -1,0 +1,51 @@
+- Optimizing over directions. What directions are particularly simple to get? 
+- Gradient  direction: always pointing "towards" minimizer. Convexity! Expensive to compute.
+- Irrespective of dimensionality: representer theorems, minimizer in span of training data 
+- Coordinate descent: may involve many data points (depends on data sparseness)
+- Direction \x_i  given by data point. SGD: fixed step in direction of \nabla \ell_i
+- Optimal step size via line search: requires to perform batch evaluations. Too large an efford. 
+- Line search can be modeled in a dual setting: just optimize the dual with regard to \alpha_i 
+- What do we gain by optimizing the dual? Easier to guarantee progress. Easy/ier to factor out influence of a single data point. How can we think about that in terms of the primal problem formulation?
+- What quantities are factored out in dual? As often stated: gram matrix. This is the same in the primal. Lets articulate this
+
+Example: ridge regression. Minimize 
+
+\alpha_i^2 + \alpha_i y_i   + 1/2\mu \alpha X X' \alpha' + const
+
+special case: orthogonal feature vectors 
+
+1/2 \alpha_i^2 + 1/2\mu |x_i|^2 \alpha_i^2 + \alpha_i y_i + const 
+=> 
+\alpha + 1/\mu |x|^2 \alpha + y = 0 
+<=>
+alpha = - y / (1 + 1/\mu |x|^2) = - mu (y / (\mu + |x|^2))
+
+so that 
+
+\beta  = -\alpha_i/mu = y /  (\mu + |x|^2))
+
+so that 
+
+x \beta = y (|x|^2 / \mu + |x| ^2) (OK!)
+
+what depenencies are captured? 
+
+the dual separates the inputs from the outputs. 
+any interaction of the change in \alpha_i -> \beta on the predictions (labels) are not taken into account
+
+what is taken into account?
+just the effect on the regularizer! which is catured through g^* (e.g. in the case of self-dual g, simply norm)
+
+so is it the case that back in the primal, i would consider:
+update w in the direction x such that 
+
+1/2 (y- x (\beta+ax))^2 + \mu/2 | \beta+ax|^2 
+
+are minimized? 
+
+d
+--- = 0  <=> y-x (beta +ax) + mu/2 (beta +ax)
+da
+
+
+

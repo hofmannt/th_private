@@ -1,0 +1,391 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm,mathabx}
+\usepackage{color,graphicx}
+\graphicspath{{./figures/}}
+
+\renewcommand{\Re}{{\mathbb R}}	
+\newcommand{\E}{{\mathbf E}}	
+\renewcommand{\S}{{\mathcal S}}	
+\newcommand{\x}{{\mathbf x}}	
+\newcommand{\y}{{\mathbf y}}	
+\newtheorem{lemma}{Lemma}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\definecolor{Red}{rgb}{0.9,0.1,0.1}
+\newcommand{\textred}[1]{{\color{Red} #1}}
+\newcommand{\textbred}[1]{{\color{Red} \textbf #1}}
+% \newcommand{\smallint}{\begingroup\textstyle \int\endgroup}
+
+\title{
+	Word Embeddings from\\
+	Generative Adversarial Networks
+}
+\author{Thomas Hofmann}
+
+\begin{document}
+
+\maketitle 
+
+\subsection*{Model Definition}
+
+\paragraph{Skip-Gram Model} The basic idea of word embeddings is to map words $\omega \in \Omega$ ($|\Omega|=m$) into a Euclidean vector space $w \mapsto \x_\omega \in \Re^d$, such that co-occurrence probabilities can be related to the inner product of the corresponding embedding vectors. The paradigmatic skip-gram model \cite{mikolov2013distributed} uses two embeddings $\x_w$ and $\y_v$ and models the probability of $w$ to occur in the context of $v$ as a log-bilinear model
+\begin{align}
+q(w | v; \theta) = \frac{\exp[h(v,w; \theta)]}{Z_v}, \quad 
+h(v,w; \theta) = \langle \x_w, \y_v \rangle, \quad 
+Z_v = \sum_{w} \exp[h(v,w; \theta)]\,.
+\label{eq:bilinear}
+\end{align}
+where $\theta = (\x_\omega, \y_\omega)_{\omega \in \Omega}$ are the model parameters.\footnote{We will often drop the explicit depenencies on parameters for better readability.}
+
+\begin{enumerate}
+\item \textbred{A!:} One may consider an extended model with biases $h(v,w) = \langle \x_w, \y_v \rangle + \phi_w$, such that $\phi_w$ explicitly controls the marginal $p(w;\theta)$. However a $(d+1)$-dimensional embedding model includes the $d$-dimensional model with bias: This can easily be seen by setting $\y'_{v} = (\y_v^\top, 1)^\top\!$, such that effectively $\x_w'=(\x_w^\top, \phi_w)^\top$. 
+\item \textbred{A!:} While biases are not needed to increase the modeling power, they alter the embedding geometry. Assume we want to approximate a trivial independent data distribution $p(v,w)=p(v)p(w)$. In a model with biases we can set $\x_w=\y_v=\mathbf 0$ and $\phi_w = \log p(w)$. In a one-dimensional model without biases, the solution  is (up to rescaling) given by $\y_v=1$ and $\x_w = \log p(w)<0$. In a $d$-dimensional model, one can pick any line defined by a unit vector $\mathbf u$ and set $\y_v = \mathbf u$, $\x_w =  \log p(w) \mathbf u$. Note that relative to this line $\y_w$ and $\x_v$ embeddings will end up at opposite sides of the origin. This seem to explain some aspects of the strange geometry observed in \cite{mimno2017strange}.
+\item It should be clear that bilinear embedding models are non-identifiable: the symmetric model ($\x_w=\y_w$) is only unique up to orthogonal transformations, whereas the asymmetric model allows for a transformation by an invertible matrix. Formally: 
+\begin{align*}
+& \x': w \mapsto \x'_w := \mathbf A \x_w, \; \y': v \mapsto \y'_v := \mathbf A^{-1} \y_v, \;  \mathbf A \in \text{GL}(d)  
+ \Longrightarrow \; q(w| v;\theta') = q(w|v;\theta)
+	\nonumber
+\end{align*} 
+Identifiability may not be a problem as far as estimating $q$ is concerned, however, if embedding vectors are to be interpreted and utilized for down-stream tasks, then some arbitrariness is introduced as, for instance, $\langle \x_w, \x_v \rangle \neq \langle \mathbf A \x_w, \mathbf A \x_{v} \rangle$ unless $\mathbf A$ is orthogonal. 
+\item \textbred{A!}: One way to break this symmetry is to regularize the problem and to consider the limit of vanishing regularization, i.e.~for utility $\ell(\theta)$, define
+\begin{align}
+\ell^\gamma(\theta) = \ell(\theta) - \tfrac 12 \gamma \| \theta\|_2^2,\quad \text{then} \quad \theta^* = \lim_{\gamma \to 0} \arg\min_\theta \ell^\gamma(\theta) \,.
+\end{align}
+Note that $\| \theta\|_2$ can also be thought of as the Frobenius norm of the embedding matrices. The well-known analysis of early stopping, e.g.~\cite[Section 7.8]{goodfellow2016deep} suggests that gradient-based methods may effectively perform this type of regularization implicitly.\\[2mm]
+\textbf{Q?}: Can this be made more rigorous? 
+\end{enumerate}
+
+
+\subsection*{Model Fitting}
+
+\paragraph{Likelihood}
+
+A canonical objective for training latent variable models, like word embeddings, is  the (conditional) log-likelihood function, induced by an empirical distribution $p$ over $\Omega \times \Omega$
+\begin{align}
+\ell_{log}
+= \E_p\left[\log q \right]
+=  \sum_{v,w} p(v,w) \left[ h(v,w)- \log Z_v \right] = \sum_v p(v) \left( \E_p[ h \,|\,v]  - \log Z_v \right) \,.
+\end{align} 
+Note that
+\begin{align}
+\nabla \E_p[ h|v] = \E_p[\nabla h | v], \quad \nabla \log Z_v = \frac{1}{Z_v} \nabla Z_v =  \E_q[\nabla h | v]
+\end{align}
+such that  gradients can be written simply as 
+\begin{align}
+\nabla \ell_{log}& = \sum_v  p(v)\left( \E_p[ \nabla h | v] - \E_q[ \nabla h |  v] \right) 
+% = \E_p[\nabla  h] - \E_q[\nabla  h]  % =: (\E_p - \E_q)[\nabla h],
+\label{eq:mle-gradient}
+\end{align}
+The empirical expectation $\E_p$ is easy to sample from, yet the model average $\E_q$ involves the normalization constants, which - as a general rule -- one wants to avoid computing. \\
+
+\noindent To make Eq.~\eqref{eq:mle-gradient} more concrete, note that
+\begin{align}
+& \partial_{\x_w} h(v,w') =  \begin{cases} 
+	\y_v & \text{if $w=w'$}\\
+	\mathbf 0 & \text{otherwise}
+\end{cases}
+, \quad \text{and} \quad 
+\partial_{\y_v} h(v',w) = 
+	\begin{cases}
+		\x_w & \text{if $v=v'$} \\
+ 		\mathbf 0 & \text{otherwise}
+ 	\end{cases}
+\end{align} 
+and thus
+\begin{align}
+& \partial_{\x_w} \ell_{\log} = \sum_v p(v) (\E_{p}- \E_q) [\partial_{\x_w} h |v] =\sum_v p(v) (p(w|v) - q(w|v))\y_v \\
+& \partial_{\y_v} \ell_{\log} =  \sum_{v'} p(v') (\E_{p}- \E_q) [\partial_{\y_v} h |v'] = p(v) \sum_w (p(w|v) - q(w|v)) \x_w
+\end{align} 
+
+\paragraph{Importance Sampling} A direct approach of speeding up gradient computations is through Monte Carlo approximation. If sampling from the model was feasible, then
+\begin{align}
+\E_q \left[ \nabla h |  v \right]  \approx \frac 1{|\S|} \sum_{w \in \S} \nabla h(v,w), \quad \S \stackrel{iid}\sim q(w|v)
+\end{align}
+yields an unbiased estimator. Na\"ively sampling, however, requires normalization, which would nullify any computational gains. As suggested in \cite{bengio2003quick}, one can perform  importance sampling with proposal distribution $\rho$ and approximate
+\begin{align}
+\E_q\left[ \nabla h |v\right] \approx   \frac{\sum_{w \in \S}  \alpha_{vw}\; \nabla h(v,w)}{\sum_{w \in \S} \alpha_{vw}}, \quad \alpha_{vw} := \frac{\exp[h(v,w)]}{\rho(w)}, \quad \S \stackrel{iid}\sim \rho(w)\,.
+\label{eq:snis}
+\end{align}
+This is generally known as self-normalizing importance sampling \cite[Chapter 9]{owen2013monte}. The same technique has been used for approximate MLE in \cite[Eq.~(21)]{gutmann2012noise}.
+
+\begin{enumerate}
+\item The main problem with the estimator in Eq.~\eqref{eq:snis} is that it is only asymptotically unbiased. For finite samples, we will thus introduce systematic errors into the optimization (see also the discussion in \cite[Section 2.2]{bengio2003quick}).
+\item In addition, the variance for small $|S|$ may be large. However, this will only affect the speed of convergence of SGD and not its validity. 
+\item In the context of language modeling, it has been observed that with progressing training simple proposal distributions tend to diverge strongly from the model distribution \cite[Section 2.3]{mnih2012fast}.   
+\end{enumerate}
+
+\paragraph{Negative Sampling} 
+It has been suggested in \cite{mikolov2013distributed} to avoid the computation of normalization constants by casting the problem as a binary classification problem of distinguishing observed pairs $(v,w)$ from ``random" ones generated by a contrastive or negative distribution $n$. This has also been called \textit{negative sampling}. The idea is to view $h$ as a discriminant function (instead of a generative model) and to define a logistic likelihood objective
+\begin{align}
+\ell^n_{neg}= 
+\alpha \E_p[ \log \sigma(h)]  +(1-\alpha) \E_{n}[\log \sigma(-h))]\,.
+\label{eq:negative}
+\end{align}
+Here $\alpha$ is a hyperparameter that allows for unequal weighting. 
+It is straightforward to compute the gradient map (using the formula $d/dz \log \sigma(z) = \sigma(-z)$)
+\begin{align}
+\nabla \ell^n_{neg} & =  \alpha \E_p[\sigma(-h) \nabla h] - (1-\alpha) \E_{n}[\sigma(h) \nabla h]
+\label{eq:neg-grad}
+\end{align}
+which indeed does not  involve normalization constants, but just logistic functions. Both expectations are with regard to distributions one can efficiently sample from.
+
+\begin{enumerate}
+\item Negative sampling can be thought of as a poor man's version of  noise-contrastive estimation \cite{gutmann2012noise}. However, while the latter is theoretically motivated and  analyzed, $\ell_{neg}$ is more of an \textit{ad hoc} proposal.
+\item  The definition of the contrastive (or negative) distribution is a design choice. NCE theory proves that estimation efficiency is tied to $n$ being close to $p$. In \cite{mikolov2013distributed} however, these considerations do not play much of a role and the choice is $n(v,w) \propto p(v) p(w)^\beta$, $\beta \in [0;1]$, typically $\beta = \tfrac 34$. \\[2mm]
+\textbf{Q?}: Is there a significance to this choice and in particular the ``magic" $3/4$ exponent? \\[2mm]
+\textbf{Q?}: Is there a better way to define a negative distribution?  I.e.~one that leads to higher statistical efficiency? See ideas below inspired by GANs.
+\end{enumerate}
+
+\paragraph{Pointwise Mutual Information}
+
+What is the Bayes optimal discriminant function for $\ell^n_{neg}$? Applying Bayes rule yields 
+\begin{align}
+h^* = \sigma^{-1}\left(\frac{\alpha p}{\alpha p+ (1-\alpha) n}\right)
+= \log \frac{p}{n} + \log \frac{\alpha}{1-\alpha}
+\label{eq:optimal-cassifier}
+\end{align}
+where we can identify $\alpha$ as the prior class probability and $p$, $n$ as the class-conditional probabilities. 
+For the special case of $\beta=1$, $\alpha=\tfrac 12$  this is just the pointwise mutual information (cf.~\cite{levy2014neural}). Hence in this special case, $\ell_{neg}$ performs an approximate matrix factorization $\mathbf H \approx \mathbf Y \mathbf X^\top$ where $\mathbf H=(h(v,w))$ is the PMI matrix.
+
+\begin{enumerate}
+\item The PMI interpretation only holds for a specific choice of the negative distribution and a choice $\alpha=\tfrac 12$ (both of which are not commonly used in practice).  \cite{levy2014neural} also propose a modification by taking the positive part of PMI, also called PPMI.  \\[2mm]
+\textbf{Q?}: What would the advantage of PPMI be? Can this be justified by resorting to the effect of sampling noise? (Note that whenever $\#(v,w)=0$, the PMI will be negative, but these are exactly the pairs that suffer most from data spareness. So PPMI seems to discount these sampling noise.)\\[2mm]
+\textbred{Q?}: It would be valuable to have a theory of robust inference along the lines of \cite{namkoong2016stochastic,namkoong2017variance}.
+\item The main significance of the PMI interpretation is that it allows interpreting skip-gram embeddings as performing an approximate matrix factorization on the empirical PMI or PPMI matrix. This motivates the use of other objectives, such as least-squares ones.  A follow-up discussion including comparison with GloVe \cite{pennington2014glove} can be found in \cite{levy2015improving}. The above analysis has been refined in \cite{melamud2017information} to better understand the low-dimensional case, where the optimal embeddings may be far away from the Bayes-optimal solution. 
+\item For subsequent discussions it will be useful to rewrite the classification objective Eq.~\eqref{eq:negative} by making use of the Bayes-optimal classifier and the mixed distribution $\pi = \alpha p + (1-\alpha) n$, 
+\begin{align}
+\ell^n_{neg}& = \E_{\pi}\left[ \sigma(h^*) \log \sigma(h) + \sigma(-h^*)) \log (\sigma(-h)) \right],
+\end{align}
+which is the expected binary cross entropy. This identity can easily be verified.
+\end{enumerate}
+
+
+\paragraph{Noise Contrastive Estimation} 
+
+The difference between negative sampling and NCE is that the latter involves the inclusion of an additional normalization constant. Adapting NCE to the conditional model setting, we introduce  parameters $\psi_v$ in  an unnormalized conditional model
+\begin{align}
+\log \tilde q(w|v; \theta)= \langle \x_w, \y_v \rangle + \psi_v. \quad \psi_v \in \Re
+\end{align}
+with proper normalization obtained for $\psi_v = -\log Z_v$. Taking the Bayes optimal classifier in Eq.~\eqref{eq:optimal-cassifier} as the starting point, we now define (special case $\alpha = 1/2$)
+\begin{align}
+h(v,w; \theta, \psi) = \log \frac{\tilde q(w|v)}{n(w|v)} =\langle \x_w, \y_v\rangle + \psi_v - \log n(w|v)\,.
+\end{align}
+NCE now proposes to maximize the logistic log-likelihood
+\begin{align}
+\ell_{nce}^n & =   \tfrac 12 \E_p[ \log \sigma(h)] + \tfrac 12 \E_{n} \left[ \log \sigma(-h) \right]
+\end{align}
+The consistency of NCE for the realizable case (see \cite[Theorem 2]{gutmann2012noise}) guarantees that indeed $h \to h^*$ and thus $\tilde q(w|v) \to p(w|v)$. 
+
+\begin{enumerate}
+\item The logistic function $\sigma$ is log-concave and so is any non-negative combination of $\log \sigma$ functions. This directly implies that $\ell_{nce}$ is concave in $h$, hence also in $\psi$. In fact the consistency of NCE  implies that for realizable models $\psi^*_v \to -\log Z_v$. 
+\item Note that gradients are symbolically identical for $\ell^n_{neg}$ and $\ell^n_{nce}$, see Eq.~\eqref{eq:neg-grad}. However, the form of $h$ is different due to the additional terms in the NCE discriminant function. Moreover, we have to consider a gradient components $\nabla_\psi$ in the NCE case as well.
+\item If $v$ and $w$ are independent under the negative distribution, then $n(w|v) = n(w)$ and effectively, we just have an additional additive offset.  As seen above, the bilinear model can implicitly deal with constant offsets $\phi_w$. Hence, dropping $n(w)$ is expected to have a negligible effect on model perplexity.\footnote{Negligible here means: less than the difference in modeling power between a model of dimensions $d$ and $d+1$.}
+\item \textbred{A!}: As for dropping $\psi_v$ or  implicitly setting $\psi_v=0$, this would be asymptotically optimal, if $Z_v=1$. Note that it has been empirically observed  (though not analyzed) that indeed $Z_v \approx 1$, e.g.~in \cite{mnih2012fast}. That this is indeed the case (asymptotically, assuming realizability) can be shown with the same simple argument as above for biases. From NCE theory we known that $\psi_v \to - \log Z_v$. An unnormalized model without $\psi$-parameters can emulate this by reserving one direction $\mathbf u$ along which $\langle \mathbf u, \x_w\rangle \approx \text{const}$, such that $\langle \mathbf u, \y_v \rangle \approx - \log Z'_v$, where $Z'_v$ are partition functions of the $(d-1)$-dimensional model obtained by projecting out $\mathbf u$. This argument makes a precise statement of why unnormalized models trained with NCE (or negative sampling) are asymptotically self-normalized.\footnote{TH: Can easily be made more formal, but requires notation. Left for a future revision.}
+\\[2mm]
+In summary, this explains, why maximizing $\ell_{neg}^n$ instead of $\ell_{nce}^n$ does not make much of a difference in practice. 
+\item One could also work with a globally normalized model
+\begin{align}
+Z = \sum_{v,w} \exp[h(v,w)], \quad Z = \sum_v Z_v = \sum_{v,w} \exp[h(v,w)]
+\end{align}
+and effectively could relate $Z_v = p(v) Z$, which would be correct, if the joint model would have the correct marginals $p(v) = q(v)$.  \\[2mm]
+\textbf{Q?}: What are the disadvantages of a joint model vs.~conditional models?  On the plus side, we would just have a single parameter (as in the original NCE formulation). 
+\end{enumerate}
+
+
+\subsection*{\textred{GAN Meets Skip-gram}}
+
+\paragraph{From NCE to Adverserial Learning} In learning implicit generative models, GANs \cite{goodfellow2014generative} have been a major step forward compared to NCE. This is mainly due to the fact that it is often unclear how to chose the contrastive distribution in NCE. There also is a difference in that NCE requires an unnormalized model (and no sampling), whereas GANs require a mechanism that can be sampled from (but no unnormalized score).\\
+
+Let us pursue the  GAN approach for the skip-gram model, by writing down the standard objective that depends on the generator as well as family of probabilistic classifiers represented by functions $g : \Omega^2 \to \Re$,
+\begin{align}
+\label{eq:gan}
+q \stackrel{\min}{\rightarrow} \ell_{gan} (q) & = \max_{g}
+\left\{ \alpha \E_p\left[ \log \sigma(g) \right]  + (1-\alpha) \E_{q}\left[ \log \sigma(-g) \right] \right\} 
+\\
+& = \max_g \ell_{nce}^{q}(g) = \text{JS}_\alpha(p,q) + \text{const}\,.
+\end{align}
+The inner objective to be maximized with regard to $g$ is simply the NCE objective with contrastive distribution $q$. If $g$ is not constrained, this is known to equal the Jensen-Shannon divergence (up to an additive constant) \cite{goodfellow2014generative}.
+
+\paragraph{NCE with Adaptive Contrastive Distribution}  In Eq.~\eqref{eq:gan}, we can think of the outer minimization as an optimization problem of finding a suitable negative distribution, one that is harder to distinguish from the data distribution, i.e.~one that is closer to $p$. As the closeness of $n$ and $p$ is key to the statistical efficiency of NCE (cf.~\cite[Theorem 3]{gutmann2012noise}), this seems like a very natural extension, where instead of positing a distribution, one actually optimizes for it, making NCE adaptive.  The interesting insight conveyed by Eq.~\eqref{eq:gan} is that this is exactly what the GAN approach amounts to.\\
+
+In this view, it seems quite natural to derive the word embeddings from the \textit{discriminator} as it inherits the benefits from NCE, which has proven to be effective. This can be accomplished as before by defining 
+\begin{align}
+g(v,w) = \underbrace{\langle \x_w^g, \y_v^g\rangle + \psi_v^g}_{\approx \text{data}} - \underbrace{\log \tilde q(w|v)}_{\text{unnorm.~model}}
+\end{align}
+Note that $\psi^g_v$ can absorb both normalizing constants, i.e.~we can directly work with the unnormalized contrastive model in the setup of $g$. However, while before the negative distribution was assumed to be simple, e.g.~$n(w|v) = n(w) \sim p(w)^\beta$, which can be pre-computed, we now face the challenge of hacving to sample from a more powerful contrastive distribution $q(w|v)$, itself possibly defined by word embeddings $\x_w^h$, $\y_v^h$, which will  make it  expensive to normalize. \\
+
+We use the following idea (see above): instead of using some pre-specified $n$ as the contrastive distribution, we merely use it as a proposal distribution in an importance sampling approach to NCE with unnormalized distribution $\tilde q$, e.g.~for any $f: \Omega^2 \to \Re$, 
+\begin{align}
+\E_q[f |  v] \approx \E_{S \sim n} \left[ \frac{ \sum_{w \in \S} \alpha_{vw} f(v,w)}{\sum_{w \in \S} \alpha_{vw}} \right], \quad 
+\alpha_{vw} = \frac{\tilde q(w|v)}{n(w)}
+\end{align}
+This accomplishes two things: (1) If $q$ is reflecting relevant dependencies between $v$ and $w$, this will improve the NCE solution relative to a non-informative negative distribution. (2) The bias introduced with self-normalizing importance sampling does not affect the consistency of the NCE estimator as consistency only requires the contrastive distribution to be fully supported. This is in contrast to the direct use of importance sampling in approximating $\nabla \ell_{log}$. \\
+
+In conclusion, we can define a meaningful class of NCE classifiers with the unnormalized $\tilde q$ and can use self-normalizing importance sampling to compute approximations to $\E_q$. 
+
+\paragraph{Learning the Negative Distribution}
+In the outer loop, we can now minimize the NCE objective by using any model, specifically one based on embeddings, 
+\begin{align}
+\log q(w|v) = h(v,w) - \log Z^h_v, \quad h(v,w) = \langle \x_w^h, \y_v^h \rangle
+\end{align}
+
+It remains to demonstrate how to learn the embeddings defining the contrastive distribution. The gradient map is (using $f=\log \sigma(-g)$ as a shorthand) 
+\begin{align}
+\nabla  q & = 
+q  \left( \nabla h- \E_q\left[ \nabla h \right] \right), \quad 
+\nabla \E_q[f] = \E_q\left[ f \nabla h \right] - \E_q\left[ f\right] \E_q\left[ \nabla h\right] = \text{Cov}_q\left(f, \nabla h\right)
+\label{eq:gan-grad}
+\end{align}
+\begin{enumerate}
+\item \textbf{Q?}: If the final embeddings are derived from the discriminator, the generative model may not need to be as powerful. One is free to chose lower dimensional models, for instance. This question requires further experimental investigation. 
+\item \textbf{Q?}: Can this be directly implemented? Compare with general GAN approach, which also considers a modified objective. 
+\end{enumerate}
+
+\paragraph{Jensen-Shannon Divergence} An alternative view of the GAN embedding approach is to recover embeddings from the generative model, which would be more in line with the standard reasoning behind GANs. In this case, we do not have to use a parametric model for $g$, but rather can directly plug-in the optimal $g^*$ as -- opposed to the general GAN case -- we have a closed form solution for it, namely 
+\begin{align}
+g^*(v,w) = \underbrace{\log p(w|v)}_{\text{data}} - \underbrace{\langle \x^h_w, \y_v^h \rangle}_{\text{unn.~model}} -  \underbrace{\psi_v^g}_{\text{normal.}}
+\end{align}
+Note that here, all parameters except the biases $\psi^g$ are not learned, but inherited from the generative model. Assuming that we had the right normalization available $\psi_v^g = -\log Z_v^h$ and observing that $\nabla g = - \nabla h$ we get
+\begin{align}
+\stackrel \min \rightarrow \ell_{gan} & = 
+\alpha \E_p[\log \sigma(g^*)] + (1-\alpha) \E_q[\log \sigma(-g^*)] \\
+ \nabla \ell_{gan} = & 
+- \alpha \E_p[\sigma(-g^*) \nabla h]  +  (1-\alpha) \E_q\left[ \sigma(g^*) \nabla h\right] + \text{Cov}_q(\log \sigma(-g^*),\nabla h)
+\end{align}
+Note that the first two expectations are the same as for the NCE gradient, however with reversed signs (but: we are minimizing now, not maximizing). Also, note that as parameters enter into $g^*$ with reversed signs compared to $h$, there is a difference. \\
+
+\textit{TH: Needs more discussion.}
+
+\bibliographystyle{acm}
+\bibliography{th}
+
+\end{document} 
+
+
+\newpage
+
+
+
+Let us assume we can pre-compute the (sparse) empirical distributions $p(w|v)$ and the marginals $p(v)$. Then we can define a proposal distribution $p(w|v)p(v)$ and perform importance sampling 
+
+
+
+
+
+\newpage
+
+
+
+
+
+This means that there is a simple closed form solution for the optimal classifier in terms of the  parameters of the generative model. As we do not want to explicitly compute normalizing constant, we leave $\psi_v$ as free parameters, leading to 
+\begin{align}
+g(v,w; \psi) := \log p(w|v)  - \langle \x_w, \y_v \rangle - \psi_v\,.
+\end{align}
+As pointed out before, the inner classification objective to be maximized is concave in $\psi$.
+
+\paragraph{GANs and NCE}
+
+We can think of GANs as learning a negative distribution for NCE. 
+
+\paragraph{Gradients} The main difference between $\ell_{gan}$ and $\ell_{nce}$ is that the former leads to a saddle point problem, where we maximize the logistic likelihood with regard to $\psi$ (as before), but now minimize with regard to $\theta$. Note that $\ell_{gan}$ has a dependency on $\theta$ through the expectation $q$ as well as (implicitly) through the choice of the classifier, which ``re-uses" the generative model. The additional gradient map is (using $f=\log \sigma(-g)$ as a shorthand) 
+\begin{align}
+\nabla  q & = 
+q  \left( \nabla h- \E_q\left[ \nabla h \right] \right), \quad 
+\nabla \E_q[f] = \E_q\left[ f \nabla h \right] - \E_q\left[ f\right] \E_q\left[ \nabla h\right] = \text{Cov}_q\left(f, \nabla h\right)
+\label{eq:gan-grad}
+\end{align}
+
+
+\paragraph{Jensen-Shannon Divergence} It is well-known that if the family of classifiers contains the Bayes optimal one (as it is in our case by design), then 
+\begin{align}
+\ell_{gan} = \text{JS}(p,q), \quad 2\text{JS}(p,q) := \text{KL}(p ||\pi) + \text{KL}(q||\pi), \quad \pi := \tfrac 12 p + \tfrac12 q
+\end{align}
+\begin{enumerate}
+\item In general, there have been arguments made in favor of divergence measures like JS as opposed to KL (or likelihood), but often these are insipred by generative models for images.
+\item \textbf{Q?}: Is there a more direct approach to minimizing the JS? Maybe it is not necessary to take the GAN deviation for computational reasons (but perhaps for sake of motivation and connection to this hot topic)? 
+\end{enumerate}
+
+
+\paragraph{Self-Normalizing Importance Sampling} 
+In order to solve the sampling issue, let us investigate the use of importance sampling. In doing so, we will again assume that we have access to a sparse matrix representation of relative frequencies $p(w|v)$. We propose to sample from a smoothed empirical distribution
+\begin{align}
+\pi(v,w) = p(v) \pi(w|v), \;\; \pi(w|v) = (1-\gamma) p(w|v) + \gamma p_\beta(w), \;\; p_\beta(w) \propto p(w)^\beta\,.
+\end{align}
+and use a \textred{self-normalizing importance sampling} estimate \cite[Chapter 9]{owen2013monte}. 
+The smoothing ensures full support of $\pi$.  Let us integrate this directly into the objective. 
+\begin{align}
+\ell_{imp}(\theta, \phi) = 
+... + \frac 1{2S}
+ \E_\pi \left[ \frac{\exp\langle\x_w,\y_v\rangle}{\pi(v,w)} \log (1-q_\phi(v,w)) \right], \quad S := 
+\E_\pi\left[ \frac{\exp\langle\x_w,\y_v\rangle}{\pi(v,w)}  \right]
+\end{align}
+We can now perform sampling as part of the SGD update, i.e.~sampling $K$ samples from $\pi$, then approximating both expectations by sample averages.  
+\begin{enumerate}
+\item The fact that the self-normalized importance sampler is unbiased guarentees the correctness of this approach (in expectation we will recover the true gradient). 
+\item The variance cannot be reduced arbitrarily, but is theoretically well understood \cite[Eqs.~9.8-9.9]{owen2013monte}. The optimal density will take the form\footnote{Unclear how to exploit this to improve on the above sampler.}
+\begin{align}
+\pi(u,v) \propto | \mu - \log (1-q_\phi(u,v))| \, p_\theta(u,v)\,.
+\end{align}
+\end{enumerate}
+To make the sampling scheme more concrete, we first sample $v$ (unifomly, say) and then sample a $K$ sample from $\pi(w|v)$. The resulting sample can be thought of as a sparse conditional distribution $\hat \pi(w|v)$. Now we can derive stochastic gradients for the parameters\footnote{I  only partially sketch it here.}
+\begin{align}
+& \frac{1}{\hat S_v} \nabla_{\y_{v}} \E_{\hat\pi} \left[ \frac{\exp\langle\x_w,\y_v\rangle}{\pi(w|v)} f(v,w)\right] 
+= 
+\sum_{w} \tilde p(w|v) f(v,w) \x_w, \quad \tilde p(w|v) := \frac{\hat \pi(w|v) e^{\langle\x_w,\y_v\rangle}}{\hat S_v \pi(w|v)} 
+\\
+&  \nabla_{\y_{v}} \frac{1}{\hat S_v} = -\frac{1}{\hat S}  \sum_w \tilde p(w|v)  \x_w , 
+\quad  \hat S = \E_{\hat \pi}[...]
+\end{align}
+which then is put together by the product rule. Things are a bit more complicated for $\x_w$-gradients.\\
+
+\textit{The comments below are preliminary. It would be great to understand how to use something like mirror descent for our problem.}\\
+
+
+\newpage
+
+
+
+Combining this with the NCE expressions of the gradients gives the final from of the GAN gradient
+\begin{align}
+2\nabla \ell_{gan }
+= &  \;  \E_{Q?}[\sigma(g^*) \nabla h] - \E_p[\sigma(-g^*) \nabla h]  \\
+& - \E_q\left[ \log \sigma(-g^*) \nabla h\right]  + \E_q[\log \sigma(-g^*)] \E_q[\nabla h] \\
+=& \; \E_{Q?}\left[ \left(\sigma(g^*) - \smallint \sigma(g^*)\right) \nabla h \right] 
++ \E_q\left[ \smallint \sigma(g^*) \right]\E_q[\nabla h] - \E_p[\sigma(-g^*) \nabla h] 
+\end{align}
+
+
+\newpage
+
+
+Let us further interpret this in the case that we were to perform the inner maximization (for simplicity setting $\alpha =1/2$), then 
+\begin{align}
+\nabla \ell_{gan}
+=  & \frac12 \sum_{v,w} p_\theta(w|v) \log \sigma(-g^*(v,w)) \nabla h_\theta(v,w) \\
+& + \frac12 \sum_{v,w} p_\theta(w|v) \log \sigma(-g^*(v,w)) \nabla h_\theta(v,w) \\
+\end{align}
+and similarly for $\nabla\ell_{gan}(\y_v)$. Note that as most conditional probabilities are small the $p_\theta(1-p_\theta)$ term is dominated by $p_\theta(w|v)$. The $\log$-factor is in $\Re_-$ and as we minimize, the update direction is a positive linear combination of vectors $\y_v$. These weights are largest for $(v,w)$, where the model underestimates the true probability. 
+
+\paragraph{Intermediate Discussion}
+Let us discuss the results obtained so far:
+\begin{enumerate}
+\item We have shown that the GAN approach yields a simple saddle-point problem and an objective that is different from NCE. The inner maximization is a concave problem that has a simple solution, which -- however -- would require to compute a log-partition function. 
+\item We need to have access to $p(w|v)$, which means that we need to perform an initial  pass over the corpus.\footnote{This topic is often debated, e.g.~\cite{pennington2014glove} claim it to be an advantage, others prefer single-pass algorithms.}
+\item Most crucially, we need to be able to sample from the model, which should not require to compute $Z_v$. This is the main open question that we need to address to make this practical.
+\end{enumerate}
+
+%%%%%%
+%%%%%%
+
+This will result in the following algorithm: (1) In an inner loop, we update scalars $\psi_v$ to maximize the logistic log-likelihood associated with the classification problem $p$ vs $p_\theta$. This can be done in a lazy manner by performing a few stochastic gradient ascent steps. (2) In the outer loop, we perform SGD updates on $\theta$, keeping $\psi$ fixed. As opposed to standard GANs, we get an additional term that stems from $\nabla_\theta q_\psi(\cdot; \theta)$. This would be mirroring \cite{goodfellow2014generative} and refinements along the line of recent GAN-related work \cite{metz2016unrolled,roth2017stabilizing,mescheder2017numerics} may offer additional benefits. Discussion:
+\begin{enumerate}
+\item \textbf{Plus:} The computation of the normalization constant is amortized over many steps of gradient descent
+\item \textbf{Plus:} No need to specify a negative distribution, but only a proposal distribution, which plays no conceptual role, but rather the role of a computational tool.
+\item \textbf{Plus:} New insights into skip-gram learning and NCA vs.~GAN.
+\item \textbf{Minus:} Need to compute co-occurrence matrix in a pre-processing task.
+\item \textbf{Minus:} Change the sampling strategy to perform update steps for all observations involving a specific target word $v$. 
+\item \textbf{To do}: Derive $\theta$ gradient of $\ell_{gan}$.
+\end{enumerate}
+

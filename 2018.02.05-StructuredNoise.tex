@@ -1,0 +1,49 @@
+\documentclass{article}
+\usepackage[textwidth=14cm]{geometry}
+\usepackage{amsmath,amsfonts,amsthm,bbm}
+\usepackage{color,graphicx}
+\graphicspath{{./figures/}}
+
+\newcommand{\x}{{\mathbf x}}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\vLambda}{{\boldsymbol \lambda}}
+\newcommand{\mSigma}{{\boldsymbol \Sigma}}
+\newcommand{\vDelta}{{\boldsymbol \delta}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\E}{{\mathbf E}}
+
+
+\title{
+	Learning with Structured Noise
+}
+\author{
+	Thomas Hofmann \\[1mm] Department of Computer Science, ETH Zurich \\ thomas.hofmann@inf.ethz.ch
+}
+
+\begin{document}
+
+\maketitle 
+
+Let us assume that we have access to training data of inputs $\x \in \Re^d$ and categorical targets $y \in [1\!:\!K]$ generated iid from a distribution $(\x_i,y_i) \sim P$, $i=1,\dots,l$.  However at test time, we expect inputs to be corrupted by a noisy channel $\x \mapsto \tilde \x$, which we assume can be modeled by a zero-mean -- but correlated -- additive  noise process, $\tilde \x = \x + \eta$, $\eta \sim Q$, i.e.~$\E[\eta]=0$. We denote the variance-covariance matrix of $Q$ by $\mSigma = \E[ \eta \eta^\top]$. Due to the additive nature of the noise, effectively each class conditional distribution $P(\x|k)$ gets convolved with $Q$.  
+
+Consider a model that makes predictions via softmax on $K$ discriminant functions $f_k$ via 
+\begin{align}
+\phi_y(\x) = \frac{\exp[ f_y(\x)]}{\sum_{y'} \exp[ f_{y'}(\x)]}
+\end{align}
+for which we can define the log-likelihood (or negative cross entropy)
+\begin{align}
+\ell(\hat P) 
+= \E_P\left[ \sum_y P(y|x) \log \phi_y(x) \right] 
+= \E_P\left[ \sum_y P(y|x) f_y(x)  - \log \sum_{y} \exp[f_y(x)] \right]
+\end{align}
+How does the likelihood change, if inputs were corrupted by a channel of small noise amplitude? We can perform a Taylor approximation of $\ell$ 
+
+
+\newpage
+t
+the channel is described by a conditional distribution $Q(\tilde x|x)$ and -- for simplicity -- that it is zero mean, i.e.~$\E_{\tilde x}\left[ Q(\tilde x|x)\right]=x$ for all $x$.  
+
+\bibliographystyle{acm}
+\bibliography{th}
+\end{document}
+

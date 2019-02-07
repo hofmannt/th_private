@@ -1,0 +1,41 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts}
+\usepackage{hyperref}
+\newcommand{\E}{{\mathbf E}}
+\newcommand{\mSigma}{{\mathbf \Sigma}}
+\newcommand{\mGamma}{{\mathbf \Gamma}}
+\newcommand{\mI}{{\mathbf I}}
+\author{Thomas Hofmann}
+\title{Continuous Time Analysis of \\ Stochastic Gradient Methods}
+\begin{document}
+\maketitle 
+
+Stochastic Gradient Descent (SGD) can be thought of in terms of a perturbed gradient descent method
+\begin{align}
+x_{n+1}= x_n - \eta_n \left[ \nabla f(x_n) + \mGamma(x_n) Z_n \right],  \quad 
+	\mGamma(x_n) := \sqrt{\mSigma(x_n)}, \quad 
+	\mSigma(x_n) := [...]		
+\label{eq:sgd-perturbed}
+\end{align}
+with a  $Z$-score normalization: $\E[Z_n]=\mathbf 0$, $\E[Z_n^2]=\mI$. For the analysis below, we will assume that all $Z_n$ are standard normal $Z_n \sim \mathcal N(\mathbf 0, \mI)$. \\
+
+We want to think of the  stochastic process in Eq.~\eqref{eq:sgd-perturbed} as a discretization of a Stochastic Differential Equation (SDE), which can be written 
+\begin{align}
+dX = b(X,t) dt + \sigma(X,t) dW(t)\,,
+\label{eq:sde}
+\end{align}
+where $W$ is a Wiener process. As an SDE is pertrubed ODE, it is natural to generalize ODE methods such as the Euler method to SDEs. This is sometimes called the Euler-Maruyama method. Let us fix initial conditions $X(0) = x_0$, a time horizon $T$ and the number of steps $N$, such that time gets discretized in increments of $\Delta t = T/N$. The Euler-Maruyama method then approximates $X$ by the Markov chain 
+\begin{align}
+x_{n+1} = x_n + b(x_n) \Delta t   + \sigma(x_n) \Delta W_n, \quad \Delta W_{n}=W_{(n+1)\Delta t}-W_{n \Delta t}
+\label{eq:euler}
+\end{align} 
+where $\Delta W_n \sim \mathcal N(\mathbf 0, \Delta t)$, so that $\Delta W_n/ \sqrt{\Delta t}$ is a standard normal. For the constant step size case $\eta = \eta_n$, we can identify $\eta = \Delta t$, such that $b = \nabla f$ is the gradient field. In order to match Eq.~\eqref{eq:sgd-perturbed} with \eqref{eq:euler}  we get 
+\begin{align}
+\Delta t \cdot \Gamma(x_n) = \sqrt{\Delta t} \cdot \sigma(x_n)  \Rightarrow \Gamma(x_n)  = \frac{\sigma(x_n)}{\sqrt{\Delta t}}
+\end{align}
+If the step-size sequence is variable, then can still fix $\Delta t$ and define step sizes in that unit, i.e.~$\eta_n = \epsilon_n \Delta t$. $\epsilon_n$ now becomes a sequence of gains in the SDE. \\
+
+Typical extensions of SGD include veriance reduction through mini-batching and memorization of gradients. In the case of mini-batching, this simply reduces the variance inverse proportionally to the size $M$ of the batch. In the case of SVRG, one can try to consider a pivot with a constant time-delayed pivot 
+
+% In order to match Eqs.~\eqref{eq:sgd-perturbed} and \eqref{eq:sde}, one has to chose a discretization 
+\end{document}

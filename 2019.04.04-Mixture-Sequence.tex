@@ -1,0 +1,71 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{amssymb,hyperref}
+\usepackage[inner=2cm,outer=2cm]{geometry} %left=4cm,right=2cm would be equivalent
+
+%\setlength{\textwidth}{15cm}
+%\setlength{\oddsidemargin}{0mm}
+%\setlength{\evensidemargin}{0mm}
+
+\newcommand{\E}{{\mathbf E}}
+\newcommand{\mSigma}{{\mathbf \Sigma}}
+\newcommand{\mGamma}{{\mathbf \Gamma}}
+\newcommand{\mLambda}{{\boldsymbol \Lambda}}
+\newcommand{\mI}{{\mathbf I}}
+\newcommand{\mD}{{\mathbf D}}
+\newcommand{\mR}{{\mathbf R}}
+\newcommand{\mC}{{\mathbf C}}
+\newcommand{\mS}{{\mathbf S}}
+\newcommand{\mB}{{\mathbf B}}
+\newcommand{\mG}{{\mathbf G}}
+\newcommand{\mU}{{\mathbf U}}
+\newcommand{\mW}{{\mathbf W}}
+\newcommand{\bigO}{{\mathbf O}}
+\newtheorem{theorem}{Theorem}
+\newcommand{\is}[1]{\setlength{\itemsep}{#1}}
+
+
+\author{Thomas Hofmann \& Florian Schmidt}
+\title{Discrete Sequence Models with Mixture State Evolutions}
+
+\begin{document}
+\maketitle 
+\begin{enumerate}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\item The standard symbol feedback approach uses the stochasticity in generating symbols to drive the state evolution. The resulting next state distribution is atomic 
+\begin{align}
+\text{Pr}(H_{t+1} =\zeta | h_t) = \sum_{\omega \in \Omega} p(\omega|h_t) \delta(\zeta, \mu(h_t; \omega)), \quad p(\omega|h_t) \propto \exp\left[ x_\omega^\top \mW h_t) \right]
+\end{align}
+\begin{itemize}
+\item The mixture has $| \Omega|$ many components, which may be prohibitive. 
+\item Instead of the bilinear form $\mW$, one can chose more complex architectures (\cite{graves2013generating}).
+\end{itemize}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\item Inspired by this form, we suggest the use of mixture models for the state evolution function. 
+\begin{align}
+\text{Pr}(H_{t+1} = \zeta | h_t) = \sum_{k=1}^K p(k \vert h_t) \, \delta(\zeta, \mu_k(h_t))
+\end{align}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+\item Here we can control $K$ independently of cardinality of universe. 
+\item One can perform Gaussian smoothing by replacing the Dirac-delta by $\zeta \sim \mathcal N(\mu_k(h_t), \mSigma_k(h_t))$
+\item Multimodality is explicity captured by having competing state evolution functions.
+\item The $k$-dependency can be realized via embeddings and shared parameters.
+\item In the $K=1$ setting this degenerates to the simpler model used in (Schmidt et al 2019).
+\end{itemize}
+\item Train this initially via maximum likelihood. Elementary observation: system in state $h_t$ observe $\omega_{t+1}$. Compute posterior via Bayes rule
+\begin{align}
+p(k | h_t, \omega_{t+1}) \propto   p(k|h_t) \int p(\omega_{t+1} \vert \zeta) \, p(\zeta; h_t, k) d\zeta 
+\end{align}
+\begin{itemize}
+\item Now perform stochastic EM-style updates
+\item In the deterministic case: $p(k | h_t, \omega_{t+1}) \propto   p(k|h_t) p(\omega_{t+1} \vert \mu_k(h_t))$.
+\item This essentially is the simplest form of variational inference, where one does not need any inference model, because the added stochasticity is simply a multinomial random variable (picking a mixture component). 
+\end{itemize}
+\end{enumerate}
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}

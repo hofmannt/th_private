@@ -1,0 +1,54 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{amssymb,hyperref}
+\usepackage[inner=2cm,outer=2cm]{geometry} 
+
+\newcommand{\E}{{\mathbf E}}
+\newcommand{\mSigma}{{\mathbf \Sigma}}
+\newcommand{\mGamma}{{\mathbf \Gamma}}
+\newcommand{\mI}{{\mathbf I}}
+\newcommand{\mD}{{\mathbf D}}
+\newcommand{\mR}{{\mathbf R}}
+\newcommand{\mC}{{\mathbf C}}
+\newcommand{\mS}{{\mathbf S}}
+\newcommand{\mB}{{\mathbf B}}
+\newcommand{\mG}{{\mathbf G}}
+\newcommand{\mU}{{\mathbf U}}
+\newcommand{\mJ}{{\mathbf J}}
+\newcommand{\mW}{{\mathbf W}}
+\newcommand{\mLambda}{{\boldsymbol \Lambda}}
+\newcommand{\bigO}{{\mathbf O}}
+\newtheorem{theorem}{Theorem}
+\newcommand{\is}[1]{\setlength{\itemsep}{#1}}
+
+
+\author{Thomas Hofmann}
+\title{Adversarial Examples in Piecewise Linear Deep Networks}
+
+\begin{document}
+\maketitle 
+\begin{enumerate}
+\item The classic approaches to find adversarial examples is to use gradient information, e.g.~the fast gradient signed method. It finds the locally worst perturbation in the $\max$-norm sense,
+\begin{align}
+\xi = t \, \text{sign} (\nabla_x \ell), \quad \text{hence} \quad \|\xi\|_\infty = t
+\end{align} 
+a choice that is optimal within a linear region (where the gradient does not change). Note that a change in gradient is only relevant as far as it affects the sign of the change at a measurement (e.g.~pixel). 
+
+\item Assume that we trace out the ray $t \, \text{sign} (\nabla_x \ell)$. Let us denote by $t_1, \dots, t_R$ the step sizes at which an activation pattern change happens. Denote the corresponding sequence of units by $x_r$, where $r=(l,i)$ encodes the layer and unit index. How does the gradient change at such a pattern change point? One can write the full Jacobian as a product of the weight matrix and a diagonal Boolean matrix encoding the activation patterm (ReLU case): 
+\begin{align}
+& x^{l} = \left( \mW^l x^{l-1} \right)_+, \quad  \frac{\partial x^{l}}{\partial x^{l-1}} = \mJ^l = \mI^l \mW^l, \quad \mI^l \in \text{diag}(\sigma^l_i), \; \sigma^l_i \in \{0,1\} \\
+& \nabla_x \ell = \nabla_{x^{l}}\ell \;\;  \mJ^l \cdots \mJ^1 
+\end{align}
+Switching the activation state of a unit $x_i^l$\footnote{It may be intersting to add a threshold to the ReLU, so that one could change activation patterns without having to change weights. Maybe a trick for the analysis.}
+\begin{align}
+(\nabla_x \ell)^l_i:=  \frac{\partial \ell}{\partial  x^l_i} \; \; (1-\sigma^l_i) \;\;  (w_i^l)^\top \mJ^{l-1} \cdots \mJ^1
+\end{align}
+Note that it is trivial to compute these quantities even for inactive nodes during backpropagation. Note also that we care about the absolute value of this quantity. There are thus three considerations: (i) for each unit, the potential gain (e.g.~the sensitivity of the loss w.r.t.~this unit), (ii) the changes to $x$ required to actually activate the unit, and (iii) the side-effects. 
+\item Let us make some simplifying assumptions. Assume that activation changes only happen in layer $l$ and that the other Jacobians remain unchanged.
+\end{enumerate}
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}

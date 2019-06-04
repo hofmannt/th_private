@@ -1,0 +1,57 @@
+\documentclass{report}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{amssymb,hyperref}
+\usepackage[inner=2cm,outer=2cm]{geometry} 
+
+\newcommand{\E}{{\mathbf E}}
+\newcommand{\mSigma}{{\mathbf \Sigma}}
+\newcommand{\mGamma}{{\mathbf \Gamma}}
+\newcommand{\mI}{{\mathbf I}}
+\newcommand{\mD}{{\mathbf D}}
+\newcommand{\mR}{{\mathbf R}}
+\newcommand{\mC}{{\mathbf C}}
+\newcommand{\mS}{{\mathbf S}}
+\newcommand{\mB}{{\mathbf B}}
+\newcommand{\mG}{{\mathbf G}}
+\newcommand{\mU}{{\mathbf U}}
+\newcommand{\mJ}{{\mathbf J}}
+\newcommand{\mW}{{\mathbf W}}
+\newcommand{\mLambda}{{\boldsymbol \Lambda}}
+\newcommand{\bigO}{{\mathbf O}}
+\newtheorem{theorem}{Theorem}
+\newtheorem{details}{Details}
+\newcommand{\is}[1]{\setlength{\itemsep}{#1}}
+
+
+\author{Thomas Hofmann}
+\title{Deep Learning: Models and Algorithms}
+
+\begin{document}
+\maketitle 
+
+\chapter{Representational Power}
+\section{Deep Architectures}
+
+\subsection{Advantages of Depth}
+
+
+\paragraph{On the Number of Linear Regions of Deep Neural Networks \cite{montufar2014number}}
+
+Upper bound on the umber of linear regions of a piecewise linear function. Arrangement of $m$ hyperplanes in $n$-space has $\le \sum_{j=1}^n \binom{m}{j}$ regions (\cite{zaslavsky1975facing}).
+
+\paragraph{The Power of Depth for Feedforward Neural Networks \cite{eldan2016power}} One can construct specific functions that can be efficiently approximated by a $3$-layer network, but not a $2$-layer one. An example are radial functions, in which an easy compositional solution is to first compute or approximate $g: x \mapsto \|x\|$ and then handle the scalar function $h: z \mapsto g(z)$ such that $f = h \circ g$. The approximation of $g$ and $h$ can be done in separate layers. It is possible to construct a probability measure such that approximating $f$ is only possible at the expense of an exponential blow-up of the hidden layer width as a function of the input dimension. 
+\begin{details}
+The basic proof idea is to define $\phi$ as the inverse Fourier transfrom of the indicator function of the unit ball and to use its square as the measure. Then investigate
+\begin{align}
+\int (f(x)-g(x))^2 \phi^2 dx = \| f \phi - g \phi\|^2_{L_2} = \| \widehat {f \phi} - \widehat {g \phi} \|^2_{L_2}
+\end{align}
+by isometry of the Fourier transform. By the convolution-multiplication principle $\widehat{f \phi} = \hat f \star \hat \phi$. In an MLP with one hidden layer, $\hat f$ is supported on $\cup_i \text{span}(v_i)$ and thus $\widehat {f \phi}$ is supported on a subset of $\cup_i (\text{span}(v_i) +B)$, where $B$ is the unit ball. So the support is a union of unit width tubes. This limitation is at the heart of constructing the argument.
+\end{details}
+
+
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}

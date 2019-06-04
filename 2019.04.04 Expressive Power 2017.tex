@@ -1,0 +1,57 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{amssymb,hyperref}
+\usepackage[inner=2cm,outer=2cm]{geometry} 
+
+\newcommand{\E}{{\mathbf E}}
+\newcommand{\mSigma}{{\mathbf \Sigma}}
+\newcommand{\mGamma}{{\mathbf \Gamma}}
+\newcommand{\mI}{{\mathbf I}}
+\newcommand{\mD}{{\mathbf D}}
+\newcommand{\mR}{{\mathbf R}}
+\newcommand{\mC}{{\mathbf C}}
+\newcommand{\mS}{{\mathbf S}}
+\newcommand{\mB}{{\mathbf B}}
+\newcommand{\mG}{{\mathbf G}}
+\newcommand{\mU}{{\mathbf U}}
+\newcommand{\mLambda}{{\boldsymbol \Lambda}}
+\newcommand{\bigO}{{\mathbf O}}
+\newtheorem{theorem}{Theorem}
+\newcommand{\is}[1]{\setlength{\itemsep}{#1}}
+
+
+\author{Thomas Hofmann}
+\title{\large{Comments:}\\[3mm] On the Expressive Power of Deep Neural Networks }
+
+\begin{document}
+\maketitle 
+\begin{enumerate}
+\item Given a curve $x(t) \in \Re^m$ with velocity $\dot x(t)$, $t \in [0;1]$. For a given $W \in \Re^{m \times m}$, define $z= Wx$, such that $\dot z = W\dot x$. Assume $W$ is a random matrix, e.g.~with iid Gaussian entries $w_{ij} \sim \mathcal N(0,\sigma^2)$. This makes the image of $x$ a random curve $Z$. We are interested in lower bounding $\E\| \dot Z\|$ for given $x$. 
+\item Pick any $t$, and denote $x_0 := x(t)$. Chose an orthogonal matrix $U$ such that $U x_0 = (\alpha,0,\dots,0)^\top =: \alpha e_1$, $\alpha = \| x_0\| \ge 0$. Then $Z_0 := Wx_0 = WU^\top U x_0$. Because of the invariance of the standard normal distribution wrt orthogonal transformation, $WU^\top$ has the same distribution as $W$. Hence
+\begin{align}
+& \E\| \dot Z\| = \E \| Wx_0\| = \alpha \, \E \|W e_1\| = \alpha \,\E\|Y\| = \alpha \, \sigma \frac{\sqrt 2 \Gamma(\tfrac{m+1}{2})}{\Gamma(\tfrac{m}{2})} 
+\quad 
+\text{as $Y \sim \mathcal N(0,\sigma^2 I_m)$},
+\end{align}
+where the ratio of $\Gamma$-functions can be bound as follows\footnote{Chandrasekaran, The Convex Geometry of Linear Inverse Problems
+}
+\begin{align}
+\frac{m}{\sqrt{m+1}} \le \sigma^{-1} \E\|Y\| \le  \sqrt m \quad \Longrightarrow \quad 
+\E\|\dot Z\| \ge \alpha \sigma \frac{m}{\sqrt{m+1}}
+\end{align}
+\item We now consider application to a neural network that represents a piecewise linear function, e.g.~ReLUs or hard-$\tanh$.  Restricting inputs to a given input cell, we can replace the network by a (possibly) smaller linear network: eliminate all inactive nodes and replace activation functions by their linear branch. How much can a curve in the interior of the cell be stretched by a network? 
+\begin{itemize}
+\item Focus on the effect of one linear transformation layer. Denote the incoming activations as $x$ and the outgoing ones as $z=Wx$. We would like to not depend on the input, which determines the activation vectors $x, z$. Hence we can define
+\begin{align}
+\tilde W := \left(\mI - \frac{z z^\top}{z^\top z} \right)^\top  W  \left(\mI - \frac{xx^\top}{x^\top x} \right), \quad \text{s.t.} \quad \tilde Wx = 0 \; \wedge \; z^\top \tilde W=0
+\end{align}
+\item If $W$ is a random Gaussian matrix than note that $W U$ for orthogonal $U$ is also Gaussian and so is (obviously) $U_1^\top W U_2$ for $U_{1,2}$ orthogonal. So we can equivalently consider Gaussian matrices $V$ between the orthogonal complements $V: \{x\}^\perp \to \{z\}^\perp$, $\xi \mapsto \zeta$.\footnote{Very complicated notation and derivation in the paper. In the end, one can  get away with a simple Lemma along these liens.} We now apply the basic results from above
+\begin{align}
+\E \| \zeta\| \ge \sigma  \| \xi\|  \frac{m-1}{\sqrt m}
+\end{align}
+where $m$ is the number of active units.\footnote{Not sure why they use these very complicated formulas in dealing with the $\Gamma$-function ratios.} % Irrespective of the input, the velocity component orthogonal to $x$ will lead to an increase in directions orthogonal to $z$ that is lower bounded. 
+\end{itemize}
+\end{enumerate}
+
+\end{document}

@@ -1,0 +1,66 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{amssymb,hyperref}
+\usepackage[inner=2cm,outer=2cm]{geometry} %left=4cm,right=2cm would be equivalent
+
+%\setlength{\textwidth}{15cm}
+%\setlength{\oddsidemargin}{0mm}
+%\setlength{\evensidemargin}{0mm}
+
+\newcommand{\E}{{\mathbf E}}
+\newcommand{\mSigma}{{\mathbf \Sigma}}
+\newcommand{\mGamma}{{\mathbf \Gamma}}
+\newcommand{\mI}{{\mathbf I}}
+\newcommand{\mD}{{\mathbf D}}
+\newcommand{\mR}{{\mathbf R}}
+\newcommand{\mC}{{\mathbf C}}
+\newcommand{\mS}{{\mathbf S}}
+\newcommand{\mB}{{\mathbf B}}
+\newcommand{\mG}{{\mathbf G}}
+\newcommand{\mU}{{\mathbf U}}
+\newcommand{\mLambda}{{\boldsymbol \Lambda}}
+\newcommand{\bigO}{{\mathbf O}}
+\newtheorem{theorem}{Theorem}
+\newcommand{\is}[1]{\setlength{\itemsep}{#1}}
+
+
+\author{Thomas Hofmann \& Florian Schmidt}
+\title{Unconditional Sequence Generation}
+
+\begin{document}
+\maketitle 
+\begin{enumerate}
+\item 
+
+\newpage
+
+\item GenGeneral model architecture: 
+\begin{itemize} \is{2mm}
+\item Markovian latent state sequence $h^t$ plus autoregressive observation model. 
+\begin{align}
+p(h^{1:T}, w^{1:T}) = \prod_{t=1}^T p(h^{t} \vert h^{t-1}) \prod_{t=1}^T p(w^t | h^{1:t}, x^{1:t-1})
+\end{align}
+
+\item Idea: long range dependencies and coherence modeled by state sequence, short term dependencies and symbol choices governed by autoregressive model. 
+\item Generative model: ability to produce entire latent sequence prior to any choice of observation
+\item Learning conditional model $p(w^{1:T} | h^{1:T})$ should leverage ideas from conditional language models (instead of conditioning on acoustics (ASR) or source sentence (MT), here: output of first model stage)
+\item Typically: will simplify autoregressive model, e.g.~to $k$-th order Markovian, $p(x^t | h^t, w^{1:t-1})= p(x^t | h^{t-k:t}, w^{t-k:t-1})$.
+\item Verification: show that state space model alone (say with simple unigram model $p(x^t | w^t)$ can reduce entropy. 
+\end{itemize}
+\item ACL-draft model 
+\begin{itemize} \is{2mm}
+\item Pairwise interactions w/ potentials $\psi(w_i,w_j, h_0,h_1) = x_i^\top S(h_0,h_1)  y_j$ then 
+\begin{align}
+\Psi(w,h) = \sum_{t=2}^T  \psi(w^{t-1},w^t,h^{t-1},h^t)  + \text{unary}
+\end{align}
+Parameters: left/right embeddings plus mapping that defines $S$.
+\item Training: variational inference with model 
+\begin{align}
+q(h|w) = \prod_t q(h^t \vert h^{t-1}, \tau(w^{t:T})), \quad \tau = \text{backward RNN}
+\end{align}
+\end{itemize}
+\item New model ideas 
+\end{enumerate}
+
+\end{document}

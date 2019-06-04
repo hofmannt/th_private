@@ -1,0 +1,225 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{hyperref}
+
+\newcommand{\E}{{\mathbf E}}
+\newcommand{\mSigma}{{\mathbf \Sigma}}
+\newcommand{\mGamma}{{\mathbf \Gamma}}
+\newcommand{\mI}{{\mathbf I}}
+\newcommand{\bigO}{{\mathbf O}}
+\newtheorem{theorem}{Theorem}
+
+\author{Thomas Hofmann}
+\title{Gradient Dynamics in Overparametrized Models}
+\begin{document}
+\maketitle 
+
+\paragraph{Notation}
+\begin{itemize}
+\item Weight matrices $W_l$, $F_l := W_l \cdots W_1$, activations $x_l \in \Re^{n_l}$, $x_l = W_l x_{l-1} = F_l x$, $l = 1,\dots, L$; input $x_0 =x$, output $y = x_L$.
+\item Activation backpropagation of loss $\nabla_\bullet := \nabla_\bullet \ell$: $\nabla_{x_l}  = W_{l+1}^\top \nabla_{x_{l+1}}  = B_{l} \nabla_y$, where $B_l := W_{l+1}^\top \cdots W_{L}^\top$
+\item Weight gradient backpropagation: $\nabla_{W_l}  = \nabla_{x_{l}}  \cdot  x_{l-1}^\top  = B_{l} \left[ \nabla_y \cdot x^\top \right]F_{l-1}^\top$
+\item Note that $C := \nabla_y \cdot x^\top $ is layer independent 
+\end{itemize}
+
+\paragraph{Linear Layer Reduction}
+\begin{itemize}
+\item Consider reducing intermediate layer $l$ by introducing weight matrix $W$ such that $x_{l+1} = W x_{l-1}$, i.e.~$W = W_{l+1} W_{l}$. 
+\item ODE view: $\dot W = W_{l+1} \dot W_{l} + \dot W_{l+1} W_l$ (product rule)
+\item If $\dot W_r = - \eta \nabla_{W_r}$, $r\in \{l,l+1\}$, then  
+\begin{align}
+\frac{\dot W}{-\eta} & = W_{l+1} B_{l} C F_{l-1}^\top + B_{l+1}CF_{l}^\top W_l = W_{l+1} W_{l+1}^\top \nabla_W + \nabla_W W_l^\top W_l \\
+& \text{where} \quad  \nabla_W := B_{l+1}C F^\top_{l-1}
+\end{align}
+\item Challenge: after reduction, the parameter $W$ does not follow its gradient flow, but changes in the direction of the sum of (i) a pre-conditioned gradient (ii) plus a gradient on transformed data 
+\item  \cite{arora2018optimization} circumvents this challenge by observing that the gradient ODE fulfills
+\begin{align}
+-\frac{1}{\eta} \dot W_{l} W_{l}^\top & =  \nabla_{W_l} W_{l}^\top = B_{l} C F_{l}^\top  =  W_{l+1}^\top \nabla_{W_{l+1}}  = -\frac{1}{\eta} W_{l+1}^\top \dot W_{l+1} 
+\end{align}
+combining with its transpose version, the product rule implies 
+\begin{align}
+\frac{d W_{l} W_{l}^\top}{dt} = \frac{d W_{l+1}^\top W_{l+1}}{dt} 
+\end{align}
+So essentially, if we can ensure an initialization as $W_{l} W_{l}^\top = W_{l+1}^\top W_{l+1}$, then this property will be preserved as an invariant in the time evolution of the system. 
+\item For illustrative purposes, let us look at the quadratic case.  Then all weight matrices are $n \times n$ and  constraints $W_l W_l^\top = W_{l+1}^\top W_{l+1}$ imply $W_{l+1}^\top = W_l U_l$ with orthogonal $U_l$ (basic result for psd matrices). 
+\item In the two-layer case, we get with $W_2^\top = W_1 U$
+\begin{align}
+% W^\top_{l+1} \nabla_{W_{l+1}} = W_l U_l \nabla_{W_{l+1}} =\nabla_{W_l} W^\top_l
+\nabla_1 = W_2^\top C = W_1  U C, \quad   \nabla_2 = C W_1^\top = C U W_2
+\end{align}
+which can be written as a multiplicative update rule 
+\begin{align}
+W_1^+  & = W_1 (I - \eta UC) , \quad  (W_2^{+})^\top = W_2^\top (I - \eta U^\top C^\top) 
+\end{align}
+todo: show the evolution equation for $U$ -- looking for an antisymmetric matrix (tangent space to orthogonal group at the identity)
+\end{itemize}
+
+\paragraph{Intermezzo: Saxe et al. analysis of deep linear gradient dynamics}
+\begin{itemize}
+\item One can reparametrize the weight matrix $W_1$ in a basis that whitens  the data $E[xx^\top]=I$ and $W_L$ in a way that diagonalizes $\Lambda =E[y^* x^\top]$
+\item In the quadratic loss case, we get 
+\begin{align}
+E[C] 
+& = E[\nabla \cdot x^\top] = E[ (y - y^*) \cdot x^\top] \\
+& = E[F x x^\top] - E[y^*x^\top] = F  - \Lambda, \quad F=F_L
+\end{align}
+\item  In the two-layer case it is useful to look at the diagonal and off-diagonal elements separately.  If we denote by $a_k$ the columns of $W_1$ and $b_k^\top$ the rows of $W_2$ then one can rewrite the gradient dynamics as 
+\begin{align}
+- \dot a_k/\eta = (b_k^\top a_k - \lambda_k) b_k + \sum_{l \neq k} (b_l^\top a_k) b_l
+\end{align}
+which separates out the effect of decoupling the modes from the matching of the singular values. 
+\item
+\begin{align}
+a
+\end{align}
+\end{itemize}
+
+\newpage
+
+\begin{itemize}
+\item Plugging in 
+\begin{align}
+W_1^{+} & =  (I+\eta U^\top C^\top) W_2^{+\top} U^\top (I - \eta UC) \\
+& = (U W_2^{+})^\top+ \eta U^T C^T (U W_2^{+})^\top - \eta (U W_2^{+})^\top UC + O(\eta^2)
+\end{align}
+
+% So we get with $W_2^\top = W_2^{+\top} (I - \eta U^\top C^\top)^{-1} = W_2^{+\top} + \eta W_2^{+\top} U^\top C^\top + O(\eta^2) $
+\begin{align}
+W_1^+ = W_2^\top U^\top  - \eta W_2^\top  C = W_2^{+\top} + 
+\end{align}
+\newpage
+
+
+We can look at the difference 
+\begin{align}
+\nabla_2 - \nabla_1^\top = \underbrace{[ \nabla x^\top - x \nabla^\top ]}_{\text{antisymmetric}} W_2
+\end{align}
+
+
+%So effectively, the initialization reduces the actual degrees of freedoms in the system to $n \times n$ (independent of the depth) and the evolution of all weight matrix keeps it that way. 
+%\item Let us look at the general case with SVD $W_l = U_l \Sigma_l V_l^\top$, so that $W_l W_l^\top = U_l \Sigma_l^2 U_l^\top$ and $W_{l+1}^\top W_{l+1} = V_{l+1} \Sigma_{l+1}^2 V_{l+1}^\top$. 
+
+% Note that in general, we get $n^2_l$ equality constraints, so let us look at the layer with maximum width.  
+
+\newpage
+by initial conditions that ensure $W_{l+1}^\top W_{l+1} = W_l W_l^\top$, which then is exploited by relating
+
+\item Let us consider three layers now and assume $W$ was obtained by the recduction of layer $l$. What happens, if we want to further reduce layer $l-1$ with linear map  $V = W W_{l-1} = W_{l+1} W_{l} W_{l-1}$.  We can identify the common core as $\nabla_V := B_{l+1} C F_{l-2}^\top$
+\begin{align}
+\dot V & = \dot W_{l+1} W_l W_{l-1} + W_{l+1} \dot W_l W_{l-1} + W_{l+1} W_l \dot W_{l-1} \\
+& = B_{l+1} C F_l^\top W_l W_{l-1} + W_{l+1} B_l C F_{l-1}^\top W_{l-1}  + W_{l+1} W_l B_{l-1} C F_{l-2}^\top \\
+& = \nabla_V (W_l W_{l-1})^\top (W_l W_{l-1}) + W_{l+1} W_{l+1}^\top \nabla_V  W_{l-1}^\top W_{l-1}  \\ 
+& \quad + (W_{l+1} W_l) (W_{l+1} W_l)^\top \nabla_V  
+\end{align}
+It is easy to extend the product rule to aribtrary products of weight matrices. 
+\newpage
+
+\begin{align}
+- \dot V/\eta
+= &  \; W_{l+1} W_l \nabla_{W_{l-1}} + [W_{l+1} W_{l+1}^\top \nabla_W + \nabla_W W_l^\top W_l] W_{l-1}\\
+= &  \; W_{l+1} W_l B_{l-1} [\dots] F_{l-2}^\top \\
+& + W_{l+1} B_{l} [\dots] F_{l-1}^\top W_{l-1} + B_{l+1}  [\dots] F_{l-1}^\top W_l^\top W_l W_{l-1}
+\end{align} 
+The common core is $\nabla_V := B_{l+1} [\nabla _y \cdot x^\top] F_{l-2}^\top$ with which we can rewrite
+\begin{align}
+- \dot V/\eta = & \; \underbrace{W_{l+1} W_{l} W_l^\top W_{l+1}^\top}_{=W W^\top} \nabla_V   
++ \nabla_V  \underbrace{W_{l-1}^\top W_l^\top W_l W_{l-1}}_{=: \bar W^\top \bar W}\\
+& + W_{l+1} W_{l+1}^\top \nabla_V  W_{l-1}^\top W_{l-1}  \nonumber 
+\end{align} 
+The first two terms are of the same form as before, now with parameters obtained by reducing over $W = W_{l} W_{l+1}$ and $\bar W = W_{l-1} W_l$, respectively. However, the third (cross) term is of a different form. 
+\item \cite{arora2018optimization} only consider initializations of the form $W_{l+1}^\top W_{l+1} =  W_l W_l^\top$ ($\forall l$). This is motivated by the fact that this equality is  preserved as an invariant under the gradient flow. By the product rule 
+\begin{align}
+\frac{d(W_l W_l^\top)}{dt} & = \dot W_l W_l^\top + W_l \dot W_l^\top\\
+\frac{d(W_{l+1}^\top W_{l+1})}{dt} & =\dot W^\top_{l+1} W_{l+1} + W_{l+1}^\top \dot W_{l+1} 
+\end{align}
+\begin{itemize}
+\item \cite{arora2018optimization} make use of a key lemma, which they prove\footnote{It is suprising tha they have to prove this on their own.}, namely Lemma 1. Essentially, if $\dot f +  \alpha f = \dot g + \alpha g$ with $\alpha \ge 0$ holds over some interval $I$ and $f(t_0) = g(t_0)$ at some point, then $f=g$ over $I$. Note that this is only needed, if one also uses a weight decay term. 
+\end{itemize}
+\newpage
+
+: $\nabla_L := \nabla_{x_L} \ell$, $\nabla_l := \nabla_{x_l} = W^\top_{l+1} \cdots W^\top_L \nabla$ 
+\item Assume all weight matrices perform gradient descent 
+\item Reduce last two layers $W = W_L W_{L-1}$, then infinetisimally 
+\begin{align}
+\Delta W = W_L \Delta W_{L-1} + \Delta W_L W_{L-1} 
+\end{align}
+\item If we apply this recurively, we will always have $\Delta W_{L-1} = \nabla_{W_{L-1}}$, but the dynamics of $W_L$ may be more complex (as derived from previuos reductions)
+\item Calculations show $\Delta W_L = A \nabla_{W_L} + \nabla_{W_L} B$, where $A,B$ symmetric
+\item But this needs to be composed with the foreward map 
+\end{itemize}
+
+\bibliography{th}
+\bibliographystyle{acm} 
+\end{document}
+
+
+\newpage
+
+
+\noindent Loss function for regression, overparametrized 
+\begin{align}
+\ell(x^\top w-y), \quad w = av, \quad a,y \in \Re, \; \; x,v,w \in \Re^m 
+\end{align}
+Gradients 
+\begin{align}
+\partial_a := \partial_a \ell = v^\top\nabla_w, \quad  \nabla_v := \nabla_v \ell = a \nabla_w, \quad \nabla_w := \nabla_w \ell
+\end{align}
+When the weight vector $v$ is normalized to unit length, $w = av/\|v\|$ (weight vector normalization \cite{salimans2016weight}). The product rule makes things slightly more complicated 
+\begin{align}
+\partial_a = \frac{v^\top }{\| v\|} \nabla_w, \quad 
+\nabla_v  =  \frac{\partial w}{\partial v} \nabla_w
+% = \frac{a }{\| v\|} \nabla_w - \frac{a v^\top \nabla_w}{\|v\|^2}  v = \frac{a}{\| v\|} \left[ \mathbf I - \frac{ v v^\top}{\|v\|} \right] \nabla_w
+\end{align}
+with Jacobi matrix
+\begin{align}
+ \frac{\partial w}{\partial v}  & = \frac{a }{\| v\|} \mathbf I - \frac{a}{\|v\|^2} v \nabla_v \| v\|, \quad \nabla_v \| v\| = \frac{1}{\|v\|} v,  \quad \text{hence}
+\\ & = \frac{a}{\|v\|} \left[ \mathbf I - \frac{1}{\|v\|^2} v v^\top \right] 
+\end{align}
+This is easily interpretable. Note that $v$ and $w$ are colinear, so this projects the gradient $\nabla w$ to the orthogonal complement of the line defined by the current weight vector. Changes in the direction of $w$ are separately controlled by the dynamics of $a$. 
+% 
+\footnote{There is an argument in \cite{salimans2016weight} about why this projection is good. The first argument is about the fact that it strictly increases the norm of the weight vector. I feel this is quite immaterial as the $a$ parameter allows to shrink (or increase) the overall norm, so this is basically a different type of (obvious) separation of effects and not much of a virtue in itself. The second argument is one that argue that the norm increase is larger, if the variance in SGD is higher. But there is no formal justification given for that.}
+%
+
+In \cite{arora2018optimization} the others drop the normalization and investigate over-parameterizations. One can reconstruct (in leading order of $\eta$) the gradient dynamics in original space
+\begin{align}
+w^+ & = a^+ v^+  =  (a -  \eta \partial_a ) (v - \eta \nabla_v )= w - \eta a \nabla_v - \eta \partial_a v + O(\eta^2)
+\\& \approx w - \eta (a \nabla_v  + \partial_a v) = w - \eta ( a^2 \nabla_w  + (v^\top \nabla_w )   v ) 
+\\ & = w - \eta [ a^2 \mathbf I + vv^\top ] \nabla_w 
+\end{align}
+Interpretation: 
+\begin{itemize}
+\item $a^2 \mathbf I$ yields an adaptive learning rate. Schedule is determined by the dynamics of the scalar $a$. If we consider $a$ fixed/slow, then this is the main effect of the reparameterization. 
+\item $v v^\top \nabla_w $ can be thought of in terms of a re-scaling step 
+\begin{align}
+v v^\top \nabla_w = \frac 1 {a^2} (w^\top \nabla_w ) w 
+\end{align}
+This obviously is the term that can be traced back to the derivative of $a$. \cite{arora2018optimization}  call this  a momentum term (one can argue how sensible that is). It seems more sensible to think of this in terms of a de-noising step. If the gradient has a significant overlap with the current estimate, this direction gets further reinforced.  So without normailization, the original gradient direction is maintained and an additional boost is given to the current direction (positive or negative).
+\end{itemize}
+
+One can take the overparameterization idea to the extreme as in \cite{arora2018optimization}  and consider deep linear networks and the gradient dynamics in them form the point of view of data-driven pre-conditioning. Their analysis operates in continuous time and uses ODEs. 
+
+
+
+\end{document}
+
+
+with v = w/a
+
+= w + e a^2 [ I + ww*/a^4 ] dl/dw + O()
+
+in the paper they also indentify the new learning rate as e a^2 (I term)
+the second term derived is a momentum term, proportional to w - can we also do this here?
+obviously, we can move around terms 
+
+1/a^2  w w^* dl/dw
+we can go back to dl/da and get 
+= 1/a dl/da w
+
+
+
+
+Thomas Hofmann, Professor
+Department of Computer Science 
+ETH Zurich 
+thomas.hofmann@inf.ethz.ch\end{document}

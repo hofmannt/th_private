@@ -1,14 +1,137 @@
 \documentclass{article}
-\usepackage{amsmath,amsfonts}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}\usepackage{amsmath,amsfonts,amsthm}
 \usepackage{hyperref}
+
 \newcommand{\E}{{\mathbf E}}
 \newcommand{\mSigma}{{\mathbf \Sigma}}
 \newcommand{\mGamma}{{\mathbf \Gamma}}
 \newcommand{\mI}{{\mathbf I}}
+\newcommand{\bigO}{{\mathbf O}}
+\newtheorem{theorem}{Theorem}
+
 \author{Thomas Hofmann}
 \title{Continuous Time Analysis of \\ Stochastic Gradient Methods}
 \begin{document}
 \maketitle 
+
+\paragraph{Introduction} Stochastic differential equations (SDEs) provide a natural and principled way to extend ordinary differential equations (ODEs) to a stochastic setting. As gradient descent can be thought of as a discretized version of an (ideal) continuous gradient flow, this opens up the possibility to analyze variants of stochastic gradient descent (SGD) via their continuous SDE counterparts. In the simplest case with constant step size, we can think of gradient descent as an approximation via the direct Euler method and similarly SGD as an approximation via the Euler-Maruyama method.
+
+\paragraph{Solutions of SDEs} The first concern about SDEs is usually to ensure existence and uniqueness of a well-behaved solution. In this context, we call $X: [0;T] \times \Omega \to \Re^d$ well behaved if it is (i) a.s.~continuous in the first argument, (ii) adapted to the natural filtration, and fulfills (iii) $\E  \int_{[0:T]} \| X(t,\omega)\|^2 dt< \infty$. The basic result can be formulated as in ({\O}ksendal, Theorem 5.2.1) by assuming two main conditions: a Lipschitz condition and a linear growth condition.
+\begin{align*}
+\text{(A1):} \; & \max\{\| b(t, x) -b(t, y) \|,\| \sigma(t, x) -\sigma(t, y)\|_F\} \le  L\|x-y\|, ; \forall x, y, \; t \in [0, T]\\
+\text{(A2):} \; &  \max\{\| b(t, x) \|, \| \sigma(t, x) \|_F\} \le K (1 + \| x\|), \; \forall x, \; t \in [0;T]
+\end{align*}
+
+\begin{theorem} For any measurable $b$ and $\sigma$ satisfying (A1) \& (A2), the SDE 
+\begin{align}
+dX(t)  = b(t,X(t)) + \sigma(t,X(t)) \; dB(t)
+\label{eq:sde}
+\end{align}
+with randomized initial conditions $X(0) = Z$, s.t.~$\E\|[Z\|^2] < \infty$, has a unique solution and it is well-behaved.
+\end{theorem}
+
+\paragraph{Drift} 
+In our context, the drift term will be a scaled gradient field $b(t,x) = \eta(t) \nabla f(x)$ with bounded rate $0<\eta(t) \le h$. (A1) is then implied by a (commonly made) Lipschitz condition on $\nabla f$ with constant $L' = L/h$, i.e.
+\begin{align}
+\| b(t,x) - b(t,y) \|  = \eta(t) \| \nabla f(x) - \nabla f(y) \| \le h L' =: L 
+\end{align}
+Note also that by the reverse triangle inequality
+\begin{align}
+L' \| x\| \ge \| \nabla f(x) - \nabla f(\mathbf 0) \| \ge |  \| \nabla f(x)\| - \| \nabla f(\mathbf 0) \| |
+\end{align}
+and hence (A2) is also implied with $K := \max\{L,h \| \nabla f(\mathbf 0)\| \}$ as
+\begin{align}
+\| b(t,x) \| \le h \| \nabla f(x)\| \le L \| x\| +  h \| \nabla f(\mathbf 0)\| \le K (1+\|x\|)\,.
+\end{align}
+
+
+\paragraph{Diffusion} The handling of the diffusion term is more complex, dependent on the variant of SGD that we want to study through the lense of SDEs. Let us define the sample covariance matrix of the gradient 
+\begin{align} 
+\mSigma(x) = \frac 1n \sum_{i=1}^n g_i(x) g_i(x)^\top, \quad g_i(x) := \nabla f_i(x) - \nabla f(x)
+\end{align}
+Generally the distribution of $g_i(x)$ will not be Gaussian (surely not in the finite sample case), however, here we assume that -- for the purpose of analysis -- it is. We can thus set $\sigma(t,x) = \sqrt{\eta(t)} \mathbf U(x)$, $\mathbf U(x) := \sqrt{\mSigma(x)}$ and stay within the family in Eq.~\eqref{eq:sde} as time differences of a Wiener process follow a  Gaussian distribution. Note that by the vector norm interpretation of the Frobenius norm 
+\begin{align}
+\| \mathbf U \|^2_F = \text{Tr}(\mathbf U \mathbf U^\top) = \text{Tr}(\mSigma) = \E \| g_i\|^2 = \E \| \nabla f_i\|^2  - \| \nabla f\|^2 \,.
+\end{align}
+
+\newpage
+Thus, it is natural to require a bound $R$ on the right-hand side\footnote{E.g.~by requiring Lipschitz conditions for each $\nabla f_i$  and not just $\nabla f$.} 
+\newpage
+
+absolute scalability and 
+
+
+
+
+
+
+
+\section{Basics \& Foundations} 
+
+\paragraph*{Gradient Ascent} We are interested in the analysis of gradient methods over some (twice) differentiable potential function $f$. In the continuous time domain we can define a gradient vector field $g := \nabla f$ and a corresponding gradient flow as the solution to an ordinary differential equation (ODE) with initial condition $X(0) = X_0$.  In discrete time, we can chose a step size $h$ and perform gradient ascent. We get, respectively,  
+\begin{align}
+\dot X = g(X), \qquad X_{n+1}  = X_n + h \, g(X_n) \,.
+\end{align}
+The two evolution equations are related by matching time via $t = hn$ and the forward difference approximation  
+\begin{align}
+(g \circ X)(t) = \dot X(t) \approx \frac 1h \left[ X(t+h) - X(t) \right] \,.
+\label{eq:forward-diff}
+\end{align}
+Iterative gradient ascent can thus be thought of as an integration method for the gradient flow ODE, namely Euler's (direct) method. 
+
+\paragraph*{Direct Euler Method} 
+Let us perform some error analysis of the Euler method, focussing, for ease of presentation, on the one-dimensional case (i.e.~equations are to be read componentwise). Using the approximation Eq.~\eqref{eq:forward-diff} leads to a truncation error, which can be determined via Taylor expansion
+\begin{align}
+X(t+h) = X(t) + h \dot X(t) + \frac{h^2}{2} \ddot X(\tau), \quad \tau \in [t; t+h]\,.
+\end{align}
+If $|\ddot X(\tau)| \le K$ is bounded over the relevant interval, then the truncation error is $\bigO(h^2)$. However, the truncation error measures only the error introduced by a single step. We are intereted in understanding the accumulated error $e_{n} := X(hn) - X_n$. One can use the mean-value theorem to yield the following insight on how the gradients differ:
+\begin{align}
+(g \circ X)(hn) - g(X_n) =  g'(\zeta_n) \, e_n  , \quad \zeta_n \in [X(hn) ;X_n] 
+\end{align}
+From this one can immediately derive a recurrence relation.
+\begin{align}
+e_{n+1} = \left[ 1 + h  g'(\zeta_n) \right]   e_n  + \frac{h^2}{2} \ddot X(\xi_n)
+\end{align}
+In order to turn this into a bound to hold over some time interval $[0; T]$, one needs to assume a bound on $g'$, which can be done by requiring a Lipschitz condition $|g'(X+h) - g'(X)| \le hL$ to hold over the relevant domain. Then define $r := 1+hL$, 
+\begin{align}
+e_{n} \le r e_{n-1} + \tfrac12 h^2 K  = \tfrac 12  h^2 K \sum_{m=0}^{n-1} r^m = \tfrac 12  h^2 K \frac{r^n-1}{r-1} 
+=\frac {hK}{2L} (r^{n}-1)
+\end{align}
+For convenience, we can soften this bound $r\le e^{hL}$ and arrive at  (cf.~Butcher 2008, Theorem 2.4) 
+\begin{align}
+e_{n}  \le (e^{nhL}-1)\, \frac {hK}{2L} \,.
+\end{align}
+
+\paragraph*{Stochastic Methods} Stochastic gradient ascent is a power horse for optimization in machine learning. Abstractly, we assume that we have access to a noisy, but unbiased version $G(X)$ of the gradient. 
+
+\newpage
+
+
+
+A typical form of a SDE is 
+\begin{align}
+dX = b(X,t) dt + \sigma(X,t) dW(t)\,,
+\end{align}
+where $W$ is a Wiener process. 
+
+
+
+
+\newpage
+
+\newpage
+As an SDE is pertrubed ODE, it is natural to generalize ODE methods such as the Euler method to SDEs. This is sometimes called the Euler-Maruyama method. Let us fix initial conditions $X(0) = x_0$, a time horizon $T$ and the number of steps $N$, such that time gets discretized in increments of $\Delta t = T/N$. The Euler-Maruyama method then approximates $X$ by the Markov chain 
+\begin{align}
+x_{n+1} = x_n + b(x_n) \Delta t   + \sigma(x_n) \Delta W_n, \quad \Delta W_{n}=W_{(n+1)\Delta t}-W_{n \Delta t}
+\label{eq:euler}
+\end{align} 
+where $\Delta W_n \sim \mathcal N(\mathbf 0, \Delta t)$, so that $\Delta W_n/ \sqrt{\Delta t}$ is a standard normal. For the constant step size case $\eta = \eta_n$, we can identify $\eta = \Delta t$, such that $b = \nabla f$ is the gradient field. In order to match Eq.~\eqref{eq:sgd-perturbed} with \eqref{eq:euler}  we get 
+\begin{align}
+\Delta t \cdot \Gamma(x_n) = \sqrt{\Delta t} \cdot \sigma(x_n)  \Rightarrow \Gamma(x_n)  = \frac{\sigma(x_n)}{\sqrt{\Delta t}}
+\end{align}
+If the step-size sequence is variable, then can still fix $\Delta t$ and define step sizes in that unit, i.e.~$\eta_n = \epsilon_n \Delta t$. $\epsilon_n$ now becomes a sequence of gains in the SDE. \\
+
 
 Stochastic Gradient Descent (SGD) can be thought of in terms of a perturbed gradient descent method
 \begin{align}
@@ -22,7 +145,6 @@ with a  $Z$-score normalization: $\E[Z_n]=\mathbf 0$, $\E[Z_n^2]=\mI$. For the a
 We want to think of the  stochastic process in Eq.~\eqref{eq:sgd-perturbed} as a discretization of a Stochastic Differential Equation (SDE), which can be written 
 \begin{align}
 dX = b(X,t) dt + \sigma(X,t) dW(t)\,,
-\label{eq:sde}
 \end{align}
 where $W$ is a Wiener process. As an SDE is pertrubed ODE, it is natural to generalize ODE methods such as the Euler method to SDEs. This is sometimes called the Euler-Maruyama method. Let us fix initial conditions $X(0) = x_0$, a time horizon $T$ and the number of steps $N$, such that time gets discretized in increments of $\Delta t = T/N$. The Euler-Maruyama method then approximates $X$ by the Markov chain 
 \begin{align}

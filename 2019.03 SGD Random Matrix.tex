@@ -1,0 +1,482 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{amssymb,hyperref}
+
+\newcommand{\E}{{\mathbf E}}
+\newcommand{\mSigma}{{\mathbf \Sigma}}
+\newcommand{\mGamma}{{\mathbf \Gamma}}
+\newcommand{\mI}{{\mathbf I}}
+\newcommand{\mD}{{\mathbf D}}
+\newcommand{\mR}{{\mathbf R}}
+\newcommand{\mC}{{\mathbf C}}
+\newcommand{\mS}{{\mathbf S}}
+\newcommand{\mB}{{\mathbf B}}
+\newcommand{\mG}{{\mathbf G}}
+\newcommand{\mU}{{\mathbf U}}
+\newcommand{\mLambda}{{\boldsymbol \Lambda}}
+\newcommand{\bigO}{{\mathbf O}}
+\newtheorem{theorem}{Theorem}
+\newcommand{\is}[1]{\setlength{\itemsep}{#1}}
+
+
+\author{Hadi Daneshmand, Thomas Hofmann}
+\title{Accelerating SGD}
+\begin{document}
+\maketitle 
+\begin{enumerate} \is{4mm}
+\item Linear regression
+\begin{itemize} \is{2mm}
+\item $z=(x,y)$, $x,w\in \Re^m$,
+\begin{align}
+f(w) = \E f_{z}(w), \quad f_{z} = \frac 12 (y - x^\top w)^2
+\end{align}
+\item Realizable case: $w_* = \arg\min_w f(w)$, then $w^\top_* x = y$, $f(w_*)=0$ 
+\item Stochastic gradient and full gradient 
+\begin{align}
+\nabla f_{z}(w) = x x^\top w - y x, \quad \nabla f(w)= \E f_z(w) =  \mS w - \rho,
+\end{align}
+with $\mS:=\E xx^\top$, $\rho := \E yx$. 
+\end{itemize}
+\item Gradient Descent 
+\begin{itemize}  \is{2mm}
+\item Gradient descent iterates 
+\begin{align}
+w_{n+1} = \mathcal G w_n := w_n - \eta (\mS w_n -\rho), \quad \eta >0\,.
+\end{align}
+\item Matrix equation in homogeneous coordinates
+\begin{align}
+\tilde w_{n+1} := \begin{pmatrix} w_{n+1} \\ 1 \end{pmatrix} 
+=  
+\begin{pmatrix} \mI - \eta \mS & - \eta \rho  \\   \mathbf 0 & 1 \end{pmatrix} 
+\begin{pmatrix} w_{n} \\ 1 \end{pmatrix} 
+= : 
+\mathbf G \tilde w_n 
+\end{align}
+\item Gradient descent operator 
+\begin{align}
+\mathcal G (v- w) = & (v -w) - \eta (\nabla f(v) - \nabla f(w)) = \left[ \mI - \eta \nabla^2 f(\nu) \right]  (v-w) \nonumber \\
+& \text{where $\nu \in \text{conv}\{v,w\}$}\,.
+\end{align}
+\item Typical assumption: global sandwich condition on  Hessian, i.e.~
+\begin{align}
+L \mI \preceq \nabla^2 f \preceq U \mI.
+\end{align}
+Implies globally optimal step size and contraction factor. 
+\begin{align}
+& \eta^* U - 1 \stackrel != 1 - \eta^* L \iff \eta^* = \frac{2}{U+L}, \quad \rho^* = \frac{U-L}{U+L} 
+\end{align}
+\item Interpretation:(i) iterate sequence will forget its inital state exponentially fast, (ii) pairwise distances shrink by at least $\rho$ per step, (iii) iterates will approach a unique fixpoint $\mathcal G w_* = w_*$.
+\end{itemize}
+\item Accelerated Gradient Descent (largely following  \cite[Section VI]{jung2017fixed} 
+\begin{itemize}\is{2mm}
+\item Heavy ball method (momentum) 
+\begin{align}
+w_{n+1} = w_n - \eta \nabla f(w_n) + \beta (w_n - w_{n-1})
+\end{align}
+\item Augment state space by interleaving coordinates 
+\begin{align}
+v_{n+1} = (w_{n+1,1}, w_{n,1}, \dots, w_{n+1,m}, w_{n,m})^\top \in \Re^{2m} 
+\end{align}
+\item Linear operator view: $v_{n+1}  = \mG \,v$
+\begin{align}
+\mG &= \text{block-diag}(\mB_i), \;\;  \mB_i := \begin{pmatrix} \delta+\beta  & -\beta \\ 1 & 0 \end{pmatrix}, \; \delta :=1- \eta \sigma_i^2<1
+\end{align}
+\item Limiting case of small step sizes $\eta \to 0$, $\delta \to 1$, $\beta \to 1$
+\begin{align}
+\bar \mB = \begin{pmatrix} 2 & -1 \\ 1 & 0 \end{pmatrix} = \mU \; \text{diag}\left(\sqrt 2 +1, \sqrt{2}-1 \right)\; \mathbf V^\top 
+\end{align}
+Eigendecomnposition 
+\begin{align}
+t^2 - 3t + 1 \stackrel != 0 
+\end{align}
+\item Need to understand spectral radius of matrices  of above structure. Characteristic polynomial 
+\begin{align}
+& t^2 - \text{trace}(\mB) \; t+ \text{det}(\mB) = t^2 - (\beta+ \delta)  t + \beta \stackrel != 0 \\
+\Longrightarrow\; & 2t = \beta+\delta \pm \sqrt{ (\beta + \delta)^2 -4\beta }
+\end{align}
+Solutions for the (relevant) case of $\beta$ large enough, i.e.~$\delta < \beta <1$, where the root is imaginary 
+\begin{align}
+\;\; \Longrightarrow \;\; |t| = \sqrt{ (\delta+\beta)^2 - (\delta + \beta)^2 + \beta} =  \sqrt \beta=\rho(\mB)\,.
+\end{align}
+Note that this does not depend on $\delta$ (i.e.~$\eta$ and $\sigma^2$) other than through the lower bound on $\beta$. 
+\item Eigenvalues
+\begin{align}
+\lambda_{1/2}= \frac{\delta + \beta}{2} \pm i \sqrt{\beta - \frac{(\delta + \beta)^2}4}
+\end{align}
+Note that $(r+ia)(r-ia) = r^2 + a^2$ so that $\lambda_1 \lambda_2  = \beta$ and $\lambda_1 \neq \lambda_2$.  Also note that $\lambda_1 +\lambda_2 = \delta + \beta$. 
+\item 
+Eigenvectors and diagonalization 
+\begin{align}
+& [\mB - \lambda_{1} \mI] v = 
+\begin{pmatrix} 
+\lambda_{2} & -\beta \\ 1 & - \lambda_{1}&  
+\end{pmatrix} v 
+\stackrel != 0 \;  \Longrightarrow \;   v_1 = \lambda_{1} v_2,\;  v_2 = \Re\\
+& [\mB - \lambda_{2} \mI] v = 
+\begin{pmatrix} 
+\lambda_{1} & -\beta \\ 1 & - \lambda_{2}&  
+\end{pmatrix} v 
+\stackrel != 0 \; \Longrightarrow \; v_1 = \lambda_{2} v_2, \; v_2 = \Re
+\end{align}
+For instance we may chose $u_{1/2} = (\lambda_{1/2}, 1)^\top$ and finally $\mU := [u_1 u_2]$. Check eigenvector conditions
+\begin{align}
+\mB (\lambda_1,1)^\top & = ((\delta+\beta)\lambda_1 - \beta, \lambda_1 )^\top = \lambda_1 (a,1)^\top, \\
+a & = \delta + \beta - \lambda_2 = \lambda_1 \quad \text{(ok)}
+\end{align}
+Inverse and diagonalization
+\begin{align}
+\mU^{-1} & = \frac{1}{\lambda_1-\lambda_2} \begin{pmatrix} 1 & -\lambda_2 \\ -1 & \lambda_1\end{pmatrix}, \quad 
+\mB = \mU^{-1} \, \text{diag}(\lambda_1,\lambda_2) \, \mU
+%& = \mU^{-1}  \begin{pmatrix} \delta+\beta  & -\beta \\ 1 & 0 \end{pmatrix} \begin{pmatrix} \lambda_1 & \lambda_2 \\ 1 & 1 \end{pmatrix} \\
+%& = \frac{1}{\lambda_1-\lambda_2} \begin{pmatrix} 1 & -\lambda_2 \\ -1 & \lambda_1\end{pmatrix} \begin{pmatrix} (\delta+\beta)\lambda_1 - \beta  & (\delta+\beta)\lambda_2-\beta \\ \lambda_1 & \lambda_2 \end{pmatrix} \\
+%& =
+\end{align}
+Note that this representation makes it easy to compute powers of $\mB$,
+\begin{align}
+\mB^n = (\mU^{-1} \, \text{diag}(\lambda_1,\lambda_2) \, \mU)^n = \mU^{-1} \, \text{diag}(\lambda_1^n,\lambda_2^n) \, \mU
+\end{align}
+Note that $|\lambda_{1/2}|^n = \beta^{n/2}$. 
+\item Singular Value Decomposition (symbolic result\footnote{https://www.lucidar.me/en/mathematics/singular-value-decomposition-of-a-2x2-matrix/})  with rotation matrices $\mR$
+\begin{align}
+\mB = \mR(\theta)  \; \mSigma \; \mR(\phi)
+\end{align}
+Compute 
+\begin{align}
+S_1 & = (\delta + \beta)^2 + \beta^2 + 1 \le  5 \beta^2 +1 < 6 \\
+S_2 & = \sqrt{((\delta+\beta)^2 + \beta^2 - 1)^2 + 4 ( \delta + \beta)^2} \\
+& \le \sqrt{ (5\beta^2 -1)^2+ 16 \beta^2} \\
+& = 25 \beta^4 + 6 \beta^2 +1 < \sqrt{32}
+%& = \sqrt{(\delta+\beta)^4 + 2 (\delta+\beta)^2 + 2 \beta^2 (\delta+\beta)^2 - 2 \beta^2 +1}\\
+%&= \sqrt{((\delta+\beta)^2 +1)^2 + 2\beta^2 ((\delta+\beta)^2-1)}
+\end{align}
+Approximation $\beta = \delta$. 
+\begin{align}
+\sqrt{(5\beta^2-1)^2 + 16 \beta^2} = \sqrt{25 \beta^4 + 6 \beta^2 +1}
+\end{align}
+\newpage
+and then singular values are given by
+\begin{align}
+\sigma_1 = \sqrt{\frac{S_1+S_2}{2}}, \quad \sigma_2 = \sqrt{\frac{S_1- S_2}{2}}
+\end{align}
+
+\newpage
+\begin{align}
+\mU^{-1} & = \frac{1}{\lambda_1-\lambda_2} \begin{pmatrix} 1 & -\lambda_2 \\ -1 & \lambda_1\end{pmatrix}\\
+ \mU^{-1} \mB \mU 
+& = \mU^{-1}  \begin{pmatrix} \delta+\beta  & -\beta \\ 1 & 0 \end{pmatrix} \begin{pmatrix} \lambda_1 & \lambda_2 \\ 1 & 1 \end{pmatrix} \\
+& = \frac{1}{\lambda_1-\lambda_2} \begin{pmatrix} 1 & -\lambda_2 \\ -1 & \lambda_1\end{pmatrix} \begin{pmatrix} (\delta+\beta)\lambda_1 - \beta  & (\delta+\beta)\lambda_2-\beta \\ \lambda_1 & \lambda_2 \end{pmatrix} \\
+& =
+\end{align}
+\item Symmetrization
+\begin{align}
+\mB \mB^\top 
+= \begin{pmatrix} a  & b \\ 1 & 0 \end{pmatrix} \begin{pmatrix} a  & 1 \\ b & 0 \end{pmatrix} 
+= \begin{pmatrix} a^2 + b^2 & a \\ a & 1\end{pmatrix}
+\end{align}
+Eigenvalues 
+\begin{align}
+& t^2  - t (a^2 + b^2 + 1) + b^2 \stackrel !=0, \;
+\\
+& 2 t = a^2+b^2+1 \pm \sqrt{(a^2+b^2+1)^2- 4b^2}
+\end{align}
+\newpage
+
+\item 
+In order to study powers of matrices $\mB$, one can use \cite[Lemma 8]{jung2017fixed} (which in turn makes use of \cite[Lemma 7.1.2]{golub2012matrix}).
+\begin{align}
+\mB & = \begin{pmatrix} a & b \\ 0 & 1 \end{pmatrix} 
+=  \mU \begin{pmatrix} \lambda_1 & d_1 \\ 0 & \lambda_2  \end{pmatrix} \mU^H, \; |\lambda_1| = \rho(\mB),
+\end{align}
+where $d_1 := u_{11} (u_{21} a + u_{12} b) + u_{11} u_{22}$, so that $|d_1| \le |a| + |b| +1$.
+Note that powers of $\mB$ are given by 
+\begin{align}
+\mB^k = \mU \begin{pmatrix} \lambda_1^k & d_k  \\ 0 & \lambda_2^k \end{pmatrix} \mU^H, \quad |d_k| \le k |d_1| |\lambda_1|^{k-1}
+\end{align}
+as can be easily checked by induction. 
+\item We are intersted in the spectral norm of $\mB$,
+\begin{align}
+\| \mB\|_2 = \sqrt{\lambda_{\max}((\mB^k)^H \mB^k)}
+\end{align}
+\item Connecting with the above result, we have $|\lambda_2| \le |\lambda_1| \le \sqrt{\beta}$ and we get 
+\begin{align}
+|d_k| \le k (2+2\beta+ \eta \sigma^2)\beta^{\frac{k-1}{2}}
+\end{align}
+\end{itemize}
+
+\newpage
+
+\item SGD Analysis: Setup
+\begin{itemize}
+\item SGD involves random operators selected via sampling $z=(x,y) \sim P$
+\begin{align}
+\mG_{z} = \begin{pmatrix} \mI - \eta xx^\top & - \eta y x  \\   \mathbf 0 & 1 \end{pmatrix}, \quad \E[\mG_{z}] = \mG 
+\label{eq:homo-coord}
+\end{align}
+\item The SGD iterate sequence starting at $w_0$ and driven by the sample sequence $(z_1, z_2, \dots)$ thus evolves as
+\begin{align}
+w_{n} = \mG_{z_n} w_{n-1} =: \left[ \prod_{k=1}^n \mG_{k} \right] w_{0} =: \mG_{n:1} w_0
+\end{align}
+\item The realizable case $x^\top w_* = y$ leads to a simplification
+\begin{align}
+\mG_{z} w_* = w_* - \eta \left(x^\top w_* - y \right)x = w_*,
+\end{align}
+i.e.~$w_*$ is a fixed point for all operators $\mG_z$. We will focus on this, in which case we do not have to homogenize coordinates as in Eq.~\eqref{eq:homo-coord}, but can simply work with $\mG_z = \mG_x = \mI - \eta xx^\top$. 
+\item 
+We will assume (wlog for the purpose of analysis) that $\mS$ is diagonal. i.e.~represent data in the eigenbasis of $\mS$,
+\begin{align}
+\mS = \text{diag}(\sigma_1^2, \dots, \sigma_m^2)
+\end{align} 
+\item  The goal then is to study the recurrence of the squared  error 
+\begin{align}
+\| \Delta w_n \|^2= \Delta w_{n-1}^\top \mG_n^2 \Delta w_{n-1}
+= \Delta w_0 \mG_{1:n} \mG_{n:1} \Delta w_0
+\,.
+\end{align}
+\end{itemize}
+\item SGD Analysis: Recurrence 
+\begin{itemize}
+\item One relevant quantity is the expectation
+\begin{align}
+\E_{x_1:x_n}[\mG_{1:n} \mG_{n:1} ] = \E_{x_1:x_{n-1}} [ \mG_{1:n-1} \E[\mG_x^\top \mG_x] \mG_{n-1:1} ]
+\end{align}
+Note that 
+\begin{align}
+\mG_x^\top \mG_x = (\mI - \eta x x^\top)^2  
+& = \mI - 2 \eta x x^\top  + \eta^2 x x^\top x x^\top 
+% \\& = \mI - 2\eta xx^\top + \eta^2 \| x\| x x^\top
+\end{align}
+\item We can split $\mG_x$ to separate out the non-stochastic effect 
+\begin{align}
+\mG_x & = \mG + \Delta_x, \quad \mG :=  \mI - \eta \mS, \quad \Delta_x := \eta (\mS - x x^\top)\\
+\mG^2 & = \mG^\top \mG  =  \mI - 2 \eta \mS  + \eta^2 \mS^2 \\
+\E\left[ \mG_x^\top \mG_x \right] & = \mG^2 + \E\Delta_x^2 = \mG^2 +  \eta^2 (\E[xx^\top xx^\top] -\mS^2 ) 
+\end{align}
+\item Expanding, we get 
+\begin{align}
+\E\left[ x x^\top x x^\top\right]_{ij}
+&  = \E\left[ \left( \sum_{k \neq i,j}x_k^2  + \frac{x_i^2 + x_j^2}{1+\delta_{ij}}\right) x_i x_j \right]  \\
+& = \E \left[ x_i x_j \right] \E \left[\sum_{k \neq i,j} \ x_k^2 \right] + \E \left[ \frac{x_i^3 x_j + x_j^3 x_i}{1+\delta_{ij}} \right] \\
+& = 
+\begin{cases} 
+	\E[x_i^4] + \sigma_i^2 \sum_{k \neq i} \sigma_k^2  & \text{i=j} \\
+	\E \left[ x_i^3 x_j \right] + \E\left[ x_j^3 x_i \right] & \text{otherwise}
+\end{cases}
+\end{align}
+\item Let us look at the special case of normal input distributions, in which case $\E[x_i x_j]=0$ implies independence and $\E[x_i^4] = 3 \E[x_i^2]^2$, so that we get  a diagonal matrix
+\begin{align}
+\E\left[ x x^\top x x^\top\right] = 2\mS^2  + \text{trace}(\mS) \mS
+\end{align}
+and 
+\begin{align}
+\E\left[ \mG_x^\top \mG_x \right] & = \mG^2 + \eta^2 ( \mS  + \text{trace}(\mS) \mI) \mS
+\end{align}
+%
+\item We can see the following: (i) for very small set-sizes  $\eta \gg \eta^2$, the stochastic part becomes irrelevant, (ii) We move from $\eta^2 \mS^2$ for gradient descent to $2 \eta^2 \mS^2$. And most importantly (iii) we get an additional contribution in $\mS$ that scales with the trace of $\mS$. Note that the relevant quantity here is the numercial rank
+\begin{align}
+r(\mS) = \frac{\text{trace}(\mS)}{\sigma_1^2} \geq 1, \quad \sigma_1^2 = \| \mS\|_2\,.
+\end{align}
+If $r(\mS)$ is small, the penalty relative to gradient descent is small (essentially a small factor in step size reduction). However, if $r(\mS)$ is at the large end $r(\mS) \le m \| \mS\|_2$, the slow down can be as bad as proportional to the input space dimensionality. 
+\item Note that for any diagonal $\mD$ we get 
+\begin{align}
+\E[xx^\top \mD xx^\top] & = \E\left[ x_i x_j  \sum_{k} d_k x^2_k  \right]_{ij} 
+% \\& =  \sum_k d_k \E\left[ x_i x_k^2 x_j  \right]_{ij}
+= \mD\E\left[ xx^\top xx^\top \right]
+\end{align}
+so that we can commute matrices to get
+\begin{align}
+\E[\mG_{1:n} \mG_{n:1}] =( \mG^2 + \eta^2 \mS^2  + \eta^2 \text{trace}(\mS) \mS)^n
+\end{align}
+\item {[TH: It would be interesting, if one could make a statement about the optimal mini-batch size. One would hope that an analysis in the simplest possible case -- like above -- would yield an optimal trade-off and batch size. For instance, how does the batch size relate to the numerical rank]}
+\end{itemize}
+\item Accelerated SGD
+\begin{itemize}
+\item In the accelerated gradient descent setting, we have updates of the form 
+\begin{align}
+w_{n+1} = w_n -  \eta \nabla f_{z_n}(w_n  + \underbrace{\alpha (w_n - w_{n-1}))}_{\text{extraploation}} + \underbrace{\beta (w_n - w_{n-1})}_{\text{momentum}}
+\end{align}
+\item We can double the state space and get 
+\begin{align}
+\begin{pmatrix}  w_{n+1} \\ w_n \end{pmatrix} & = \mG_{x_{n+1}} \begin{pmatrix} w_{n} \\ w_{n-1} \end{pmatrix}, \quad \text{with} \\
+\mG_x & = 
+\begin{pmatrix} 
+	(1+\beta) \mI - \eta (1+\alpha)  xx^\top & \eta \alpha x x^\top - \beta \mI 
+	\\
+	\mI & \mathbf 0
+\end{pmatrix}
+\end{align}
+\item As before, let us inspect $\mG_x^\top \mG_x$ (note $\mG_x$ is no longer symmetric). We start by looking at the (full) gradient version by setting $xx^\top = \mS$.
+\begin{align}
+\mG^\top \mG & =   \begin{pmatrix}
+\mG_{11} & \mG_{12} \\
+\mG_{21} & \mG_{22} 
+\end{pmatrix} \\
+\mG_{11} & = 1 + (1+\beta)^2 \mI -2 \eta (1+\beta)(1+\alpha)  \mS + \eta^2 (1+\alpha)^2 \mS^2 \\
+\mG_{22} & = \beta^2 \mI -2 \eta \alpha \beta \mS + \eta^2\alpha^2 \mS^2 \\  
+\mG_{12} & = \mG_{21} = - \beta(1+\beta) \mI +  \eta(\alpha + \beta + 2\alpha \beta) \mS - \eta^2 \alpha (1+\alpha) \mS^2
+\end{align}
+\item 
+The stochastic part is 
+\begin{align}
+\Delta_x = \begin{pmatrix}
+-\eta (1+\alpha) (xx^\top -\mS) & b \\ c & d 
+\end{pmatrix} \\
+\end{align}
+\end{itemize}
+
+\end{enumerate}
+
+\bibliographystyle{acm}
+\bibliography{th}
+
+\end{document}
+\newpage
+
+
+\item Let us aim at cases, where $\E[\mG_x \mD \mG_x]$ is diagonal for any diagonal $\mD$ (given that $\mS$ is). Expanding, we get 
+\begin{align}
+\E[\mG_x\mD\mG_x] = \mD - 2\eta \mD \mS + \eta^2 \E\left[ x x^\top \mD x x^\top\right]
+\end{align}
+where further 
+\begin{align}
+\E\left[ x x^\top \mD x x^\top\right]_{ij} % & = \E[\langle x, \mD x \rangle x_{i} x_j ] \\ 
+&  = \E\left[ \left( \sum_{k \neq i,j} \lambda_k x_k^2  + \frac{\lambda_i x_i^2 + \lambda_j x_j^2}{1+\delta_{ij}}\right) x_i x_j \right] \nonumber \\
+& = \E \left[ x_i x_j \right] \E \left[\sum_{k \neq i,j} \lambda_k x_k^2 \right] + \E \left[ \frac{\lambda_i x_i^3 x_j + \lambda_j x_j^3 x_i}{1+\delta_{ij}} \right] \nonumber \\
+& = 
+\begin{cases} 
+	\lambda _i \E[x_i^4] + \sigma_i^2 \sum_{k \neq i} \lambda_k \sigma_k^2  & \text{i=j} \\
+	\lambda_i \E \left[ x_i^3 x_j \right] + \lambda_j \E\left[ x_j^3 x_i \right] & \text{otherwise}
+\end{cases}
+\end{align}
+
+CALCULATION
+\begin{align}
+A D A = A \sum_{i} 
+\end{align}
+
+
+
+
+
+\item Note that by submultiplicativity
+\begin{align}
+\| \Delta w_n\| \le \| \mR_{1}^n \|_2 \, \| \Delta w_0\|\,,
+\end{align}
+
+
+so that the goal is how to control the spectral norm of $\mR_1^n$.  
+\begin{itemize}
+\item We start with the observation that (in multiset notation)
+\begin{align}
+\lambda\{ \mR_1^1\}= \lambda\{ \mI - \eta xx^\top\} = \{1- \eta \|x\|^2 ,1,\dots,1\}
+\end{align}
+as $xx^\top$ has rank $\le 1$ and  $\text{ker}(x x^\top) \supseteq (ax)^\perp$. So $\| \mR^n_1\|_2= 1$ as long as $n<m$.
+
+\newpage
+\item Let us assume that $n \ge m$ and that the samples span (whp) all of $\Re^m$.  Look at the expectation of the spectrum operators $\lambda_* \in \{\lambda_{\min},\lambda_{\max}\}$, i.e.
+\begin{align}
+\E \lambda_*(\mR_1^n) = 
+\end{align}
+
+\newpage
+% enerally  we get in a small step-size analysis
+\begin{align}
+\mR_1^n = \mI - \eta \sum_{k=1}^n x_k x_k^\top + \mathbf O(\eta^2) = \mI - \eta n \mS_n + \mathbf O(\eta^2)
+\end{align}
+where $\mS_n$ is the sample covariance of the drawn $n$ sample. Consider the numerical rank 
+\begin{align}
+r(\mS) = \frac{(\E \|x\|)^2}{\|\mS\|_2}
+\end{align}
+which under certain conditions (Gaussian inputs) appears in bounds like 
+\begin{align}
+\E \| \mS_n - \mS \| _2  \approx  \| \mS\|_2  \left( \frac{r(\mS)}{n} \vee \sqrt{\frac{r(\mS)}{n}} \right)
+\end{align}
+So na\"ively it seems that one could get
+\begin{align}
+\| \mS_n \|_2 \lesssim \left( 1 + \frac{\sqrt r(\mS)}{n} \right) \|\mS\|_2
+\end{align}
+\item
+x
+\end{itemize}
+\end{enumerate}
+
+a
+\begin{align}
+(\mI - \eta x_1x_1^\top) (\mI - \eta x_2x_2^\top) = \mI - \eta (x_1 x_1^\top + x_2 x_2^\top) +\eta^2  (x_1 x_1^\top)(x_2 x_2^\top) 
+\end{align}
+\item General case
+\begin{align}
+\E \mR_1^n = \mI - \eta n \mS + (\eta n)^2 \mS^2 + \dots = \sum_{k=0}^n (-\eta n \mS)^k 
+\end{align}
+\end{itemize}
+
+\newpage
+
+Assume (wlog for the analysis) that the data has been whitened. $\mS = \text{diag}(\sigma_1^2,\dots,\sigma_m^2)$. Then 
+
+\newpage
+
+In expectation over the choice of $z_n$, we get 
+\begin{align}
+\E \| \mR_1^n\|_2 = \E \mG_z \mR_1^{n-1} = \mG \mR_1^{n-1} = \dots = \mG^n
+\end{align}
+
+
+\newpage
+
+
+
+\item Convergence in parameters, by submultiplicativity, with $\mR^{n:1} := \mR_n \cdots \mR_1$
+\begin{align}
+\| \Delta w_{n} \|^2 = (\mR^{n:1} \Delta w_0)^\top \ \mR^{n:1} \Delta w_0 \le \| \mR^{1:n} \mR^{n:1} \|_2 \cdot \| \Delta w_0\|^2, \quad 
+\end{align}
+Work with transpose as it has a recurrence
+\begin{align}
+\mC_n := \mR^{n:1} \mR^{1:n} = \mR_n \mC_{n-1} \mR_n
+\end{align}
+\item Question: can we control the spectral norm of $\mC_n$ in expectation\footnote{One has to consider controlling the variance as well as otherwise this analysis will be relatively weak.}?  Define $\mS := \E xx^\top$ and consider the last sample (i.i.d.)
+\begin{align}
+\E\mC_n = \mC_{n-1} - \eta [ \mS \,\mC_{n-1} + \mC_{n-1} \, \mS] + \eta^2 \E[x x^\top \mC_{n-1} x x^\top ]
+\end{align}
+In order to deal with $4$-th order moments, we make a Gaussian assumption, i.e.~$x \sim \mathcal N(0, \mS)$. One can then use the identity 
+\begin{align}
+\E\left[ x x^\top \mC \, x x^\top \right] = 2 \mS \mC \mS  + \langle \mS, \mC\rangle \mS
+\end{align}
+to get 
+\begin{align}
+\E\mC_n = (\mI - \eta \mS) \mC (\mI - \eta \mS) + \eta^2\left[ \mS \mC \mS  + \langle \mS, \mC\rangle \mS \right], \; \mC = \mC_{n-1}
+\end{align}
+\item For convenience of analysis, we rotate into the eigenbasis of the covariance matrix of the inputs and thus assume wlog $\mS = \text{diag}(\sigma_1^2,\dots,\sigma_m^2)$.  It turns out that the matrices $\E\mC_n$ are diagonalized in the same basis. 
+\end{enumerate}
+\end{document} 
+
+%%% OLD STUFF
+
+
+\newpage
+
+\begin{align}
+\E\left[ \mG_x^\top \mG_x \right] & = \mI - 2\eta \mS + \eta^2 \mS^2 + \triangle_x \\
+\triangle_x & = \eta^2 \left(\E[xx^\top xx^\top]  - \mS^2\right)
+\end{align}
+\item Let us aim at cases, where $\E[\mG_x^\top \mG_x]$ is diagonal, which requires $\Delta_x$ and thus $\E[xx^\top xx^\top]$ to be diagonal. Expanding, we get 
+\begin{align}
+\E\left[ x x^\top x x^\top\right]_{ij}
+&  = \E\left[ \left( \sum_{k \neq i,j}x_k^2  + \frac{x_i^2 + x_j^2}{1+\delta_{ij}}\right) x_i x_j \right]  \\
+& = \E \left[ x_i x_j \right] \E \left[\sum_{k \neq i,j} \ x_k^2 \right] + \E \left[ \frac{x_i^3 x_j + x_j^3 x_i}{1+\delta_{ij}} \right] \\
+& = 
+\begin{cases} 
+	\E[x_i^4] + \sigma_i^2 \sum_{k \neq i} \sigma_k^2  & \text{i=j} \\
+	\E \left[ x_i^3 x_j \right] + \E\left[ x_j^3 x_i \right] & \text{otherwise}
+\end{cases}
+\end{align}
+There are a number of special cases leading to zero off-diagonal entries that are worth considering:
+\begin{enumerate}
+\item Binary input features $x_i^3 = x_i$ and thus $\E[x_i^3 x_j] = \E[x_i x_j] = 0$ for $i \neq j$.
+\item Gaussian variables for which $\E[x_i x_j] =0$ implies independence and thus all mixed moments vanish. 
+\item Random variables that are coordinate-wise independent (in an appropriate coordinate system)
+\end{enumerate}
+\item Assuming diagonality, we can compute the (pure) fourth order moments $\E[x_i^4]$ and include them in the analysis. However, to simplify things further, we focus on the Gaussian case, where $\E[x_i^4] = 3 \sigma^4$. In matrix notation we can write 
+\begin{align}
+\Delta_x =  \eta^2 ( \mS +  \text{tr}(\mS)) \mS
+\end{align}

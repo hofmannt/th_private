@@ -1,0 +1,35 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts,amsthm}
+\begin{document}
+\begin{enumerate}
+\item SVD of end-to-end linear map 
+\begin{align}
+W= W^L  \cdots W^1, \; W = U \Sigma V^\top, \; \sigma(W) = \sigma_1 = u_1^\top W v_1
+\end{align}
+where $u_1,v_1$ are the principal l/r singular vectors.\\
+\item For simplicity look at partial derivative w.r.t.~weight $a=W^l_{ij}$. Denote $\bar v := W_{l-1} \cdots W_1 v_1$ and $\bar u :=  u_1^\top W_L \cdots W_{l+1}$. We get by the product rule
+\begin{align}
+\partial_a \sigma(W) = 
+	\bar u^\top \partial_a W \bar v
+	+ 
+	\sigma  \langle \partial_a u,  v\rangle
+	+
+	\sigma \langle u, \partial_a v \rangle
+\end{align}
+\item The first term has the most direct influence on the gain 
+\begin{align}
+\partial_a W = \mathbf I_{ij}, \quad 
+ \bar u^\top \partial_a W \bar v= \bar u_i \bar v_j
+\end{align}
+with $\mathbf I_{ij} $ has a one at $(i,j)$ and is zero elsewhere. Side note: once singular vectors are known, $\sigma_1$ is the product of gains across layers. 
+\begin{align}
+\sigma^l = \frac{| \bar u^l W^l \bar v^l |}{\|\bar v^l\|}
+\end{align}
+\item The other contributions measure effects due to changes (i.e.~rotations) of the singular vectors. We can compute as follows (non-formal notation):
+\begin{align}
+v+dv & = W_{1}\dots W_{l-1}  \left[ W_{l} + da \right] W_{L} u, \quad \text{s.t.} \; d\|v\|^2 =0 \\
+u+ du & = ...
+\end{align}
+\end{enumerate}
+
+\end{document}

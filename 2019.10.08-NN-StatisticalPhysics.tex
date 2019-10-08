@@ -1,0 +1,78 @@
+\documentclass[10pt,a4pape]{article}
+\usepackage[top=30pt,bottom=30pt,left=48pt,right=46pt]{geometry}
+\usepackage{amsmath,hyperref}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\x}{{\mathbf x}}
+\author{Thomas Hofmann}
+\title{Statistical Physics for Neural Networks: \\[2mm] Classical Methods}
+
+\begin{document}
+\maketitle
+
+\begin{enumerate}
+\item{\textbf{Replica Trick: }} Statistical physics has developed computational tools to understand unordered, glassy systems. This  includes the \textit{replica trick}, which approximates the log partition functions of a system via an analytical continuation. From a Taylor expansion one gets 
+\begin{align}
+\frac{Z^n -1}{n} = \frac{e^{n \ln Z}-1}{n} = \frac{n \ln Z + \frac 12 (n \ln Z)^2 + ...}{n}  \stackrel{n \to 0}= \ln Z
+\end{align}
+Here $n$ is introduced as an integer with the idea of computing $Z^n$ for some $n \ge 1$, but then taken to $0$. Rigorously establishing this $n \to 0$ limit is often very involved. In that sense, the replica trick is a heuristic (unless replaced by a rigourous argument). What is gained by this? Note that if want to average $\ln Z$ over randomness (e.g.~coupling strength or parameters), then an expectation over a logarithm cannot be done analytically. However, $Z^n$ is just the partition function of the original system, replicated $n$ times. One can then interchange the averaging with the sum or integral that defines $Z$ and often is left with tractable untegrals (e.g.~Gaussian ones).
+%
+\item{\textbf{Hopfield Network Capacity:}} One of the first question about neural networks studied with tools of statistical physics was the calculation of the asymptotic capactity of an associative memory with energy $H(J) = \sum_{i,j} J_{ij} x_i x_j$, i.e.~a \textit{Hopfield network}. Generally one assumes unbiased random binary patterns $x_i \in \{-1,+1\}^n$. If weights are set with the Hebb rule, one can establish a (low) capacity of $0.14n$ patterns \cite{amit1985storing}, whereas the true asymptotic capacity is $2n$ as shown by early work of Cover \cite{cover1965} and then by Gardner \cite{gardner1987maximum} by using the replica trick on the interactions (keeping patterns fixed/quenched). The argument  is structured as follows:
+\begin{enumerate} 
+\item A pattern $\x \in \{-1,1\}^n$ is stored in the coupling matrix $J$ with margin $\eta$, if changing a single bit will increase the energy $H(J)$ by at least $\eta$. (Normalization: $J$ has zero diagonal and has unit norm rows.)
+\item One can then consider the fractional volume of parameters that store $m$ patterns. The phase transition will be at a point, where this becomes zero almost surely (large $n$ limit). This can be broken down as a product over bits. 
+\item Statistical physicists love integral representation of equality or inequality constraints. For instance the $\delta$ function and the Heavyside function $\Theta$ can be represented as Fourier integrals as follows\footnote{See the nice notes \url{http://scipp.ucsc.edu/\~haber/ph215/Stepfun18.pdf}}
+\begin{align}
+\delta(x) =\frac 1 {2\pi} \int_{-\infty}^{\infty}  e^{-i x \xi} d\xi, \quad 
+\Theta(x) = \frac{1}{2\pi i} \lim_{\epsilon \to 0} \int_{-\infty}^{\infty} \frac{e^{i x \xi}}{\xi - i \epsilon }  d\xi, \quad 
+\end{align}
+\item Saddle point approximation. Simple situation: Laplace method. 
+\end{enumerate}
+% 
+\item A further simplification is to also make the weights binary, see \cite{krauth1989storage}, which is valuable from a bit counting perspective as well as with regard to low precision weights (in addition to the theoretical insights). The analysis in \cite{krauth1989storage}, which requires replica symmetry breaking, corrects the original calculations of  \cite{gardner1988optimal} to $0.83n$, a number that has been recently confirmed by a rigorous analysis in \cite{ding2018capacity}. 
+\item A closely related model for a simple classification problem (as opposed to associative storage) is the Ising perceptron, where random patterns are labeled with unbiased binary random labels. Let us write this out:
+\begin{align}
+\sigma(\w,\x) = \text{sign}(\langle \w,\x\rangle), \quad \w,\x \in \{-1,+1\}^m 
+\end{align}
+where $\w$ is the percrptron binary weight vecftor and $\x$ is a binary pattern with label $y$. The goal is to find weights with low classification error on a training set of examples $\{(\x^i,y^i): i=1,\dots,n\}$. The energy function and its Gibbs measure at temperature $1/\beta$ are given by
+\begin{align}
+H(\w) = \sum_{i=1}^n [[ y^i \neq \sigma(\w,\x^i)]], \quad P(\w) = \frac 1Z \exp\left[-\beta H(\w) \right]
+\end{align}
+So the key quantity to study is the partition function,
+\begin{align}
+Z  = \sum_{\w \in \{-1,+1\}} \exp\left[-\beta H(\w) \right]
+\end{align} 
+which in the zero temperature limit counts the number of zero-error solutions. Applying the analysis mentioned above \cite{krauth1989storage,ding2018capacity}, the probability that $Z =0$ jumps to one at $n  \ge \alpha m$, $\alpha = 0.833$, and is zero for smaller $n$.
+%
+\item There has been more analysis of the zero temperature limit of the Ising perceptron, in particular see \cite{huang2014origin}. An interesting result concerns the number of minima (exponentially growing in dimensionality $m$) and their geometry. With regard to the latter, it has been shown that the vast majority of these minima are isolated on the $m$-hypercube and separated from one another by a Hamming distance of $O(m)$. More results on local minima and learning algorithms have been presented in \cite{horner1992dynamics,braunstein2006learning, baldassi2007efficient, baldassi2009generalization}.
+\end{enumerate}
+
+
+\newpage
+
+
+
+
+\newpage
+
+
+gardner1987maximum
+
+A particular simple model is one with binary couplings 
+
+
+
+It is of great importance to understand the geometrical structure of the energy landscape of deep neural networks (DNNs). 
+
+
+\paragraph{Shaping the learning landscape in neural networks around wide flat
+  minima \cite{baldassi2019shaping}}
+
+\begin{enumerate}
+\item Simple model: binary weights, random patterns/labels $\Rightarrow$ memorization problem. Criticial ratio of \#params/\#data points (phase transition cf.~\cite{krauth1989storage}). 
+\item Formalization: Gibbs measure (Eq.~2) with parttition function (Eq.~3).
+\end{enumerate}
+
+
+\bibliography{th}
+\bibliographystyle{alpha}
+\end{document}

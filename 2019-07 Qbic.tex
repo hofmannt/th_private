@@ -1,0 +1,15 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{braket}
+\author{Thomas Hofmann}
+\title{QBic: Bayesian Foundation of \\Quantum Mechanics}
+\begin{document}
+\maketitle
+\begin{enumerate}
+\item \textbf{Probabilities and optimal decision making.} A classical way to define probabilities is as degrees of subjective beliefs, which can be elicted via betting. If one is willing to bet $p$\$ in order to receive $1$\$ on an outcome of an event $e$, but not more, then my belief in the event is $p$. That such bets are indeed probabilities follows from the assumption of \textit{consistency}.\footnote{Clearly one should not bet more than $p>1$ and there can be no harm in $p=0$. Moreover for two independent events, if one is willing to maximially bet $p_1$ on $e_1$ and $p_2$ on $e_2$, then one should bet $p_1+p_2$ on $e_1 \vee e_2$. The other laws of probability follow from these in a more precice line of argumentation that is known as durch book argument and traces back to Ramsey's work \textit{Truth and Probability}} Note that consistency does not determine probabilities  of events unless in the case of certainty. 
+\item \textbf{Gleason's Theorem.} Orthogonal $1$-d projectors $\Pi_k =\ket{\psi_k} \bra{\psi_k}$, independent outcomes with probabilities $p_k = p(\Pi_k)$. Theorem: there is a  density operator s.t.~$p(\Pi_k) = \text{tr}(\rho \Pi_k) = \braket{\psi_k | \rho | \psi_k}$ for all $k$. Hence any subjective state of knowledge about a quantum system can be summarized via some $\rho$. 
+\item \textbf{Maximal information} in quantum theory corresponds to knowing the answer to a maximal number of questions. Certainty of $\Pi= \ket{\psi} \bra{\psi}$, $p(\Pi) =1$ implies $\braket{ \psi | \rho | \psi}=1 \iff \rho = \Pi$, i.e.~assignment of a unique pure state, which prescribes probabiliites for all possible measurements. 
+\item \textbf{Frequencies}. Assume $N$ copies of a quantum system are available with (same) maximal information $\Pi$ about each of them, hence $\rho = \Pi \otimes \dots \otimes \Pi$. Repeated measurements with $\Pi_k = \ket{\psi_k} \bra{\psi_k}$. Probability of sequence of outcomes $k_1,\dots k_N$, $p(k_1,\dots,k_N) = \text{tr}(\rho \Pi_{k_1} \otimes \dots \otimes \Pi_{k_N}) = p_{k_1} \dots p_{k_N}$, where $p_{k} = \text{tr}(\Pi \Pi_k) = | \braket{\psi_k | \psi}|^2$. This means, we get an \textit{i.i.d.}~distribution and a convergence of frequencies to probabilities. 
+\item \textbf{Quantum tomography}. Systems that are indistinguishable, i.e.~\textit{exchangability} condition on density operator. 
+\end{enumerate}
+\end{document}

@@ -1,0 +1,20 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts,amsthm}
+\author{Thomas Hofmann}
+\begin{document}
+\begin{itemize}
+\item Given $p$, an implicant of $f$, i.e.$p(\alpha) \le f(\alpha)$ for all $\alpha \in \{0,1\}^n$. 
+\item Assume $p = q \cdot x_i$ (i.e.~it has a positive literal)
+\item We will shop that $q$ is a (smaller) implicant (thus $p$ cannot be prime)
+\item Case distinction
+\begin{enumerate}
+\item $\alpha$ s.t.~$\alpha_i=1$: then $p(\alpha) = q(\alpha)$ and thus $q(\alpha) = p(\alpha) \le f(\alpha)$. 
+\item $\alpha$ s.t.~$\alpha_i=0$
+\begin{enumerate}
+\item if $q(\alpha)=0$, then $q(\alpha) = 0 \le f(\alpha)$ trivially  
+\item if $q(\alpha)=1$, then $f(\alpha) \ge f(\alpha|  \alpha_i \leftarrow 1) \ge p(\alpha|  \alpha_i \leftarrow 1) = q(\alpha)$ 
+\end{enumerate}
+\end{enumerate}
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,73 @@
+\documentclass[10pt,a4pape]{article}
+\usepackage[top=30pt,bottom=30pt,left=48pt,right=46pt]{geometry}
+\usepackage{amsmath,hyperref}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\x}{{\mathbf x}}
+\author{Thomas Hofmann}
+\title{Ising Perceptron}
+
+\begin{document}
+\maketitle
+
+\begin{enumerate}
+\item{\textbf{Replica Trick and Capacity Calculations:}} 
+\begin{enumerate}
+\item 
+One of the first, classical applications of statistical physics in analysing (artificial) neural networks has been in capacity calculations for the \textit{Hopfield network} \cite{hopfield1982neural}. Hopfield networks are described by an energy function $H(x; J) = \sum_{i,j} J_{ij} x_i x_j = x^\top J x$ where $J$ is the coupling matrix (zero diagonal) and $x \in \{-1,1\}^n$ is a binary pattern. A pattern $x$ is considered to be stored by such a network, if it is a metastable state, i.e.~changing any signed bit will strictly increase the energy. 
+\item 
+For unbiased random patterns, if the weights are set with the Hebb rule, one can establish a (low) asymptotic capacity of $0.14n$ patterns \cite{amit1985storing}. However, the true asymptotic capacity is $2n$ as shown by early work of Cover \cite{cover1965}. This analysis has been refined and extended to correlated patterns  by Gardner \cite{gardner1987maximum} using the \textit{replica trick}. The standard approach is to try to estimate the relative volume of the couplings that correctly store $m$ random patterns. The critical capacity is reached, when this volume becomes $0$.
+\item 
+The replica trick approximates a log partition functions via an analytical continuation as follows %  (Taylor expansion)
+\begin{align}
+\frac{Z^n -1}{n} = \frac{e^{n \ln Z}-1}{n} = \frac{n \ln Z + \frac 12 (n \ln Z)^2 + ...}{n}  \stackrel{n \to 0}= \ln Z
+\end{align}
+Here $n$ is introduced as an integer with the idea of computing $Z^n$ for some $n \ge 1$, but then taken to $0$. Rigorously establishing this $n \to 0$ limit is often very involved\footnote{It requires to apply Carlson's theorem. See \url{https://en.wikipedia.org/wiki/Carlson\%27s\_theorem}}. In that sense, the replica trick is a heuristic (unless replaced by a rigourous argument). What is gained by this? Note that if want to average $\ln Z$ over randomness, then one can approximate the expectation of a logarithm with expectations of $Z^n$, which is the partition function of the original system, replicated $n$ times. One can then interchange the averaging with the sum or integral that defines $Z$ and often is left with tractable untegrals (e.g.~Gaussian ones). 
+\end{enumerate}
+\item {\textbf{Ising Perceptron:}} 
+\begin{enumerate}
+\item 
+One can also study a simplfied Hopefield networks with binary weights, which is valuable from a bit counting perspective as well as with regard to low precision weights (in addition to the theoretical insights). The analysis in \cite{krauth1989storage}, which requires replica symmetry breaking, corrects the original calculations of  \cite{gardner1988optimal} to $0.83n$, a number that has been recently confirmed by a rigorous analysis in \cite{ding2018capacity}. 
+\item A closely related model for a simple classification problem (as opposed to associative storage) is the Ising perceptron, where random patterns are labeled with unbiased binary random labels. Let us write this out:
+\begin{align}
+\sigma(w,x) = \text{sign}(\langle w,x\rangle), \quad w,x \in \{-1,+1\}^n
+\end{align}
+where $w$ is the perceptron binary weight vector and $x$ is a binary pattern with label $y$. The goal is to find weights with low classification error on a training set of examples $\{(x^i,y^i): i=1,\dots,l\}$. The energy function and its Gibbs measure at temperature $1/\beta$ are given by
+\begin{align}
+H(w) = \sum_{i=1}^l [[ y^i \neq \sigma(w,x^i)]], \quad P(w) = \frac 1Z \exp\left[-\beta H(w) \right]
+\end{align}
+So the key quantity to study is the partition function,
+\begin{align}
+Z  = \sum_{w \in \{-1,+1\}} \exp\left[-\beta H(w) \right]
+\end{align} 
+which in the zero temperature limit counts the number of zero-error solutions. Applying the analysis mentioned above \cite{krauth1989storage,ding2018capacity}, the probability that $Z =0$ jumps to one at $l  \ge \alpha m$, $\alpha = 0.833$, and is zero for smaller $l$.
+\item 
+There has been more analysis of the zero temperature limit of the Ising perceptron, in particular see \cite{huang2014origin}. An interesting result concerns the number of minima (exponentially growing in dimensionality $n$) and their geometry. With regard to the latter, it has been shown that the vast majority of these minima are isolated on the $n$-hypercube and separated from one another by a Hamming distance of $O(n)$. More results on local minima and learning algorithms have been presented in \cite{horner1992dynamics,braunstein2006learning, baldassi2007efficient, baldassi2009generalization}.
+\end{enumerate}
+\newpage
+
+%
+
+
+
+% 
+%
+\end{enumerate}
+
+
+\newpage
+
+
+
+
+\paragraph{Shaping the learning landscape in neural networks around wide flat
+  minima \cite{baldassi2019shaping}}
+
+\begin{enumerate}
+\item Simple model: binary weights, random patterns/labels $\Rightarrow$ memorization problem. Criticial ratio of \#params/\#data points (phase transition cf.~\cite{krauth1989storage}). 
+\item Formalization: Gibbs measure (Eq.~2) with parttition function (Eq.~3).
+\end{enumerate}
+
+
+\bibliography{th}
+\bibliographystyle{alpha}
+\end{document}

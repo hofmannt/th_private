@@ -1,0 +1,26 @@
+\documentclass[10pt,a4pape]{article}
+\usepackage[top=30pt,bottom=30pt,left=48pt,right=46pt]{geometry}
+\usepackage{amsmath,hyperref}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\x}{{\mathbf x}}
+\author{Thomas Hofmann}
+\title{Complex Analysis}
+
+\begin{document}
+\maketitle
+
+\begin{enumerate}
+\item Simple way to remember complex division is to understand the inverse formula
+\begin{align}
+(a + ib )^{-1} = \frac{a - ib}{a^2 + b^2} 
+\end{align}
+\item Square root of complex numbers
+\begin{align}
+\sqrt{a + ib} =   \pm\left(  \sqrt{\frac{a+m }2} +i \; \text{sign}(b) \sqrt{\frac{-a +m}{2}}\right), \quad m = \sqrt{a^2 + b^2}
+\end{align}
+\end{enumerate}
+
+
+\bibliography{th}
+\bibliographystyle{alpha}
+\end{document}

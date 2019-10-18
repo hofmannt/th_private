@@ -1,0 +1,30 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\x}{{\mathbf x}}
+\author{Thomas Hofmann, ETH Zurich \\ Andreas Tschofen, 1plusX AG}
+\title{CTI Project: Deep Networks as a Semantic Platform for Modeling User Behavior Data\\ [2mm] Report: Implementation Plan}
+
+\begin{document}
+\maketitle
+
+\section{Background}
+
+1plusX offers a so-called predictive Data Management Platform (DMP) as a service, a system that  collects and manages largely anonymous user interaction data from the Web and mobile apps.  Typcially users are identified by cookies and device IDs (where available). The main market segment consists of publishers and re-marketers, i.e.~companies who offer content which creates ``inventory" (users who visit these webpages and who can be targeted by marketing messages and advertisment). This inventory is then packaged up in the form of targeted audiences based on dimensions like socio-demographics, interest and topical features. These use cases tend to be relatively homogeneous and similar, allowing for a scalable system that requires little customization, typically around importing data and export/activation channels.  
+
+\section{Customization \& Integration}
+
+More and more customers, however, have an interest for better customization and more flexible ways of integration, for instance through platforms and APIs. This is typically a function of the technical sophistication of the customer, which is increasing as more customers staff-up their own internal data science teams. In addition, there is a larger market outside of the narrow publisher and re-marketer space, which has more heterogeneous demands and use cases. It is a key question of how to develop a product offering that scales to these broader use cases. In this context the platform developed in this project is a major building block as it allows to integrate basic models (such as learned embeddings or pre-trained classifiers) into specific use cases without having to go through the 1plusX internal system. Rather one can work in the Tensorflow framework, which benefits from an ever growing community and which also has excellent support for model deployment.
+
+\section{Pilot Customer}
+
+We used a pilot customer to validate the above ideas and have received very positive feedback on the flexibility and ability to do custom analysis and prediction on top of the platform. The fact that this did not yet exploit the full power of the Tensorflow framework is attributed to the fact that the industry is still in a transitional phase towards the use of standard AI technologies. However, we consider the pilot to be a success and have hence intensified efforts in this direction.
+
+\section{Implementation Plan} 
+
+After the official end date of the project in February 2018, there was  turnover in the staff at the implementation partner. The head of machine learning as well as key employees left 1plusX and this led to a delay in productionizing the results and ideas of the project. Although the platform has been implemented as a prototype, it thus took until December 2018 to start the 4 month pilot with the undisclosed customer (Milestone 5). Since early 2019 there have been efforts to support a broader range of use cases and to build services for customers outside of the core market segment of 1plusX (see above). 1plusX is currently investigating to fully productionize the platform idea and to make the system more modular with clearly defined interfaces (APIs). Currently a focus is on real-time capabilities, but for 2020 there are also plans to productionize and utilize a machine learning platform. In addition to being a plus for customers with their own data science teams, it has also turned out to be a promising tool for internal purposes, i.e.~experimentation with new models and customization for new customers. 1plusX is currently investigating to offer customization services in addition to the DMP, which would expand its commercial offering. In this context, the productionzed platform will form the fundament on which to develop solutions for customers who have not the technical know-how to use the platform itself. We expect the outcome of the project to be a major commercial success factor for 1plusX in the years to come.
+
+
+\end{document}

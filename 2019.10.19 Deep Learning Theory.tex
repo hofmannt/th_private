@@ -1,0 +1,81 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[top=30pt,bottom=30pt,left=48pt,right=46pt]{geometry}
+\usepackage{amsmath,amssymb,hyperref}
+\setlength\itemsep{2mm}
+\renewcommand{\vec}[1]{{\mathbf #1}}
+\renewcommand{\th}{$\vartriangleright$}
+ \author{Thomas Hofmann}
+\title{Deep Learning Theory}
+
+\begin{document}
+\maketitle
+
+\begin{enumerate}
+\item \cite{arora2018stronger}: Stronger generalization bounds for deep nets via a compression approach, 2018
+\begin{enumerate}
+\item Take a DNN (fully-connected or CNN) and compress each layer weight matrix, e.g.~via random matrix projection. The generalization error (!) of the compressed network can be bounded on top of an empricial margin error of the uncompressed network. 
+\item These results make use of a generic theorem that uses parameter quantization of the compressed ntwork (Theorem 2.1) in conjunction with a compressibility framework (Definitions 1, 2). 
+\item For ReLU networks, the paper develops the following ``liuckiness" concepts that control the bound: (i) layer cushion (Def.~4, how much are pre-activation vectors stretched relative to a Frobenius-norm bound), (ii) interlayer cusion (Def.~5, same for multiple layers with linearization (Jacobian)), (iii) activation contraction (Def.~6, pre-activation vs.~activation vector norm), and (iv) interlayer smoothness (Def.~7, controls validity of Jacobian approximation). 
+\item Concepts and theorem can be adapted to ConvNets, also requiring the property of well-dsitibuted Jacobians (Def.~9) 
+\end{enumerate}
+\th: If one uses not the trained network, but a compressed version of it, then one give error bounds for this compressed network, if one has been lucky with regard to the trained network (i.e.~it has good noise resilience as captutred by the quantities above).
+\item \cite{neyshabur2017exploring}  Exploring Generalization in Deep Learning, 2017
+\begin{enumerate}
+\item The paper investigates different measure of capactity for neural networks with regard to how well they explain consistently observed phenomena in the context of training DNNs. This includes different group and path norms,  spectral norm measures as well as a measure called sharpnes. With regard to the latter (and in general), it is emphaized that one needs to control the scale (e.g.~through weight matrix/vector norms).
+\end{enumerate}
+\th: Nice overview and convincing articulation of the current issues and state of the art, yet no real conclusion.  
+\item \cite{belkin2019reconciling}: Reconciling modern machine-learning practice and the classical bias--variance trade-off, 2019
+\begin{enumerate}
+\item Double descent risk curve, empricially found in many models, including random Fourier features, DNNs. and ensembled decision trees.  
+\item Some argument of why it has been missed and what accounts for it (norm-based capacity vs.~number of parameters).
+\end{enumerate}
+\th: Presents a lot of empirical findings for a revision of classical learning theory
+\item \cite{dziugaite2017computing}: Computing nonvacuous generalization bounds for deep (stochastic) neural networks with many more parameters than training data, 2017
+\begin{enumerate}
+\item The basic idea is to assess the volume of parameters around an obtained point estimate, whioch -- according to MDL or a Bayesian evidence argument -- will be tied to generalization error. This program has been carried out for small networks in \cite{langford2002not} based on PAC Bayesian arguments \cite{mcallester1999pac} in a two-stage process. Here it is suggested to directly optimize the PAC Bayesian bound, which leads to a new form of regularization. 
+\item In order to make this appraoch pratical, a few modifications are made: (i) The variance of a Gaussian prior is not fixed, but searched over at the cost of an additional union bound. (ii) Effectively one samples Gaussian weight perturbations (Monte Carlo) in order to obtain the necessary gradients fror SGD. 
+\item Good and competent discussion of related work
+\end{enumerate}
+\th: Complex modification of standard SGD to guide it towards solutions that are better in the PAC Bayesian sense. Although bounds are often non-vacuous, lack of tightness is still an issue. 
+\item \cite{bartlett2017spectrally}: Spectrally-normalized margin bounds for neural networks, 2017
+\begin{enumerate}
+\item Provides complexity measure based on Lipschitz constants, but normalized by the margin of the predictor. The necessity of normalization for obtaining meaningful measures is emphasized. 
+\item Definition of spectral complexity measure: product of Lipschitz/spectral norms per layer, times weighted average with regard to reference network.  Relevance of this is shown in key Theorem (1.1), note: very weak dependency on width of layers and depth of network. 
+\end{enumerate}
+\th: Recent culmination of a long line of work on using operator norms (w/ margins) in generalization bounds. 
+\item \cite{jiang2018predicting}: Predicting the generalization gap in deep networks with margin distributions
+\begin{enumerate}
+\item Main claim:  margin information across layers can inform a good predictor of the generalization gap. Specifically, margin distributions are utilized and normalized appropriately. 
+\item Technical details: define margins (eq.~3) and normalized distributions (eq.~4, 5), which is fruther compressed by extracting moments or order statistics (cf.~3.2). These are used as features to a simple linear predictor. 
+\end{enumerate}
+\th: Not many fundamentally new insights, but some care to technical details.
+\end{enumerate}
+
+
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}
+
+
+\newpage
+\begin{enumerate}
+\item \cite{arora2018stronger}: Stronger generalization bounds for deep nets via a compression approach, 2018
+\begin{itemize}
+
+
+\item model distillation idea: compress a complex model $f$ into a simpler model $g$ that has similar training loss
+\item distribution-independent compressibilty [\th bad], sup-norm [\th also bad] w/o calibration of scores [\th ?]
+\item fundamental learning theorem (2.1) for compressed model w/ quantized parameters [\th why this limitation]
+\item conceptually: single complex model $f$ is given, standard uniform convergence arguments are used on the hypothesis class of compressewd 
+models
+\item can reproduce \cite{neyshabur2017pac} as special case (which uses spectral norms of per layer weight matrices) by spectral truncation and rounding 
+\item \textit{noise sensitivty}:  how much is a downstream layer activity changed by injecting upstream noise, cf.~Def 3.; related definiton of error resilience: \text{cushion}, cf.~Def.~4 and 5.
+\end{itemize}
+\end{enumerate}
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}

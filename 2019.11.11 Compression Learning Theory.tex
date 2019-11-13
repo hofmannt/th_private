@@ -1,0 +1,118 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[top=30pt,bottom=30pt,left=48pt,right=46pt]{geometry}
+\usepackage{amsmath,amssymb,amsthm,bm,hyperref}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{example}{Example}
+\newtheorem{corollary}{Corollary}
+
+\setlength\itemsep{2mm}
+\renewcommand{\vec}[1]{{\mathbf #1}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\prob}{{\text{Pr}}}
+\newcommand{\E}{{\mathbf{E}}}
+\newcommand{\err}{{e}}
+\newcommand{\bI}{{\mathbb I}}
+\newcommand{\lh}{{\langle h \rangle}}
+\newcommand{\lhx}{{\langle h(x) \rangle}}
+
+ \author{Thomas Hofmann}
+\title{{\large ETH-IML Reading Group: Learning Theory} \\ Generalization Bounds via Compression and Margins}
+
+\begin{document}
+\maketitle
+
+\begin{abstract} 
+This write-up summarizes \cite{arora2018stronger}.\\
+\end{abstract}
+
+\paragraph{Compressibility}  Compressibility is defined as approximatability in the $\sup$-norm. Compressed class $\mathcal F$, domain $S$, then 
+\begin{align}
+\mathcal F_\gamma := \{ f: \exists g \in \mathcal F: \| f_y - g_y \|_{\infty, S} \le \gamma, \; \forall y \}. 
+\end{align}
+Basic theorem for quantized parameters: $q$ parameters with $r$ quantization levels, cardinality $r^q$. $\gamma$-margin loss $\ell_\gamma$, then for $f \in \mathcal F_\gamma$ with witness $g$,
+\begin{align}
+L_0(g) \le L_\gamma(f) + c \sqrt{\frac{q \log r}{n}}, \quad \text{for some $c>0$}
+\end{align}
+%
+%
+%
+\paragraph{Margin Bounds via Compression}
+\begin{example}
+\cite[Appendix A.2]{arora2018stronger}: Convert a classifier with margin $\gamma$ into a $O(1/\gamma^2)$ sparse classifier with generalization error $O(\log d/\gamma^2)$. To get a result with probability $(1-\delta)$: Pick feature with probability $p_i=(2w_i^2)/(\delta\gamma^2)$ and set its weight to $W_i = w_i /p_i$. Obviously, $\E W_i = w_i$ and 
+\begin{align}
+\mathbf V W_i 
+& = \E (W_i - w_i)^2  = \E W_i^2 - w_i^2
+= \frac{w_i^2}{p_i} - w_i^2 = \frac{\delta \gamma^2}{2} - w_i^2 \le \frac{\delta \gamma^2}{2} 
+\end{align}
+This means for any fixed vector $u$: 
+\begin{align}
+\E[u^\top W] &  = \sum_i u_i \E W_i  = \sum_i u_i w_i = u^\top w \\
+\mathbf V[u^\top W] & = u^\top \mathbf V W u \le \sup_{u: \| u\|=1} u^\top \mathbf V W u  \le \frac{\delta \gamma^2}{2} 
+\end{align}
+With Chebychev $\Pr(|X-\mu |\geq k\sigma )\leq {\frac {1}{k^{2}}}.$ it follows that 
+\begin{align}
+\Pr\{ | u^\top (W-w) |  \geq \gamma\}  \leq \delta, \quad \text{as } \gamma = \alpha \sqrt{\delta \gamma^2} \iff \alpha =\delta
+\end{align}
+The Chernoff bound guarantees that the number of non-zero entries is at most $O((\log h)/\delta \gamma^2)$. To make this work with hgigh probability over all directions, a random transformation trick is used (cf.~\cite{blum2005random}). 
+\end{example}
+%
+%
+%
+\paragraph{Generalization Bounds for DNNs via Compression}
+
+\begin{example}
+Generalization error bound uses matrix norms involving 
+\begin{align}
+B =  L^2  \sum_{i=1}^k \frac{\| W^i\|_F^2}{\| W^i \|^2_2}, \quad L:=\prod_{i=1}^k \| W^i\|_2
+\end{align}
+which consists of a global Lipschitz constant and sums of stable ranks of weight matrices in each layer. \cite{arora2018stronger} suggest a compression schema. Truncate each matrix by setting singluar values  $\sigma \le \delta \| W\|_2$ to zero, then the resulting matrix $\| \tilde W - W\|_2 \le  \delta \| W\|_2$. This allows to sandwich the Frobenius norm via $\| W\|_F \ge \| \tilde W\|_F \ge \sqrt r \delta \| W\|_2$, $r=\text{rank}(W)$ for which we get $r \le \| \tilde W\|_F/(\delta^2  \| \tilde W\|_2)$.  So now quantizing the weight  matrix $W^l$ will lead to an error
+\begin{align}
+\delta \| x^k\| L \le \gamma/3k, \quad \text{by chosing} \quad \delta = \frac{\gamma}{3\| x^k\| L  }\,.
+\end{align}
+\end{example}
+%
+%
+%
+
+\paragraph{Better Compression via Noise Sensitivity Analysis}
+
+The main limitation of the above compression bound is that it multiplies the pwer layer Lipschitz constants in a worst case manner. However, the real error propagation in a trained network may be much smaller. 
+\begin{enumerate}
+\item The idea is to quantify the actual noise sensivity with the following defintion:
+\begin{align}
+\Psi_{\mathcal N}(M,x) = \E_{\eta \sim \mathcal N} \left[ \frac{\| M(x + \|x\| \eta) - M(x)\|^2}{\| M(x) \|^2 }\right] 
+\end{align}
+For a linear map with Gaussian noise: $\Psi(M,x) = \|M\|^2_F \|x\| / \| Mx \|^2 \ge \|M\|^2_F/\|M\|^2_2 $. If a vector $x$ is aligned to a matrix $M$ (i.e. correlated with high singular directions of $M$), then matrix $M$ becomes less sensitive to noise at $x$. Strategy: compress each layer such that quantization leads to quasi-normal noise. If down-stream layers are less noise-sensitive, then compression can be mose extreme. 
+%
+\item How much better is the noise sensitivity relative to the worst case
+\begin{align}
+\mu_i  = \frac{\| W^i \phi(x^{i-1})\|}{\| W^i\|_F \| \phi(x^{i-1})\|}. \quad \forall x \in S
+\end{align}
+$1/\mu_i^2$ is the noise sensitivity of $W^i$ with regard to Gaussian noise on $\phi(x^i)$.
+\item It is difficult to track noise sensivitity through non-linear layers. Hence, it is suggeted to work with linearizations, i.e.~Jacobians 
+\begin{align}
+\mu_{i,j} = \frac{\| J_{i \to j}(x_i) x^i \|}{\| J_{i \to j}(x_i)\|_F \| x^i\|}. \quad \forall x \in S
+\end{align}
+\item Activation contraction $c = \frac{ \| x^i \| }{ \| \phi ( x^i) \| }$.
+\item Inter-layer smoothness: How well is activation change in layer $j$ ap[proximated by Jacobian
+\begin{align}
+\| F_{i \to j}(x^i + \eta) - J_{i \to j}[x^i] (x^i +\eta) \| \stackrel{\text{w.p.~$1-\delta$}}\le \frac{\| \eta\| \|x^j\|}{p_\delta \| x^i\|}
+\end{align}
+captures the ratio of input/weight alignment to noise/weight alignment
+\item 
+Bound, Shapire et al 1998: $\sqrt{ \left[ \ln \| \cdot \| \ln n / \gamma^2 - \ln \delta \right]/ n}$\\
+This bound: instead of cardinality, use 
+\begin{align}
+G = d^2 \sum_{i=1}^d [\mu_i \max_j \mu_{i \to j}]^{-2}
+\end{align}
+
+\end{enumerate}
+
+
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}

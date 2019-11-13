@@ -1,0 +1,267 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[top=30pt,bottom=30pt,left=48pt,right=46pt]{geometry}
+\usepackage{amsmath,amssymb,amsthm,bm,hyperref}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+
+\setlength\itemsep{2mm}
+\renewcommand{\vec}[1]{{\mathbf #1}}
+\renewcommand{\Re}{{\mathbb R}}
+\newcommand{\prob}{{\text{Pr}}}
+\newcommand{\E}{{\mathbf{E}}}
+\newcommand{\err}{{e}}
+\newcommand{\bI}{{\mathbb I}}
+\newcommand{\lh}{{\langle h \rangle}}
+\newcommand{\lhx}{{\langle h(x) \rangle}}
+
+ \author{Thomas Hofmann}
+\title{Learning Theory for Deep Networks}
+
+\begin{document}
+\maketitle
+
+\section{PAC Bayesian}
+
+
+\subsection{Preliminaries}
+Definitions. $\E$: expectation over data $(x,y) \sim D$, $\langle \cdot \rangle$: averaging over hypothesis, $\mathcal H \ni h: \mathcal X \mapsto \{ -1,1\}$, majority vote $\sigma\lh$. Error (random) events and losses 
+\begin{align}
+\text{0/1 error:}   		&\quad 	e_h := \bI[h(x) \neq y]= \mathbb I [y h(x) \le 0]
+\\
+\text{hypothesis loss:}	&\quad	\ell(h) := \E e_h = \tfrac 12 \E[1-yh(x)]  
+\\
+\text{stochastic loss:} 	&\quad	\langle \ell(h) \rangle =  \E \langle e_h \rangle  = \tfrac 12 \E[1-y\lhx], \quad \langle h \rangle := \E_Q[h]
+\\
+\text{voted error:} 		&\quad  	e_{\lh} := \langle e_h \rangle  = \tfrac 12 (1- y \lhx) 
+\\
+\text{ensemble loss:}		&\quad 	\ell(\sigma \lh) := \E e_{\sigma\lh} = \E \mathbb I[ y \lhx \le 0\rangle], \quad \text{$\sigma$: sign function}
+\end{align}
+The voted error contains information about thr two relevant losses as follows
+\begin{align}
+\text{stochastic loss from voted error:}	&\quad  \E[e_{\langle h \rangle}] = \langle \ell(h) \rangle\\
+\text{ensemble loss from voted error:}	&\quad  \Pr \{ e_{\langle h \rangle} \ge \tfrac 12 \} = \ell(\sigma \langle h \rangle) \,.
+\end{align}
+It is easy to show that the ensemble loss can not be higher than twice the stochastic loss. 
+\begin{proposition}
+$\ell(\sigma \langle h \rangle) \le 2  \langle \ell(h) \rangle.$
+\begin{proof} 
+By Markov's inequality (i.e.~$ \Pr\{ X \ge a \} \le \E X/a$)
+\begin{align}
+\ell(g) = \Pr\{ 1 - y g(x)  \ge 1\} \le 1 - \E[y g(x)] =  \langle \E[1- y h(x)] \rangle = 2\langle \ell(h) \rangle 
+\end{align}
+\end{proof}
+\end{proposition}
+\noindent One can construct a simple example to illustrate that this is tight in general: \\
+\begin{center}
+\begin{tabular}{llllllllll}
+			 & $h_1$ & $h_2$ & $\dots$ & $h_m $& $h_{m+1}$ & $ \dots$ &  $h_{2m}$ & $h_ {2m+1}$ & $e_{\sigma \langle h \rangle}$\\
+$e_h(x_1,y_1)$ & 1 & 1& \dots & 1& 0 & \dots & 0 & 1 & 1\\
+$e_h(x_2,y_2)$ & 0 & 0& \dots & 0& 1 & \dots & 1 & 1 & 1
+\end{tabular}
+\end{center}
+Here the stochastic loss $\langle \ell(h) \rangle = (m+1)/(2m+1) \stackrel{m\to \infty} \to \frac 12$, whereas for the ensemble loss $\ell(\sigma \langle h \rangle)=1$. In general, in order for the ensemble loss to be potentially lower that the stochastic loss, one need to ensure that he correlations  between the base hypothesis are not too large. This correlation is nothing but the variance of the voted error as it is to check that (cf.~\cite[Eq.~6]{lacasse2007pac})
+\begin{proposition} 
+\begin{align}
+\mathbf V e_{\langle h \rangle} = \langle \langle\;  \E \mathbb I(h_1(x) \neq y \wedge h_2(x) \neq y) - \ell(h_1) \ell(h_2) \; \rangle \rangle 
+= \langle \langle cov(h_1,h_2) \rangle \rangle
+\end{align}
+\end{proposition}
+\noindent It is then only one further step to show that:
+\begin{theorem} Provided the stochastic error is not worse than random, i.e.~$\langle \ell(h) \rangle \le 1/2$, then:
+\begin{align}
+\ell(\sigma \langle h \rangle) \le \frac{\mathbf V e_{\langle h \rangle} }{\mathbf V e_{\langle h \rangle}  + \left( \tfrac 12 - \langle \ell(h) \rangle \right)^2}
+\end{align}
+\begin{proof}
+The one-sided Chebychev inequality states that
+\begin{align}
+\Pr\{X \geq a + \E X\} \le \frac{\mathbf VX}{\mathbf VX + a^2}, \quad \forall a>0,
+\end{align}
+which can be applied as follows
+\begin{align}
+\ell(\sigma \lh) =  \Pr \{ e_{\lh} \ge \tfrac 12 \} = \Pr \{ e_{\lh} \ge \E e_{\lh} + \tfrac 12 - \E e_\lh\}  \le \frac{\mathbf V e_{\lh}}{\mathbf V e_{\lh} + \E e_\lh},
+\end{align}
+where noting that $\E e_h = \langle \ell(h) \rangle$ proves the claim.
+\end{proof}
+\end{theorem}
+\begin{corollary}
+The bound above can be rewritten $\mathbf V[1-2 e_{\lh}] / \E[1-2 e_{\lh}]^2$. \cite{lacasse2007pac}
+\end{corollary}
+
+\subsection{Classical PAC-Bayesian Bounds}
+
+\begin{theorem}[Change of Measure inequality \cite{donsker1975asymptotic}]
+\begin{align*}
+\E_Q [\phi]  \le \text{KL}(Q||P) + \ln \E_P\left[ e^\phi \right]
+\end{align*}
+\end{theorem}
+
+\begin{theorem}[McAllister, 1999 \cite{mcallester1999pac}]
+For any $P$, with probability $1-\delta$ over $S \sim D^n$ for all distributions $Q$ over $\mathcal H$
+\begin{align*}
+%\E_D \langle e_h \rangle  - \E_S \langle e_h \rangle &
+%	 \le  \sqrt{\frac{\text{KL}(Q||P)  + \ln (2 \sqrt n/\delta)}{2n}}
+%\\
+( \E_D \langle e_h \rangle  - \E_S \langle e_h \rangle)^2 &
+	 \le \frac 1{2n} \left[  \text{KL}(Q||P)  + \ln (2 \sqrt n/\delta) \right]
+\end{align*}
+\end{theorem}
+
+\begin{theorem}[Langford \& Seeger, 2001 \cite{langford2001bounds}]  For any $P$, with prob.~$1-\delta$ over $S \sim D^n$ for all $Q$ over $\mathcal H$
+
+\label{theorem:cross}
+\begin{align*}
+\text{KL}\left( p_S || p_D \right) 
+	& \le \frac 1n \left[ \text{KL}(P||Q) + \ln (2\sqrt n/\delta) \right], \quad 
+	p_S := \E_S \langle e_h \rangle, \; p_D := \E_D \langle e_h \rangle\
+\end{align*}
+\end{theorem}
+
+\begin{theorem}[Germain et al.~\cite{germain2015risk}, Begin et al.~\cite{begin2016pac}]
+Let $\Delta: [0;1] \times [0;1] \to \Re$ be any convex function, then for any $P$, with prob.~$1-\delta$ over $S \sim D^n$ for all $Q$ over $\mathcal H$
+\begin{align*}
+\Delta \left( p_S, p_D \right) 
+	& \le \frac 1n \left[ \text{KL}(P||Q) + \ln \mathcal I_\Delta(n) + \ln(1/\delta) \right], \quad 
+	\mathcal I_\Delta(n) :=\sup_r \sum_{k=0}^n \text{Bin}(k;n,r) e^{n \Delta(k/n,r)}
+\end{align*}
+\begin{proof}
+\begin{align}
+n \Delta \left( p_S,p_D  \right) & 
+\le \left\langle \Delta (\E_S e_h, \E_D e_h) \right\rangle_Q & \text{Jensen's inequality}\\
+& \le KL(Q||P) + \ln \left\langle  \exp[n \Delta (\E_S e_h, \E_D e_h]\right\rangle_P &  \text{change of measure}\\
+& \le_{1-\delta}  KL(Q||P) + \ln \E_{S} \left\langle   \exp[n \Delta (\E_{S} e_h, \E_D e_h) ]\right\rangle_P + \ln(1/\delta)&  \text{Markov inequality}\\ 
+& \le_{1-\delta}  KL(Q||P) + \ln \left\langle   \E_{S} e^{n \Delta (\E_{S} e_h, \E_D e_h) }\right\rangle_P + \ln (1/\delta)&  \text{order of expectations}\\ 
+& =  KL(Q||P) + \ln    \sum_{k=0}^{n} \left\langle\text{Bin}(k; n, \E_D e_h) \exp[n \Delta (\tfrac kn, \E_D e_h) ]\right\rangle_P \!\!\!+ \!\ln (1/\delta)&  \text{binomial law}\\ 
+& \le KL(Q||P) + \ln \sup_{r \in [0;1]}\left\{  \sum_{k=0}^{n} \text{Bin}(k; n, r) \exp[n \Delta (r, \E_D e_h)] \right\}  + \ln (1/\delta) & \text{$\langle \cdot \rangle_P \to$ supremum} \\
+& \le KL(Q||P) + \ln \mathcal I_\triangle(n) + \ln (1/\delta) & \text{by definition}
+\end{align}
+\end{proof}
+\end{theorem}
+
+\subsection{Refined PAC-Bayesian Bounds}
+
+
+Localized PAC-Bayesian bounds \cite{lever2010distribution}
+
+\subsection{Specific Models} 
+\paragraph{Linear Regression}
+
+This has been investigated in \cite{audibert2010linear}. Assume that the parameter space is a bounded set $\mathbb B$ such that reference distribution can be chosen uniform. It is sensible to construct an (ideal) posterior distribution as a Gibbs density 
+\begin{align}
+ p(\theta) = \frac{\exp \left[ -\beta \ell(\theta) \right]}{\int_{\mathbb B}  \exp \left[ -\beta \ell(\vartheta) \right] d\vartheta}, \quad \ell(\theta) = \frac 12 \| \mathbf y - \mathbf X \theta\|^2 \; (\text{empirical risk})
+\end{align}
+which is approximated via
+\begin{align}
+\tilde \ell(\theta) & = \log \int_{\mathbb B} \prod_{i=1}^n [1 - \beta W_i(\theta,\vartheta) + \tfrac 12 \beta^2 W_i(\theta,\vartheta)]^{-1} d\vartheta, \quad \\
+& \text{where} \quad  W_i(\theta, \vartheta) := (y_i - \langle \mathbf x_i, \theta \rangle)^2 - (y_i - \langle \mathbf x_i, \vartheta \rangle)^2
+\\
+& \text{as for $\beta \to 0$} \quad \tilde\ell(\theta)  = \ln \int_{\mathbb B} \exp\left[- \beta \sum_i W_i(\theta,\vartheta)\right]d\vartheta\\
+& \text{so that} \quad p(\theta) \approx \exp[-\beta \tilde \ell(\theta]).
+\end{align}
+One of the key theorems (Theorem 2.1) in \cite{audibert2010linear} then proves a $d/n$ convergence rate for regression functions drawn according to that distribution (not practical).\footnote{This paper is very complicated and the conclusions seems a bit weak. It seems the paper never got published.}
+
+
+
+\newpage
+
+
+%%%% $$$$ %%%%%
+
+\section{Introduction}
+\subsection{Setting}
+
+Model averaging is a powerful concept in machine learning, both from a practical as well as from a theoretical point of view. The PAC-Bayesian learning theory, one the most powerful framework to derive generalization bounds, is indeed based on model combination. The setting is as follows: 
+\begin{enumerate}
+\item Binary classification with pairs $ (x,y) \in \mathcal X \times \{-1,1\}$, $\mathcal X \subseteq \Re^d$, drawn according to (unknown) distribution $D$. Training sample $S \stackrel {\text{iid} }\sim D$ of size $l = |S|$.
+%
+\item Hypothesis class $\mathcal H  \ni h: \mathcal X \to \{-1,1\}$, finite subset $\mathcal G = \{ h_1, \dots, h_k\} \subseteq \mathcal H$, $\mathcal G$-committee $\text{conv}(\mathcal G) \ni g: \mathcal X \to [-1;1]$, averaging classifier $f = \text{sign}(g): \mathcal X \to \{-1,1\}$.
+%
+\item Define error random variable $e(h; x,y) = 0/1$ if $h(x)=/\neq y$.
+
+
+
+
+Empirical error $e_S(h)$, expected (true) error $e_D(h) = E_D\left[ e(h;x,y)\right] $. Margin $m_g(x,y) = y g(x) \in [-1;1]$
+\end{enumerate}
+
+\subsection{Classical Results}
+Margin bound for the averaged (!) classifier.
+\begin{theorem}[Schapire et al.~1998 \cite{schapire1998boosting}]
+With probability $1-\delta$ over $S \stackrel {\text{iid} }\sim D$ for all $g \in \text{conv}(\mathcal G)$, $\theta \in (0,1]$
+\begin{align*}
+\Pr_D[yg(x)] \le 0) \le  \Pr_D[yg(x) \le \theta] +  O\left(  \frac{1}{\sqrt l}
+\sqrt{\frac{\ln |\mathcal G| \cdot \ln l}{\theta^2} + \ln(1/\delta)}
+\right)
+\end{align*} 
+\end{theorem}
+
+\noindent PAC Bayesian bound with sampling from $\mathcal G$\footnote{The bound works for any binary loss function. For simplicity, we focus on the classification error.}
+\begin{theorem}[McAllister, 1999 \cite{mcallester1999pac}]
+For any $P$, with probability $1-\delta$ over $S \stackrel {\text{iid} }\sim D$ for all distributions $Q$ over $\mathcal H$
+\begin{align*}
+\Pr_{Q}[e_D(h)]  \le \Pr_{Q}[e_S(h)] + \sqrt{
+\frac{\text{KL}(Q||P)  + \ln (2l/\delta)}{2l-1} 
+}
+\end{align*}
+\end{theorem}
+
+\noindent PAC Bayesian for Bernoulli cross entropy (see also \cite{dziugaite2017computing}) using a tighter tail bound for the Bernoulli:
+\begin{theorem}[Langford \& Seeger, 2001 \cite{langford2001bounds}]
+\label{theorem:cross}
+\begin{align*}
+\text{KL}\left(\Pr_Q[e_S]|| \Pr_Q[e_D]\right) \le \frac{\text{KL}(P||Q) + \ln (2l/\delta)}{l-1}
+\end{align*}
+\end{theorem}
+
+\noindent Combining PAC-Bayesian with margins\footnote{The bound works for counded continuous loss functions.}
+\begin{theorem}[Langford \& Seeger, 2001 \cite{langford2001bounds}]
+For any $P$, with probability $1-\delta$ over $S \stackrel {\text{iid} }\sim D$ or all distributions $Q$ over $\mathcal H$ and $\theta \in (0;1]$, $f=\mathbf E_Q[h]$
+\begin{align*}
+\Pr_{D}[yf(x)\le0])  \le \Pr_{S}[yf(x)\le \theta]) + 
+O\left( 
+	\frac 1 {\sqrt{l}} 	\sqrt{ \frac{\text{KL}(Q||P) \cdot \ln l}{\theta^2} + \ln (l/\delta)}
+\right)
+\end{align*}
+\end{theorem}
+
+\section{Bounds for Neural Networks}
+
+\subsection{PAC Bayesian Bounds from Parameter Perturbations in Trained Networks}
+Na\"iv idea \cite{langford2002not,langford2002quantitatively,dziugaite2017computing}: define  a prior $P$ on the weights, say a multivariate normal. Starting from a point estimate $\theta_o$  (trained NN), generate weight distribution $Q$ such that $\Pr_{\theta \sim Q}[e_S(\theta)]$ does not deviate much from $e_S(\theta_o)$, yet has a small KL-divergence (e.g.~by increasing the entropy of $Q$). Note that one typically will focus on axis-aligned normal distributions. The criticism of this approach in \cite{dziugaite2017computing} reads as follows: \textit{[...] in massively overparametrized networks, individual parameters often have negligible effect on the training classification error, and so it is not possible to estimate the relative sensitivity of large populations of neurons by studying the sensitivity of neurons in isolation}.
+
+
+\subsection{Learning Ensembles} 
+
+A smarter idea is to parameterize the distribution $Q$ by a mean and variances (diagonal multivariate normal).  Then one can use a joint  optimization procedure to find a point estimate $\theta$ as well as a vector $\sigma$ of variances. The details in \cite{dziugaite2017computing} involve also estimating a hyper-parameter in the prior $P$ (requiring quantization and the application of the union bound). Ignoring this, one just specalizes Theorem \ref{theorem:cross} to the case of a diagonal multinormal $Q$ and $P=\mathcal N (\theta_0,\lambda \mathbf I)$. As the expectations of the error/loss are hard to compute, a Monte Carlo approximation is used by sampling perturbations of the parameter $\xi \sim \mathcal N(0,\mathbf I)$ in every step, which are then multiplies by the respective variances and added to the current parameter iterate. One can then backpropagate updates for $\theta$ as well as for $\sigma$. 
+
+\subsection{Ideas}
+
+It seems very simple minded to perform parameter perturbation independently for each weight. In fact, this is essentially for the same argument made above with regard to \cite{langford2002not}. As shown in \cite{arora2018stronger}, a typical situation is one where the sensitivity with regard to noise on the activation vectors in DNN layers only holds for a small number of directions. Hence, networks are able to be noise insensitive, because the noise is isotropic, whereas the signal lives in a lower dimensional space. By duality, we can equivalently thinking of pertrubations to the parameters.  \\
+
+Idea: Would it help to learn orthogonal basis transformations through minimizing the PAC-Bayes bound? 
+
+
+\section{Appendix}
+
+Useful lemmas
+\begin{lemma}
+For every $p$ $n$, with probability at least $1-\delta$ over samples $x \sim \mathbb B(n)$
+\begin{align*}
+\hat p := \frac 1n \sum_i x_i, \quad \text{KL}(\hat p||p) \le  \frac{\ln(2/\delta)}{n}
+\end{align*}
+\end{lemma}
+
+
+\begin{lemma}
+\begin{align*}
+\text{KL}(\mathcal N(\mu_1,\sigma_1) || \mathcal N(\mu_2, \sigma_2)) = \frac {\sigma_2}{\sigma_1} + \frac{ \sigma_1^2 + (\mu_1-\mu_2)^2} {2\sigma_2^2}  -\frac 12 
+\end{align*}
+\begin{proof} Elementary. \end{proof}
+\end{lemma}
+\noindent The more general version of the normal KL-divergence formula can be found in \cite[Eq.~(1)]{dziugaite2017computing}
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}

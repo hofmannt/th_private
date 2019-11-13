@@ -1,0 +1,155 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[top=30pt,bottom=30pt,left=48pt,right=46pt]{geometry}
+\usepackage{amsmath,amssymb,hyperref}
+\setlength\itemsep{2mm}
+\renewcommand{\vec}[1]{{\mathbf #1}}
+\renewcommand{\th}{$\vartriangleright$}
+ \author{Thomas Hofmann}
+\title{Wide Learning in Deep Networks}
+
+\begin{document}
+\maketitle
+
+\begin{enumerate}
+\item 
+The flat minima theme goes back to the 1990ies. \cite{hinton1993keeping} already stress the use of MDL  (minimum description length) as a regularization principle and discusses different weight quantization schemes, also explaining of how parameter noise can be understood in the MDL framework (giving a somewhat lenghty ``bits back" argument). The term has been coined in \cite{hochreiter1997flat,hochreiter1995simplifying}: ``A
+wide minimum is a large connected region in weight-space where the error remains approximately constant''. Here  a modified gradient descent procedure is proposed that relies on the construction of rectangular regions (``boxes'')  and their volume. An approximation is used that requires the computation of vector-Hessian products for which efficient methods exist \cite{pearlmutter1994fast}. The ``flatness conditions" are heuristic and only informally justifed.
+\begin{itemize}
+\item \textit{One has to adore language like this: ``Supervised neural networks generalize well if there is much less information in the weights than there is in the output vectors of the training cases. So during learning, it is important to keep the weights simple by penalizing the amount of information they contain.''  \cite[Abstract]{hinton1993keeping}}
+\item \textit{These papers appear a bit basic, but convey important ideas. Typical for the Hinton as well as Schmidhuber  style of thinking, they rely largely on intuition, but using the joint compression of (conditional) labels and  model in an MDL seeting as the guiding principle, which provides a sound foundation.}
+\end{itemize}
+\item 
+There is interest in understanding the local geometry of (local, global) minima in deep networks and how it relates to their expected risk (i.e.~generalization). One line of work, low in popularity, but high in precisision, comes from statistical mechanics. As shown in \cite{baldassi2015subdominant} for the Ising perceptron (one layer network with binary weights, binary random patterns), while the global minima are typically isolated and far apart (w.r.t.~Hamming distance) \cite{huang2014origin}, there exist dense clusters of (near optimal) local minima. The lens through which to find and analyse such connected clusters is the free energy density function 
+\begin{align}
+F(d,\beta) = -\frac{1}{n\beta} \ln \left( \sum_{w \in V(X)}  \mathcal N(w,d)^\beta \right), \quad 
+\mathcal N(w,d) = \sum_{v \in V(X)} \delta(\|v-w\|_H, d)\,
+\end{align}
+where $X$ is the data set $V(X)$ is the associated version space, $n$ is the pattern dimensionality, $d$ is a distance at which to count minima,  $\beta$ is an inverse temperature. The effective energy counts the number of solutions at distance $d$ from a reference point in parameter space. The replica method is used to approximate relevant quantities, such as the (negative) expectation of the effective energy, also called the local entropy. These calculations reveal clusters of parameter values that are extremely dense at their core and get sparser with $d$ up to a point, where  the local entropy becomes dominated again by typical (dominant, isolated) solutions. There are also extensive experiments for the student-teacher scenario, showing that these solutuons at the core of dense  regions have much better generalization performance. 
+\begin{itemize} 
+\item \textit{This paper shows another fascinating use of the statistical mechanics reportoire of tricks, namely the replica (symmetric) method \cite{mezard1985replicas}. This is a set of methods that is mathematically quite involved  and has an extensive range of applications \cite{mezard1987spin}. Ultimately, replica calculations are quite mechanical though, involving the usual algebraic tricks to compute averages of $(Z^n-1)/n$ for partition functions $Z$ and integral $n$ and extend them to the $n \to 0$ limit, using complex integral representations of equality and inequality constraints and making use of saddle point methods to approximate integrals in the thermodynamic limit. It would generally be very helpful to make these calculations less obscure and split them into the creative part and a mechanical one (e.g.~symbolic computation like in a computer algebra program), so that one could really understand what changes to the model have what effect on the landscape of minima, say. Of course, this has been a topic for quite some time and one would need to dive deeper into the existing literature. One good starting point may be \cite{engel2001statistical} (``Statistical mechanics of learning"). There are also extensive, more recent notes by Mezard .}
+\item \textit{What is intresting about this work on random data is the fact that certain aspects of the geometry are not consequences of some hard-to-capture regularity in the data, but are rather implied by the architecture of the model. This then opens-up the possibility to design and adapt optimization algorithms more closely to specific architectures (see \cite{braunstein2006learning} and follow-up work on message passing methods for the Ising perceptron).}
+\end{itemize}
+\item 
+Very recent work \cite{baldassi2019shaping} summarizes earlier work and gives a simpler derivation of a ``real'   replica formulation in Eq.~(12-13). They then analyse a simple two-layer networks with hidden units that have non-overlapping receptive fields, the so-called committee machine. Again, calculations extend deep into the trick box of statistical mechanics and show the existence of wide regions of flat minima (WFM), also for the interesting case of a wide hidden layer $1 \ll k \ll n$.  The authors claim: \textit{The existence of WFM is a structural property of neural networks. Its origin relies in the threshold sum form of the nonlinearity characterizing the formal neurons.} As an argument of support it is shown that the parity machine, which uses the identical hidden layer architecture than the committee machine, does not exhibit WFMs. \footnote{An interesting further calculation claims that the cross-entropy loss (as opposed to the mis-classification loss) behaves very simlarly to the local entropy loss, hence favoring WFMs. Again: \textit{The computation is relatively involved...}. However, the appendix contains a lot more detail than previous papers. Todo: Try to follow the calculations and reveal the structure of the argument.} 
+\begin{itemize}
+\item \textit{See comments above. It would be great to understand the difference bertween the standard replica method and the ``real replica'' argument made here. The higher goal is to distill out proof techniques of how such results can be obtained. Methodically there are systems that are very clean, so precise calculations can be performed, leading to predictions that are often very closley confirmed in experiments. Only, if one is able to get to the core of the argument, one can hope to transfer these arguments to models that are of greater practical relevance, for instance by generalizing concepts from the discrete to the continuous parameter case. }
+\end{itemize}
+%
+\item Side remark: a well-cited work similar in spirit, but with a somewhat different objective is \cite{choromanska2015loss}. They use results from random matrix theory to understand (and count) criticial points of a restricted class of deep MLPs, making use of the spherical spin glass model. One of the main claims is the existence of a band of almost optimal local minima with good generalization capabilities that are easily accessible for methods like SGD.
+\begin{itemize}
+\item \textit{I have  not studied this approach recently...}
+\end{itemize}
+\item Entropy-SGD has been developed by a mix of authors of the above papers \cite{chaudhari2016entropy}. The idea is to bias SGD towards local minima with high local entropy. \\
+Conceptually, our algorithm resembles two nested loops of SGD where we use Langevin dynamics in the inner loop to compute the gradient of the local entropy before each update of the weights.
+%
+\item There has also been work coming from the angle of PAC Bayesian  learning theory \cite{mcallester1999pac}, most notably  \cite{dziugaite2017computing}. The basic idea is to assess the volume of parameters around an obtained point estimate, which -- according to MDL or a Bayesian evidence argument -- will be tied to generalization error. This program has been carried out for small networks in \cite{langford2002not} based on PAC Bayesian arguments \cite{mcallester1999pac} in a two-stage process. Essentially one finds a solution (via training) and then defines a distribution of parameters with a (diagonal covariance) Gaussian around it. As argued in \cite{dziugaite2017computing} the idea to independently perturbe paraneters does not scale to massiviely parameterized models and a different approach is needed. Instead an SGD based algorithm is suggested that (1) adds  random perturbation of the SGD solution and (2) has an additional regularizer. 
+\begin{itemize}
+\item \textit{To derive this algorithm \cite{dziugaite2017computing} goes through a very clean and readable derivation of basic PAC Bayesian results. The prior is a simple Gaussian model. A Gaussian expectation (noise) is estimated (umnbiased) through sampling of noise perturbations on the parameters. The main additional technical complexity is another union bound to chose the prior variance (which is conceptually not very deep).}
+\item \textit{The accuracy of the bounds are claimed to be good, in the range of 20\%, compared to hold-out data (Chernoff bounds) results that are more like 2\%. The experiments are done on a binary version of MNIST. So there is still some way to go in terms of tightness of bounds.}
+\item \textit{Conceptually, it seems that one always arrives back at Gaussian priors over weights. Whether one constructs heuristic arguments or whether one adds a lot of subtelty... What if one could chose this reference prior in more clever ways. For instance if one had a simple model with provable accuracy? The above argument work in weight space, so one could first distill such a model into the target architecture, trying to find weights that approximate the mechanism. Notice that conceptually such transfer can happen by generating an arbitrary number of labeled examples, provided one would have access to unlabeled data (which is a setting that for many applications is relevant). This weight distribution can then be used as an informative prior in the PAC-Bayesian setting.} 
+\end{itemize}
+\item The noise level of SGD is also implicitly influenced by control parametrers such as the mini-batch size. It has been shown experimentally in 
+\cite{keskar2016large} that this is indeed the case and solutions found with larger batch sized tend to be sharper. Here sharpness/flatness is formally defined as a property of the spectrum of the Hessian at a solution. The main contribution of the paper is a tractable version of a sharpness measure in Eqs.~(3,4) which involves a random projection.
+\item There has been work to tease out the difference between how DNNs train on random data vs.~real data, e.g.~\cite{arpit2017closer}. Several observations are made: (1) On real data one can distinguish between simpler and harder examples. (2) A loss sensitivty measure obtained by back-prop on a rolled out SGD compute graph. Again, real data shows more non-uniformness, whereas for random data all data points contribute the same.. 
+
+\newpage
+\item Other papers to consider 
+\begin{itemize}
+\item \cite{li2018visualizing} deals with appropriate visualization techniques and critizises the random direction approach often  taken as it ignores (re-)scaling effects in DNNs. \textit{Very poor write-up (though it is highly cited), but basically it just deals with the  questiion of  appropriate normalizaton of norms. This seems related to the discussion around margin-based bounds for DNNs (see below).} 
+\item \cite{neyshabur2017exploring}
+The paper investigates different measure of capacity for neural networks with regard to how well they explain consistently observed phenomena in the context of training DNNs. This includes different group and path norms,  spectral norm measures as well as a measure of sharpness. With regard to the latter (and in general), it is emphasized that one needs to control the scale (e.g.~through weight matrix/vector norms).
+\item \cite{kawaguchi2017generalization}
+\item \cite{brutzkus2017sgd}
+\item \cite{golowich2017size}
+\item \cite{du2018power}
+\item \cite{soudry2017exponentially}
+\item \cite{arora2019fine}
+\item \cite{zhu2018bayesian}
+\item Earlier work, e.g.~\cite{lecun2012efficient} has typically argued that SGD produces better solution, because of its ability to ``jump" across basins of attraction (of the gradient dynamics) and thus avoids poor local minima. This seems
+\end{itemize}
+\item Ideas: 
+\end{enumerate}
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}
+
+
+\newpage
+
+
+\item \cite{dziugaite2017computing}: Computing nonvacuous generalization bounds for deep (stochastic) neural networks with many more parameters than training data, 2017
+\begin{enumerate}
+\item The basic idea is to assess the volume of parameters around an obtained point estimate, whioch -- according to MDL or a Bayesian evidence argument -- will be tied to generalization error. This program has been carried out for small networks in \cite{langford2002not} based on PAC Bayesian arguments \cite{mcallester1999pac} in a two-stage process. Here it is suggested to directly optimize the PAC Bayesian bound, which leads to a new form of regularization. 
+\item In order to make this appraoch pratical, a few modifications are made: (i) The variance of a Gaussian prior is not fixed, but searched over at the cost of an additional union bound. (ii) Effectively one samples Gaussian weight perturbations (Monte Carlo) in order to obtain the necessary gradients fror SGD. 
+\item Good and competent discussion of related work
+
+ \end{enumerate}
+ \end{enumerate}
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}
+
+\item \cite{arora2018stronger}: Stronger generalization bounds for deep nets via a compression approach, 2018
+\begin{enumerate}
+\item Take a DNN (fully-connected or CNN) and compress each layer weight matrix, e.g.~via random matrix projection. The generalization error (!) of the compressed network can be bounded on top of an empricial margin error of the uncompressed network. 
+\item These results make use of a generic theorem that uses parameter quantization of the compressed ntwork (Theorem 2.1) in conjunction with a compressibility framework (Definitions 1, 2). 
+\item For ReLU networks, the paper develops the following ``liuckiness" concepts that control the bound: (i) layer cushion (Def.~4, how much are pre-activation vectors stretched relative to a Frobenius-norm bound), (ii) interlayer cusion (Def.~5, same for multiple layers with linearization (Jacobian)), (iii) activation contraction (Def.~6, pre-activation vs.~activation vector norm), and (iv) interlayer smoothness (Def.~7, controls validity of Jacobian approximation). 
+\item Concepts and theorem can be adapted to ConvNets, also requiring the property of well-dsitibuted Jacobians (Def.~9) 
+\end{enumerate}
+\th: If one uses not the trained network, but a compressed version of it, then one give error bounds for this compressed network, if one has been lucky with regard to the trained network (i.e.~it has good noise resilience as captutred by the quantities above).
+\item \cite{neyshabur2017exploring}  Exploring Generalization in Deep Learning, 2017
+\begin{enumerate}
+\item The paper investigates different measure of capactity for neural networks with regard to how well they explain consistently observed phenomena in the context of training DNNs. This includes different group and path norms,  spectral norm measures as well as a measure called sharpnes. With regard to the latter (and in general), it is emphaized that one needs to control the scale (e.g.~through weight matrix/vector norms).
+\end{enumerate}
+\th: Nice overview and convincing articulation of the current issues and state of the art, yet no real conclusion.  
+\item \cite{belkin2019reconciling}: Reconciling modern machine-learning practice and the classical bias--variance trade-off, 2019
+\begin{enumerate}
+\item Double descent risk curve, empricially found in many models, including random Fourier features, DNNs. and ensembled decision trees.  
+\item Some argument of why it has been missed and what accounts for it (norm-based capacity vs.~number of parameters).
+\end{enumerate}
+\th: Presents a lot of empirical findings for a revision of classical learning theory
+\item \cite{dziugaite2017computing}: Computing nonvacuous generalization bounds for deep (stochastic) neural networks with many more parameters than training data, 2017
+\begin{enumerate}
+\item The basic idea is to assess the volume of parameters around an obtained point estimate, whioch -- according to MDL or a Bayesian evidence argument -- will be tied to generalization error. This program has been carried out for small networks in \cite{langford2002not} based on PAC Bayesian arguments \cite{mcallester1999pac} in a two-stage process. Here it is suggested to directly optimize the PAC Bayesian bound, which leads to a new form of regularization. 
+\item In order to make this appraoch pratical, a few modifications are made: (i) The variance of a Gaussian prior is not fixed, but searched over at the cost of an additional union bound. (ii) Effectively one samples Gaussian weight perturbations (Monte Carlo) in order to obtain the necessary gradients fror SGD. 
+\item Good and competent discussion of related work
+\end{enumerate}
+\th: Complex modification of standard SGD to guide it towards solutions that are better in the PAC Bayesian sense. Although bounds are often non-vacuous, lack of tightness is still an issue. 
+\item \cite{bartlett2017spectrally}: Spectrally-normalized margin bounds for neural networks, 2017
+\begin{enumerate}
+\item Provides complexity measure based on Lipschitz constants, but normalized by the margin of the predictor. The necessity of normalization for obtaining meaningful measures is emphasized. 
+\item Definition of spectral complexity measure: product of Lipschitz/spectral norms per layer, times weighted average with regard to reference network.  Relevance of this is shown in key Theorem (1.1), note: very weak dependency on width of layers and depth of network. 
+\end{enumerate}
+\th: Recent culmination of a long line of work on using operator norms (w/ margins) in generalization bounds. 
+\item \cite{jiang2018predicting}: Predicting the generalization gap in deep networks with margin distributions
+\begin{enumerate}
+\item Main claim:  margin information across layers can inform a good predictor of the generalization gap. Specifically, margin distributions are utilized and normalized appropriately. 
+\item Technical details: define margins (eq.~3) and normalized distributions (eq.~4, 5), which is fruther compressed by extracting moments or order statistics (cf.~3.2). These are used as features to a simple linear predictor. 
+\end{enumerate}
+\th: Not many fundamentally new insights, but some care to technical details.
+\end{enumerate}
+
+
+
+
+\newpage
+\begin{enumerate}
+\item \cite{arora2018stronger}: Stronger generalization bounds for deep nets via a compression approach, 2018
+\begin{itemize}
+
+
+\item model distillation idea: compress a complex model $f$ into a simpler model $g$ that has similar training loss
+\item distribution-independent compressibilty [\th bad], sup-norm [\th also bad] w/o calibration of scores [\th ?]
+\item fundamental learning theorem (2.1) for compressed model w/ quantized parameters [\th why this limitation]
+\item conceptually: single complex model $f$ is given, standard uniform convergence arguments are used on the hypothesis class of compressewd 
+models
+\item can reproduce \cite{neyshabur2017pac} as special case (which uses spectral norms of per layer weight matrices) by spectral truncation and rounding 
+\item \textit{noise sensitivty}:  how much is a downstream layer activity changed by injecting upstream noise, cf.~Def 3.; related definiton of error resilience: \text{cushion}, cf.~Def.~4 and 5.
+\end{itemize}
+\end{enumerate}
+
+
+\end{document}

@@ -1,0 +1,123 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[top=30pt,bottom=30pt,left=48pt,right=46pt]{geometry}
+\usepackage{amsmath,hyperref}
+\newcommand{\w}{{\mathbf w}}
+\newcommand{\x}{{\mathbf x}}
+\author{Thomas Hofmann}
+\title{Ising Perceptron and Beyond}
+
+\begin{document}
+\maketitle
+
+\begin{enumerate}
+\item
+One of the simplest learning models to study is the binary (or Ising) perceptron, in which weights are binary, i.e.~$y(x) = \text{sign}\left( w^\top x \right)$, with  $x \in \{-1,1\}^n$ and $w \in \{-1,1\}^n$.
+%\begin{align}
+%\end{align}
+Beside the theoretical interest, this model is also relevant in the context of biological synapses or compressed artificial neural networks (see \cite{baldassi2015subdominant} for an overview). One usually assumes that patterns consist of (unbiased) random bits and that labels are either (1) random or (2) outputs of an unknown teacher $w^*$. For a given set of examples $X= \{(x^i,y^i): i=1,\dots,l\}$ the version space is denoted $V(X) = \{ w: y^i = \text{sign}\left( w^\top x^i \right)\, \forall i\} \subseteq \{-1,1\}^n$. % It is a subset of vertices of a hypercube.
+\item 
+Classical work has studied the capacity of the Ising perceptron. In the random setting one can calculate a capacity of $\alpha n$, where $\alpha \approx 0.833$ \cite{krauth1989storage}. This means in the $n \to \infty$ limit, the Ising perceptron can learn to memorize a.s.~$\alpha n$ examples and will sharply break-down after. In the teacher setting the capacity can be computed as $\alpha = 1.245$ \cite{sompolinsky1990learning}. When it comes to algorithmic hardness, it is known that computing solutions is (in general) NP hard and that an exponential number of local minima  exists (w.r.t.~Hamming distance) \cite{sompolinsky1990learning}. A somewhat more recent result shows that (global) minima typically tend to be isolated \cite{huang2014origin}, i.e.~separated by $O(n)$ Hamming distance. These properties seem to explain the initial difficulty with learning algorithms for the Ising perceptron. 
+\item 
+It was a surprising discovery in \cite{braunstein2006learning} that simple local search algorithms based on message passing schemes are still able to find near optimal solutions. The algorithm, now called reinforced belief propagation, updates weights according to a modified belief propagation (BP) scheme derived from a factor graph. It makes use of improvements of plain BP for densely connected graphs (see \cite{kabashima2003cdma,neirotti2005improved}) as well as a genuine idea about driving local fields to $\pm \infty$ (cf.~\cite[Eqs.~(4,5)]{braunstein2006learning}). Since then there has been work on similar algorithms, e.g.~reinforced max-sum \cite{baldassi2015max}, SBPI \cite{baldassi2007efficient} and CP+R \cite{baldassi2009generalization}. This is puzzeling as \textit{These results are not captured by the standard spin glass theory [and are] in striking contrast with a glassy energy landscape in which solutions are isolated.} \cite{baldassi2015subdominant}.
+\item 
+There is something missing in the classical analysis and this has been identified in \cite{baldassi2015subdominant} as the phenomenon of subdominant (i.e.~non-ground state) dense (i.e.~not isolated) clusters of solutions. The lens through which to find and analyse such connected clusters is the free energy density function 
+\begin{align}
+F(d,\beta) = -\frac{1}{n\beta} \ln \left( \sum_{w \in V(X)}  \mathcal N(w,d)^\beta \right), \quad 
+\mathcal N(w,d) = \sum_{v \in V(X)} \delta(\|v-w\|_H, d), \quad d=0,\dots \,.
+\end{align}
+% Note that as $F(d,\beta) = \langle H \rangle_w - \tfrac 1 \beta S(d)$.
+which (as $F = - \ln Z /(n\beta)$) has an implied energy density $H(w,d) = -\tfrac 1n\ln \mathcal N(w,d)$, favoring solutions with (exponentially) many minima in their neighborhood. \cite{baldassi2015subdominant} suggests to study the \textit{local  entropy}, averaged over (random) data sets and reference weights $w$, i.e.~$S(d) = \frac 1n \langle \log \mathcal N(w,d) \rangle_{X,w}$
+\item Technically, in order to be able to perform the averaging over a logarithm, the paper uses a replica trick and applies the standard symmetry assumption. \cite[Supplementary B]{baldassi2015subdominant} provides a solution sketch, which is incomprehensble without the background of other replica symmetric calculations. In the end they obtain a system of 13 coupled equations with a number of order parameters that are discussed in some detail. Question: How can such calculations be made more assessible to a broader audience? Project: translate calculation tools from statistical mechanics into a cleaner form that can be applied automatically, e.g..~by using standard computer algebra systems.   
+\item Very recent work \cite{baldassi2019shaping} summarizes earlier work and gives a simpler derivation of a ``real'   replica formulation in Eq.~(12-13). They then analyse a simple two-layer networks with hidden units that have non-overlapping receptive fields, the so-called committee machine. Again, calculations extend deep into the trick box of statistical mechanics and show the existence of wide regions of flat minima, also for the interesting case of a wide hidden layer $1 \ll k \ll n$.  The authors claim: \textit{The existence of WFM is a structural property of neural networks. Its origin relies in the threshold sum form of the nonlinearity characterizing the formal neurons.} As an argument of support it is shown that the parity machine, which uses the identical hidden layer architecture than the committee machine, does not exhibit WFMs.
+\item An interesting further calculation claims that the cross-entropy loss (as opposed to the mis-classification loss) behaves very simlarly to the local entropy loss, hence favoring WFMs. Again: \textit{The computation is relatively involved...}. However, the appendix contains a lot more detail than previous papers. Todo: Try to follow the calculations and reveal the structure of the argument. 
+\end{enumerate} 
+
+\bibliography{th}
+\bibliographystyle{alpha}
+\end{document}
+\newpage
+with the following iterative (ideally: fixed-point)  equations 
+\begin{align}
+h_r & = \frac1{\sqrt n} \sum_i u_r^{-i} x^i_r \; (+ h_r), \quad h_r^{-i}  = h_r - \frac1{\sqrt n} u_r^{-i} x_r^i
+\\
+\langle w_r^{-i}\rangle & = \tanh(h_r^{-i}), \quad
+\\
+\quad h^{\circ i}_r = \frac{1}{\sqrt n} \sum_{j \neq i}   u_r^{\circ j} x_r^j, \quad 
+ \bar u_r^{\circ i} = \frac{1}{\sqrt n} \sum_{j \neq i} \langle w^{\circ j}_r \rangle x^j_r \\
+& u_r^{\circ i} = f\left(\bar u_r^{\circ i}, \frac 1n \sum_{j \neq i} \langle w^{\circ j}_r \rangle^2 \right), \quad 
+f^{-1}(a,b) = \int_0^\infty  \exp\left[ -\frac{(a-z)^2-a^2}{2(1-b)} dz \right] 
+\end{align}
+
+\newpage
+
+Essentially, one computes quantities $\langle w^{\circ i} \rangle$ which are meant to estimate  the average (mean fields) of weight vectors satisfying the contraints on all but the $i$-th data point, formally
+\begin{align}
+\langle w^{\circ i} \rangle = \frac{\sum_{w \in V(X^{\circ i})} w}{| V(X^{\circ i})|},  \quad X^{\circ i} := X -\{(x^i,y^i)\}
+\end{align}
+These are approximated by (ideally: fixed-point) iterations as follows
+\begin{align}
+& \langle w_r^{\circ i}\rangle = \tanh(h_r^{\circ i}), \quad h^{\circ i}_r = \frac{1}{\sqrt n} \sum_{j \neq i}   u_r^{\circ j} x_r^j, \quad 
+ \bar u_r^{\circ i} = \frac{1}{\sqrt n} \sum_{j \neq i} \langle w^{\circ j}_r \rangle x^j_r \\
+& u_r^{\circ i} = f\left(\bar u_r^{\circ i}, \frac 1n \sum_{j \neq i} \langle w^{\circ j}_r \rangle^2 \right), \quad 
+f^{-1}(a,b) = \int_0^\infty  \exp\left[ -\frac{(a-z)^2-a^2}{2(1-b)} dz \right] 
+\end{align}
+
+
+\begin{enumerate}
+\item{\textbf{Replica Trick and Capacity Calculations:}} 
+\begin{enumerate}
+\item 
+One of the first, classical applications of statistical physics in analysing (artificial) neural networks has been in capacity calculations for the \textit{Hopfield network} \cite{hopfield1982neural}. Hopfield networks are described by an energy function $H(x; J) = \sum_{i,j} J_{ij} x_i x_j = x^\top J x$ where $J$ is the coupling matrix (zero diagonal) and $x \in \{-1,1\}^n$ is a binary pattern. A pattern $x$ is considered to be stored by such a network, if it is a metastable state, i.e.~changing any signed bit will strictly increase the energy. 
+\item 
+For unbiased random patterns, if the weights are set with the Hebb rule, one can establish a (low) asymptotic capacity of $0.14n$ patterns \cite{amit1985storing}. However, the true asymptotic capacity is $2n$ as shown by early work of Cover \cite{cover1965}. This analysis has been refined and extended to correlated patterns  by Gardner \cite{gardner1987maximum} using the \textit{replica trick}. The standard approach is to try to estimate the relative volume of the couplings that correctly store $m$ random patterns. The critical capacity is reached, when this volume becomes $0$.
+\item 
+The replica trick approximates a log partition functions via an analytical continuation as follows %  (Taylor expansion)
+\begin{align}
+\frac{Z^n -1}{n} = \frac{e^{n \ln Z}-1}{n} = \frac{n \ln Z + \frac 12 (n \ln Z)^2 + ...}{n}  \stackrel{n \to 0}= \ln Z
+\end{align}
+Here $n$ is introduced as an integer with the idea of computing $Z^n$ for some $n \ge 1$, but then taken to $0$. Rigorously establishing this $n \to 0$ limit is often very involved\footnote{It requires to apply Carlson's theorem. See \url{https://en.wikipedia.org/wiki/Carlson\%27s\_theorem}}. In that sense, the replica trick is a heuristic (unless replaced by a rigourous argument). What is gained by this? Note that if want to average $\ln Z$ over randomness, then one can approximate the expectation of a logarithm with expectations of $Z^n$, which is the partition function of the original system, replicated $n$ times. One can then interchange the averaging with the sum or integral that defines $Z$ and often is left with tractable untegrals (e.g.~Gaussian ones). 
+\end{enumerate}
+\item {\textbf{Ising Perceptron:}} 
+\begin{enumerate}
+\item 
+One can also study a simplfied Hopefield networks with binary weights, which is valuable from a bit counting perspective as well as with regard to low precision weights (in addition to the theoretical insights). The analysis in \cite{krauth1989storage}, which requires replica symmetry breaking, corrects the original calculations of  \cite{gardner1988optimal} to $0.833n$, a number that has been recently confirmed by a rigorous analysis in \cite{ding2018capacity}. 
+\item A closely related model for a simple classification problem (as opposed to associative storage) is the Ising perceptron, where random patterns are labeled with unbiased binary random labels. Let us write this out:
+\begin{align}
+\sigma(w,x) = \text{sign}(\langle w,x\rangle), \quad w,x \in \{-1,+1\}^n
+\end{align}
+where $w$ is the perceptron binary weight vector and $x$ is a binary pattern with label $y$. The goal is to find weights with low classification error on a training set of examples $\{(x^i,y^i): i=1,\dots,l\}$. The energy function and its Gibbs measure at temperature $1/\beta$ are given by
+\begin{align}
+H(w) = \sum_{i=1}^l [[ y^i \neq \sigma(w,x^i)]], \quad P(w) = \frac 1Z \exp\left[-\beta H(w) \right], \quad 
+Z  = \sum_{w \in \{-1,+1\}} \exp\left[-\beta H(w) \right]
+\end{align}
+So the key quantity to study is the partition function, which in the zero temperature limit counts the number of zero-error solutions. Applying the analysis mentioned above \cite{krauth1989storage,ding2018capacity}, the probability that $Z =0$ jumps to one at $l  \ge \alpha m$, $\alpha = 0.833$, and is zero for smaller $l$.
+\item 
+There has been more analysis of the zero temperature limit of the Ising perceptron, in particular see \cite{huang2014origin}. An interesting result concerns the number of minima (exponentially growing in dimensionality $n$) and their geometry. With regard to the latter, it has been shown that the vast majority of these minima are isolated on the $n$-hypercube and separated from one another by a Hamming distance of $O(n)$. More results on local minima and learning algorithms have been presented in \cite{horner1992dynamics,braunstein2006learning, baldassi2007efficient, baldassi2009generalization}.
+\end{enumerate}
+\newpage
+
+%
+
+
+
+% 
+%
+\end{enumerate}
+
+
+\newpage
+
+
+
+\cite{baldassi2015subdominant}
+
+
+\paragraph{Shaping the learning landscape in neural networks around wide flat
+  minima \cite{baldassi2019shaping}}
+
+\begin{enumerate}
+\item Simple model: binary weights, random patterns/labels $\Rightarrow$ memorization problem. Criticial ratio of \#params/\#data points (phase transition cf.~\cite{krauth1989storage}). 
+\item Formalization: Gibbs measure (Eq.~2) with parttition function (Eq.~3).
+\end{enumerate}
+
+

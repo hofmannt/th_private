@@ -1,0 +1,66 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[top=30pt,bottom=30pt,left=48pt,right=46pt]{geometry}
+\usepackage{amsmath,amssymb,amsthm,bm,hyperref}
+\setlength\itemsep{2mm}
+
+\author{Thomas Hofmann}
+\title{Graph Convolution Networks}
+\begin{document}
+\maketitle
+
+\paragraph{Graph Convolution Networks}
+Activity propagation in fully connected neural networks happens independently for each data point by composing layer-to-layer transfer maps 
+\begin{align}
+x= x^1 \mapsto x^2 = \sigma(x^1 W^1) \mapsto ... \mapsto  x^{l+1} = \sigma(x^l W^l) \mapsto ... \mapsto y=x^L = \sigma(x^{L-1} W^{L-1} ),
+\end{align}
+where $W^l$ is a weight matrix and $\sigma$ a pointwise non-linearity (which may be different for each layer). We can also think of collecting all training examples into a matrix $X$ and then summarizing all forward propagations in a single pass with a layer-to-layer transfer between matrices of activities 
+\begin{align}
+X^{l+1} = \sigma(X^l W^{l} )
+\end{align}
+where each column  now encodes the activation vectors of a single data point. This is generalized in graph convolutions, where activities between neighboring nodes (data points are identified with nodes in a graph) are linearly re-combined. The raw adjacency matrix $A$ is augmented by self-connections and then normalized
+\begin{align}
+Q = D^{-\frac 12}(A +  I_n)D^{-\frac 12}, \quad \text{where $D$ is the degree matrix of $A+ I_n$}
+\end{align} 
+A graph convolutional network \cite{kipf2016semi} then propagates activity according to
+\begin{align}
+X^{l+1} = \sigma(Q X^l W^{l} )
+\end{align}
+
+\paragraph*{Spectral Graph Theory} 
+Why is this is a useful propagation rule? This can be illustrated by spectral convolutions on graphs. The following exposition is based upon \cite{sandryhaila2013discrete}. First one needs to define a graph shift filter,
+\begin{align}
+\tilde x = A x,\quad \text{special case: cyclic 1d lattice} \quad A = \begin{pmatrix}
+0 & 1 & 0 & \dots & 0 & 0 \\
+0 & 0 & 1 & \dots & 0 & 0 \\
+& & & \cdots & \\
+0 & 0 & 0 & \dots & 0 & 1\\
+1 & 0 & 0 & \dots & 0 & 0
+\end{pmatrix}
+\end{align}
+Now we would like to consider linear, shift invariant filters $H$, i.e.
+\begin{align}
+H(\alpha x + \beta z)  = \alpha Hx + \beta Hz, \quad \text{and} \quad H(As) = A(Hs)
+\end{align}
+Spectral decomposition is an important tool that allows to decompose the signal space into eigen-spaces such that any filter will map components from each such subspace to the same subspace. In general, this decomposition can be found by considering the Jordan decomposition of $A$. For simplicity, let us consider the symmetric case of $A = A^\top$ in which case $A$ can be diagonalized. It is common to normalize the adjacency matrix by the degrees of the nodes $D = \text{diag}(\text{degree}(v_i))$ and to consider $\tilde A = D^{-\frac12} A D^{-\frac 12}$ one can then diagonalize $\tilde A = U \Lambda U^\top$. This generalizes the Fourier transform on lattices (say 1d or 2d): specifically if $A$ is a circulant matrix (see above), then $U^\top$ will correspond to the 1d DFT. A filter (linear, $A$-shift-invariant) can then be defined in the Fourier space as
+\begin{align}
+g \ast x = U \text{diag}(\gamma_i)  U^\top x
+\end{align}
+where the diagonal entries $\gamma_i$ are the parameters of $g$ (DFT, pointwise multiplication, inverse DFT). 
+
+\paragraph{Approximation}
+
+The authors suggest or discuss an approximation via Chebyshev polynomials. However, this is not really used, so does not necessarily have to be discussed. Instead, they use the $K=1$ case, where one gets
+\begin{align}
+g_\theta \ast x = \left[ \theta_0  I_n+ \theta_1 \left(\frac {2}{\lambda_{\text{max}}} L - I_n\right) \right] x
+\end{align}
+with normalized Laplacian $L$. With the further  simplification $\lambda_{\text{max}}\approx 2$ one gets the even simpler approximation 
+\begin{align}
+g_\theta \ast x = (\theta_0 I + \theta_1 \tilde A) x
+\end{align}
+which is just a linear combination of the identify mapping and the shift operation defined by the degree-normalized adjacency matrix.  (Final trick skipped.)
+
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}

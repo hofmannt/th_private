@@ -1,0 +1,385 @@
+\documentclass[compress]{beamer}
+\usetheme{Copenhagen}
+% \setbeamertemplate{section in toc}[sections numbered]
+\usepackage{dl2019}
+\usepackage{hyperref}
+
+%\usepackage{verbatim}
+%\usepackage{algorithmic}
+%\usepackage{mathtools}
+%\usepackage{xcolor, graphicx}
+\graphicspath{{./figures/}}
+
+\title{
+%%%%%%%%%%%%%%%%%%%%
+Machine Learning Seminar \\ 252-4811-00L 
+%%%%%%%%%%%%%%%%%%%%
+}
+\date{25 September 2019}
+\author{Thomas Hofmann \& Gunnar R\"atsch, ETH Zurich}
+
+\begin{document}
+\maketitle 
+
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Goal of the Seminar}
+
+\begin{enumerate} \is{8mm}
+\item Practice giving scientific presentations
+\item Critical assessment of research papers; discussion
+\item Learn about advanced topics in machine learning
+\end{enumerate}
+
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Organization \& Structure}
+
+\begin{enumerate} \is{8mm}
+\item Block seminar, 2x Saturdays: November 16 \& 23, HG E21
+\item Participation on both days mandatory
+\item Structure: 9:00-10:30, 11:00-12:30, 13:30-15:00, 15:30-17:00\\[2mm]
+Maximum of 4x 1.5h blocks, 3x talks per block, 24 talks total
+\item 20' + 10' = 30' per talk 
+\end{enumerate}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Grading Criteria}
+
+\begin{enumerate} \is{3mm}
+\item Structure (how well is your talk organized?)
+\item Understandability (how understandable is your oral presentation and slide design?)
+\item  Completeness (how well do you provide right background, and manage to focus on what is important and relevant?)
+\item  Activity (how engaged are you in class and in the talk preparation?)
+\item Independence (how independent are you in preparing the presentation, and in reflecting on the paper?)
+\end{enumerate} 
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Presentation: Expectations}
+
+\begin{enumerate} \is{3mm}
+\item Use electronic slides (ppt, pdf, ...)
+\item Talk length: 20 min + 10 min discussion
+\item  Provide sufficient background to be understandable\\ (for someone who has taken an ML class)
+\item Present contributions and results; criticial reflection
+\end{enumerate} 
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Presentation: Typical Structure}
+\begin{enumerate} \is{3mm}
+\item Introduction (Motivation and background)
+\item Formal problem statement (Notation, ...)
+\item Technical contribution (algorithm, theoretical result, ...)
+\item Experimental results (if any)
+\item Discussion (what are perceived strengths and weaknesses of the paper; what could be done more; ...)
+\item Conclusion
+\end{enumerate} 
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Presentation: Recommendations}
+\begin{enumerate} \is{4mm}
+\item Giving compelling presentations is hard: Minimize words and maximize illustrations!
+\item Focus on giving intuition, identifying key insights etc.
+\item Some pieces of advice:\\[2mm]
+\begin{itemize}\is{2mm}
+\item \url{http://www.cs.berkeley.edu/~jrs/speaking.html}
+\item \url{http://research.microsoft.com/en- us/um/people/simonpj/papers/giving-a-talk/giving-a- talk.htm}
+\item \url{http://greatresearch.org/2013/10/04/presenting-a- technical-talk/}
+\end{itemize} 
+\end{enumerate} 
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Goal for Today}
+\begin{enumerate} \is{4mm}
+\item Short description of each paper 
+\item Choice of top 4 preferences -- \textbred{issued via \href{}{Google form}}
+\item Take note of paper numbers, checkmark in form, submit 
+\item We will try to perform a good matching  in the next days...
+\item Additional iterations via email, if necessary
+\end{enumerate} 
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#1}
+Shalev-Shwartz, S., Singer, Y., Srebro, N. and Cotter, A., 2011. Pegasos: Primal estimated sub-gradient solver for svm. Mathematical programming, 127(1), pp.3-30.\\[3mm]
+We describe and analyze a simple and effective stochastic sub-gradient descent algorithm for solving the optimization problem cast by Support Vector Machines (SVM). [..]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#2}
+Duchi, J., Hazan, E. and Singer, Y., 2011. Adaptive subgradient methods for online learning and stochastic optimization. Journal of Machine Learning Research, 12(Jul), pp.2121-2159.\\[3mm]
+We present a new family of subgradient methods that dynamically incorporate knowledge of
+the geometry of the data observed in earlier iterations to perform more informative gradient-
+based learning. [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#3}
+Kingma, D.P. and Ba, J., 2014. Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980.\\[3mm]
+We introduce Adam, an algorithm for first-order gradient-based optimization of stochastic
+objective functions, based on adaptive estimates of lower-order moments. The method is
+straightforward to implement, is computationally efficient, has little memory requirements, is
+invariant to diagonal rescaling of the gradients, and is well suited for problems that are large
+in terms of data and/or parameters.
+[...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#4}
+LeCun, Y.A., Bottou, L., Orr, G.B. and Müller, K.R., 2012. Efficient backprop. In Neural networks: Tricks of the trade (pp. 9-48). Springer, Berlin, Heidelberg.\\[3mm]
+The convergence of back-propagation learning is analyzed so as to explain common
+phenomenon observed by practitioners. Many undesirable behaviors of backprop can be
+avoided with tricks that are rarely exposed in serious technical publications. This paper
+gives some of those tricks, and offers explanations of why they work.
+[...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#5}
+Belkin, M. and Niyogi, P., 2003. Laplacian eigenmaps for dimensionality reduction and data representation. Neural computation, 15(6), pp.1373-1396.\\[3mm]
+One of the central problems in machine learning and pattern recognition is to develop
+appropriate representations for complex data. We consider the problem of constructing a
+representation for data lying on a low-dimensional manifold embedded in a high-
+dimensional space.[...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#6}
+Blei, D.M., Ng, A.Y. and Jordan, M.I., 2003. Latent dirichlet allocation. Journal of machine Learning research, 3(Jan), pp.993-1022.\\[3mm]
+We describe latent Dirichlet allocation (LDA), a generative probabilistic model for collections
+of discrete data such as text corpora. LDA is a three-level hierarchical Bayesian model, in
+which each item of a collection is modeled as a finite mixture over an underlying set of
+topics. Each topic is, in turn, modeled as an infinite mixture over an underlying set of topic
+probabilities. [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#7}
+Extracting and composing robust features with denoising autoencoders\\[3mm]
+Previous work has shown that the difficulties in learning deep generative or discriminative
+models can be overcome by an initial unsupervised learning step that maps inputs to useful
+intermediate representations. We introduce and motivate a new training principle for
+unsupervised learning of a representation based on the idea of making the learned
+representations robust to partial corruption of the input pattern.  [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#8}
+UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction\\[3mm]
+UMAP (Uniform Manifold Approximation and Projection) is a novel manifold learning
+technique for dimension reduction. UMAP is constructed from a theoretical framework based
+in Riemannian geometry and algebraic topology. The result is a practical scalable algorithm
+that applies to real world data.  [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#9}
+Disentangling by Factorizing \\[3mm]
+We define and address the problem of unsupervised learning of disentangled representations on data generated from independent factors of variation. We propose FactorVAE, a method that disentangles by encouraging the distribution of representations to be factorial and hence independent across the dimensions. We show that it improves upon ?-VAE by providing a better trade-off between disentanglement and reconstruction quality. [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#10}
+Random Features for Large-Scale Kernel Machines\\[3mm]
+To accelerate the training of kernel machines, we propose to map the input data
+to a randomized low-dimensional feature space and then apply existing fast linear
+methods. The features are designed so that the inner products of the transformed
+data are approximately equal to those in the feature space of a user specified shiftinvariant kernel. We explore two sets of random features, provide convergence
+bounds on their ability to approximate various radial basis kernels, and show
+that in large-scale classification and regression tasks linear machine learning algorithms applied to these features outperform state-of-the-art large-scale kernel
+machines.
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#11}
+Adversarial feature learning\\[3mm]
+[...] GANs have no means of learning the inverse mapping -- projecting data back into the
+latent space. We propose Bidirectional Generative Adversarial Networks (BiGANs)
+as a means of learning this inverse mapping, and demonstrate that the resulting
+learned feature representation is useful for auxiliary supervised discrimination tasks,
+competitive with contemporary approaches to unsupervised and self-supervised
+feature learning. [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#12}
+Chen, T.Q., Rubanova, Y., Bettencourt, J. and Duvenaud, D.K., 2018. Neural ordinary differential equations. In Advances in neural information processing systems (pp. 6571-6583).\\[3mm]
+We introduce a new family of deep neural network models. Instead of specifying a discrete
+sequence of hidden layers, we parameterize the derivative of the hidden state using a
+neural network. The output of the network is computed using a blackbox differential equation
+solver. These continuous-depth models have constant memory cost, adapt their evaluation
+strategy to each input, and can explicitly trade numerical precision for speed. [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+Kipf, T.N. and Welling, M., 2016. Semi-supervised classification with graph convolutional networks. arXiv preprint arXiv:1609.02907.\frametitle{Paper \#13}
+\\[3mm]
+We present a scalable approach for semi-supervised learning on graph-structured data that
+is based on an efficient variant of convolutional neural networks which operate directly on
+graphs. We motivate the choice of our convolutional architecture via a localized first-order
+approximation of spectral graph convolutions. [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#14}
+Generative Adversarial Networks\\[3mm]
+We propose a new framework for estimating generative models via an adversarial process, in which we simultaneously train two models: a generative model G
+that captures the data distribution, and a discriminative model D that estimates
+the probability that a sample came from the training data rather than G. The training procedure for G is to maximize the probability of D making a mistake. This
+framework corresponds to a minimax two-player game.
+ [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#15}
+Attention Is All You Need\\[3mm]
+The dominant sequence transduction models are based on complex recurrent or
+convolutional neural networks that include an encoder and a decoder. The best
+performing models also connect the encoder and decoder through an attention
+mechanism. We propose a new simple network architecture, the Transformer,
+based solely on attention mechanisms, dispensing with recurrence and convolutions
+entirely.  [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#16}
+Deep Residual Learning for Image Recognition\\[3mm]
+Deeper neural networks are more difficult to train. We
+present a residual learning framework to ease the training
+of networks that are substantially deeper than those used
+previously. We explicitly reformulate the layers as learning residual functions with reference to the layer inputs, instead of learning unreferenced functions.  [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#17}
+Schulman, J., Levine, S., Abbeel, P., Jordan, M. and Moritz, P., 2015, June. Trust region policy optimization. InInternational conference on machine learning(pp. 1889-1897).\\[3mm]
+In this article, we describe a method for optimizing control policies, with guaranteed monotonic
+improvement. By making several approximations to the theoretically-justified scheme, we develop a practical algorithm, called Trust Region
+Policy Optimization (TRPO). T [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#18}
+Lillicrap, T.P., Hunt, J.J., Pritzel, A., Heess, N., Erez, T., Tassa, Y., Silver, D. and Wierstra, D., 2015. Continuous control with deep reinforcement learning. arXiv preprint arXiv:1509.02971.\\[3mm]
+We adapt the ideas underlying the success of Deep Q-Learning to the continuous action
+domain. We present an actor-critic, model-free algorithm based on the deterministic policy
+gradient that can operate over continuous action spaces. Using the same learning algorithm,
+network architecture and hyper-parameters, our algorithm robustly solves more than 20
+simulated physics tasks, including classic problems such as cartpole swing-up, dexterous
+manipulation, legged locomotion and car driving. [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#19}
+Tamar, A., Wu, Y., Thomas, G., Levine, S. and Abbeel, P., 2016. Value iteration networks. In Advances in Neural Information Processing Systems (pp. 2154-2162).\\[3mm]
+We introduce the value iteration network (VIN): a fully differentiable neural network with
+aplanning module'embedded within. VINs can learn to plan, and are suitable for predicting
+outcomes that involve planning-based reasoning, such as policies for reinforcement
+learning. Key to our approach is a novel differentiable approximation of the value-iteration
+algorithm, which can be represented as a convolutional neural network, and trained end-to-
+end using standard backpropagation.  [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#20}
+Learning from demonstrations\\[3mm]
+Consider learning a policy from example expert behavior, without interaction with the expert or access to reinforcement signal. One approach is to recover the expert's cost function with inverse reinforcement learning, then extract a policy from that cost function with reinforcement learning. This approach is indirect and can be slow. We propose a new general framework for directly extracting a policy from data, as if it were obtained by reinforcement learning following inverse reinforcement learning [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#21}
+Kingma, D.P. and Welling, M., 2013. Auto-encoding variational bayes. ICLR 2014.\\[3mm]
+How can we perform efficient inference and learning in directed probabilistic models, in the
+presence of continuous latent variables with intractable posterior distributions, and large
+datasets? We introduce a stochastic variational inference and learning algorithm that scales
+to large datasets and, under some mild differentiability conditions, even works in the
+intractable case [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#22}
+Tutorial on Variational Autoencoders\\[3mm]
+In just three years, Variational Autoencoders (VAEs) have emerged
+as one of the most popular approaches to unsupervised learning of
+complicated distributions. VAEs are appealing because they are built
+on top of standard function approximators (neural networks), and
+can be trained with stochastic gradient descent. [...] This tutorial introduces the
+intuitions behind VAEs, explains the mathematics behind them, and
+describes some empirical behavior. No prior knowledge of variational
+Bayesian methods is assumed.
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#23}
+Namkoong, H. and Duchi, J.C., 2017. Variance-based regularization with convex objectives. In Advances in Neural Information Processing Systems (pp. 2971-2980).\\[3mm]
+We develop an approach to risk minimization and stochastic optimization that provides a convex surrogate for variance, allowing near-optimal and computationally
+efficient trading between approximation and estimation error. Our approach builds
+off of techniques for distributionally robust optimization and Owen?s empirical
+likelihood, and we provide a number of finite-sample and asymptotic results characterizing the theoretical performance of the estimator [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#24}
+Understanding deep learning requires rethinking generalization\\[3mm]
+Despite their massive size, successful deep artificial neural networks can exhibit a
+remarkably small difference between training and test performance. Conventional wisdom
+attributes small generalization error either to properties of the model family, or to the
+regularization techniques used during training.  [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#25}
+Bahdanau, D., Cho, K. and Bengio, Y., 2014. Neural machine translation by jointly learning to align and translate. arXiv preprint arXiv:1409.0473.\\[3mm]
+Neural machine translation is a recently proposed approach to machine translation. Unlike
+the traditional statistical machine translation, the neural machine translation aims at building
+a single neural network that can be jointly tuned to maximize the translation performance.
+The models proposed recently for neural machine translation often belong to a family of
+encoder-decoders and consists of an encoder that encodes a source sentence into a fixed-
+length vector from which a decoder generates a translation. [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#26}
+Natural Language Processing (Almost) from Scratch\\[3mm]
+We propose a unified neural network architecture and learning algorithm that can be applied
+to various natural language processing tasks including part-of-speech tagging, chunking,
+named entity recognition, and semantic role labeling. This versatility is achieved by trying to
+avoid task-specific engineering and therefore disregarding a lot of prior knowledge. Instead
+of exploiting man-made input features carefully optimized for each task, our system learns
+internal representations on the basis of vast amounts of mostly unlabeled training data.  [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#27}
+Do ImageNet Classifiers Generalize to ImageNet?\\[3mm]
+We build new test sets for the CIFAR-10 and ImageNet datasets. Both benchmarks have
+been the focus of intense research for almost a decade, raising the danger of overfitting to
+excessively re-used test sets. By closely following the original dataset creation processes,
+we test to what extent current classification models generalize to new data. [...]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Paper \#28}
+Support-vector networks\\[3mm]
+The support-vector network is a new leaming machine for two-group classification problems. The
+machine conceptually implements the following idea: input vectors are non-linearly mapped to a very highdimension feature space. In this feature space a linear decision surface is constructed. Special properties of the
+decision surface ensures high generalization ability of the learning machine. The idea behind the support-vector
+network was previously implemented for the restricted case where the training data can be separated without
+errors. We here extend this result to non-separable training data.  [...]
+\end{frame}
+
+\end{document}

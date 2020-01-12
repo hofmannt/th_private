@@ -1,0 +1,36 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[top=30pt,bottom=30pt,left=48pt,right=46pt]{geometry}
+\usepackage{amsmath,amssymb,amsthm,bm,hyperref}
+\setlength\itemsep{2mm}
+\newcommand{\mb}{\mathbf}
+\author{Thomas Hofmann}
+\title{GANs go Coop}
+\begin{document}
+\maketitle
+
+\noindent 
+
+GANs have been a huge success for learning generative models. It has shown the power of game-theoretic modeling, in particular min-max games, even for problems where there is no adversarial problem to start with. For instance it has been known from the very beginning \cite{goodfellow2014generative} that  a maximally strong discriminator leads to the Jensen-Shannon divergence criterion for the generator and the adverserial formulation is simply providing an extremal characterization, something that has been generalized e.g.~in f-GANs \cite{nowozin2016f}.  However, this insight in itself has not resulted in significant conceptual or algorithmic improvements (with the execption perhaps of Wasserstein-GANs \cite{arjovsky2017wasserstein}), rather it has been observed (and argued many times) that it is important to not use discriminators that are too powerful.  In a way, being a critic is an easier job than being a maker/generator. So one has to dumb-down the discriminator or modify objectives in a way that we can extract an informative (and numerically stable) gradient from the GAN objective (for the genererator). This requires a number of tricks and  is one source of difficulties with GANs.
+
+
+Here we ask the problem: should we not think of the problem as a cooperative game? The discriminator is really a teacher for the generator and we do not want the later to fail, but to the contrary to chose the former such that the generator succeeds. So the discriminator should challenge the generator, but just enough to allow for efficient learning. othwreise it would be a bad teacher. This leads us to the believe that we should look for a cooperative game formulation, where the discriminator adapts to the generator, but rather with regard to a common objective. In a way, this should be more in spirit of curriculum learning  \cite{bengio2009curriculum}. \\
+
+Let us denote the data density by $p$, the induced generator density by $p_\theta$, then $q_\theta^*=p/(p+p_\theta)$ is the Bayes optimal discriminator.  The originial GAN objective is
+\begin{align}
+\ell(\theta) = \mb E_x[\log q_\theta^*(x)] + \mb E_z[\log(1 - q_\theta^*(g_\theta(z))], \quad x\sim p, \; z \sim \mathcal N(0,I)
+\end{align}
+The first approximation relative to directly minimizing the JS-divergence is the staleness of $q^*_\theta$. Namely, we compute $\nabla_\theta \ell(\theta)$, but assume $\nabla_\theta q_\theta^* =0$, i.e.~ignore induced changes in the optimal Bayes classifier due to changes in the generator. This then leads to a gradient 
+\begin{align}
+\nabla \ell(\theta) \approx \mb E_z\left[ - 
+	\frac{\left[ \frac{\partial g}{\partial \theta}(z) \right]^\top \nabla_x q(x)  }{1-q(x)} 
+\right], \quad x= g_\theta(z)
+\end{align}
+So in a situation, where $g_\theta$ is poor, we may have $q(x)\approx 0$ and $\nabla_x q\approx \mb 0$, which yields $\nabla \ell(\theta) \approx 0$, although $\theta$ is not at a local minimum.\\
+
+
+
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}

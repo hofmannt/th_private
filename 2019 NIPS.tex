@@ -1,0 +1,370 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[top=30pt,bottom=30pt,left=48pt,right=46pt]{geometry}
+\usepackage{amsmath,amssymb,amsthm,bm,bbm,hyperref}
+\usepackage{titlesec}
+
+\setlength\itemsep{2mm}
+\newcommand{\mb}{\mathbf}
+\newcommand{\mc}{\mathcal}
+\newcommand{\ZZ}{\mathcal Z}
+\renewcommand{\Re}{\mathbb R}
+\newcommand{\E}{\mathbf E}
+\newcommand{\rade}{\mathcal R}
+\newcommand{\funct}{\mathcal F}
+\newcommand{\llangle}{\left \langle}
+\newcommand{\rrangle}{\right \rangle}
+\newtheorem{theorem}{Theorem}
+\newtheorem{axiom}{Axiom}
+\newtheorem{definition}{Definition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\newtheorem{example}{Example}
+\newtheorem{proposition}{Proposition}
+
+
+\titleformat{\section}
+  {\normalfont\large\bfseries}
+  {\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\normalsize\bfseries}
+  {\thesubsection}{1em}{}
+  
+  
+\author{Thomas Hofmann}
+\title{NeurIPS 2019}
+\begin{document}
+\maketitle
+
+\section{Monday, 09-Dec-2019}
+
+\subsection{Human Behavior Modeling with ML: Opportunities and Challenges \\ (Albert Salah, Nuria M. Oliver, Tutorial)}
+\begin{enumerate}
+\item Individual behavior. 
+\begin{itemize}
+\item Emotion prediction from faces (slide 27), standard ML pipeline (slide 53), historic account,  analysis by synthesis (e.g.~Blanz \& Vetter), recnt work using GANs \cite{ding2018exprgan}, time-dynamic features, e.g.~\cite{otberdout2019automatic}, dynamics benchmark (slide 83+)
+\end{itemize}
+\item Interactive behavior 
+\begin{itemize}
+\item Social signal processing, review \cite{vinciarelli2009social}. Human-to-human interactions dataset (v-slide 138+). Early work on visual surveillance using coupled graphical models \cite{oliver2000bayesian}. Generating synthetic ground truth. Pentland sociometer (slide 212). Detecting social interactons, recent approach using RNNs \cite{deng2016structure}, similar \cite{ibrahim2016hierarchical}, GAN for social interaction modeling \cite{gupta2018social} 
+\end{itemize}
+\item Large-scale / collective behavior 
+\begin{itemize}
+\item Data revolution report. How can we measure whether UN sustainability goals have been reached? How can data be used towards reaching the goals? Make use of behavioral sensors used by many. Using CDR data (call detail record). Aggregate behavior: consumption, social networks, mobility. Some data from Telefonica -- Mexican earthquake example. 
+\item Use case: helping Syrian refugees in Turkey (w/ Turk Telecom), data made available to resarchers. Salah, Pentland et al. 2018 (v-slide 316), large scale dataset of CDRs. Perntland/MIT cell phone data sets, eigen behaviors. Historical attentional  RNNs. Can capture periodicity.  Deep urban events paper (scary). Ethical implications severe.
+\end{itemize}
+\item Human-Centric Issues
+\begin{itemize}
+\item Inference of (sensitive) personal data (e.g.~sexual orientation).  See also \href{https://blog.mozilla.org/blog/2019/09/23/introducing-stealing-ur-feelings-an-interactive-documentary-about-big-tech-ai-and-you/}{mozilla blog}. Solution: discrimination-aware decision making. Opacity: (1) intentional, (2) illiterate, (3) intrinsic; veracity (deepfake) 
+\end{itemize}
+\item TH's Comments: 
+\begin{itemize}
+\item \textit{Modeling habits w/ attention models seems useful also for intelligent interfaces, where one can explicitly look back into the entire interaction history. }
+\end{itemize}
+\end{enumerate}
+
+
+\subsection{Imitation Learning and its Application to Natural Language Generation \\(Tutorial)}
+\begin{enumerate}
+\item Part 1: Introduction (Kyunghyun Cho)
+\begin{itemize}
+\item Different sequence model setting: replacing placeholder tokens one by one, but in an order that decided upon by the model. Elementary step, pick a position and generate a token. Idea: move beyond monotoic autogregressive models. 
+\item From GRUs to attention, tries to argue how transformers are a ``freed-up" version of GRUs, obtained by rolling out over time (linear short-cut connections)
+\item MaxLikliehood learning, reduce unsupervised sequence learning to next token (classification) with true token (supervision). Examples of how free sequence generation breaks down; Remedy: beam search. Lack of diversity, but has demonstrated to work well in practice.
+\end{itemize}
+\item Part 2: (Hal Daume)
+\begin{itemize}
+\item Valuation metrics: Blue, Meteor; critical
+\item Sequence generation as a reinforcement learning problem? Large branching factor. Somewhat hopeless.
+\item Caveats: (1) ignore that we know a GT putput, (2) reward computed with loss function as black box, (3) only generate $1$ trajectory (but can 
+many) 
+\item Good examples of using RL: (1) Human in the loop, (2) Dialogue generation: task completion as a natural reward function, (3) Pre-train w/ ML, then RL tuning for Bleu. 	But: paper that uses much simpler loss. 
+\item Bad examples of using RL: ...
+\item Thought experiment: computational oracle, practically: MC tree search, learn next best completion; 
+\item Collect data from expert (system): model this now as a classification problem. Lack of data coverage becomes a big problem (ending up in states where the system has no clue, exposure bias) $\to$  train policy to do well on it's own state distribution 
+\item Dagger: iterative, get expert advice on trajectories generated by current policy. AggreVate.
+\item Roll-in: what states get visited. Roll-out: evaluation. Practice: roll-in with mixture between policy and expert. Classification loss w.r.t. ~expert examplesa often sufficient in practice. 
+\end{itemize}
+\item Part 3
+\begin{itemize}
+\item Binary tree oracle, insipred by quick sort: roll-in with sequence model, roll-out; identify invalid items on which zero prob can be placed; 
+\item Annealed coaching reference policy: Welleck et al. 2019; also: use full set of generation orders 
+\item BERT used to predict what to fill in, after position is decided on
+\item Unclear how much the order matters 
+\end{itemize}
+\item Part 4:
+\begin{itemize}
+\item What if generation requires information not present in the input (conditoning). Story generation. 
+\item Avoid generating unlikely events (peaked softmax, only top continuations)
+\item Language GANs for open ended generation. Language GANs are hard. Even when only looking at the output of the discriminator w/o differentiation. Hard to avoid mode collapse problem.
+\item Unlikelihood based learning; biases in transformer learning.  Penalize repititions. Welleck et al .2019. Fan et al ACL 2018 (!): very interesting story. Hierarchical model. Generation of prompts and then the story. Various interesting evaluation measures. 
+\item Paper robot. Wang et al ACL 2019. Complex background knowledge
+\item Liu, T\"ur et al. Dialogue Learning w/ Human Teaching and Feedback 
+\end{itemize}
+\item Part 5
+\begin{itemize}
+\item latent variable model with continuous space and VAE
+\item Sue, Lee, Cho 2019: search for continuous sequence  \url{https://arxiv.org/pdf/1908.07181.pdf}
+\end{itemize}
+\end{enumerate}
+
+\subsection{Deep Learning with Bayesian Principles \\ (Tutorial, Mohammad Emtiyaz Khan)}
+\begin{enumerate}
+%\item Learning algorithms that are more similar to how living beings learn
+%\item Deep Learning with Bayesian Principles: computing posterior approximations, better generalization, design new  learning algorithms 
+\item Slide 25: Bayes learning rule \cite{khan2017conjugate}. Update natural parameters, but use gradients of expectation parameters. Bound very similar to a PAC-Bayesian bound, $Q$-expectation of loss minus entropy.  Gradient descent as a special case of Gaussian with location parameter, but fixed covariance (Slide 27, see also link to paper draft). Newton's method (Slide 28), nice gradient formulation for Gaussian entropy  by switching parameterizations, then apply re-parameterization, arrive at an Adam like algorithm in a principled manner with diagonal approximation (Slide 30), cf.~\cite{khan2018fast}. 
+\item  Slide 33: Bayes as optimization with Gibbs form derivation for posterior. Variational inference through restriction. Laplace approximation (Slide 36). Nice overview slide (Slide 37).
+\item Approximate Bayesian learning (Slide 42), giving uncertainty estimates. Newer work: VOGN \cite{osawa2019practical} (Slide 43, 44). Critical work on datset shift \cite{ovadia2019can}. Being locally Bayesian is not enough. 
+\item Turning DNNs into Gaussian processes. Some superficial material.
+\item Lifelong learning, continual learning: elastic-weight consolidation \cite{kirkpatrick2017overcoming} (Slide 64)
+\item Lots of useful references in the end. Woth checking out their long paper (draft available)
+\end{enumerate}
+
+
+
+\subsection{
+Celese Kidd, How to Know.
+}
+\begin{enumerate}
+\item Mental model of the world. Run simulations to generate expectations. Perform optimal actions.  Theories about how learners may represent the world. Work with infants. Use of eye tracking etc. Highly unstructured environments.
+\item 5 things about humans. 1.~Continuous belief formation. Experiment: attention sweet spot between low and high surprisal.  2.~Certainty diminishes interest. Holds for what people think they know. People may get stuck with incorrect certainties. 3.~Certainty is driven by feedback. Certainty is coming from feedback (e.g.~if they get it randomly right), not based on objective entropy.  Early stages of making up ones mind matter. 4.~Less feedback may encourage overconfidence. Huge concept variation, even when controlling for context. 5.~Beliefs are formed quickly. $\Longrightarrow$ There is no such thing as a neutral platform.
+\item Vulnerability of children to on-line manipulation. Algorithms pushing content online have impact on what we believe.
+\item \url{https://www.nytimes.com/2019/12/05/opinion/digital-technology-brain.html}\\ By Tristan Harris, 05-12-2019
+\begin{itemize}
+\item Edward O. Wilson, the Harvard professor sociobiology: ``The real problem of humanity is the following: We have Paleolithic emotions, medieval institutions and godlike technology." ... The digital infrastructures of Facebook and Google have overwhelmed the natural capacities of our brains. ... The forces it has unleashed will affect ... our ability to tell fact from fiction, increasing the divisions within society. ... With our Paleolithic instincts, we're simply unable to resist technology's gifts. But this doesn't just compromise our privacy. It also compromises our ability to take collective action. ... Technology that provides us with near-complete knowledge without a commensurate level of agency isn't humane.
+\end{itemize}
+\end{enumerate}
+
+
+\section{Tuesday, 10-Dec-2019}
+
+\subsection{Veridical Data Science, Bin Yu}
+
+\begin{enumerate}
+\item Perturbations: data perturbations, model pertrubations, researcher/team perturbation; document perturbations and argue, cannot do all; what laguage of evidence to domain scientists (problem: misuse of $p$-values w/o effect size); PCS, post-selection not always needed, sometimes LASSO ok.
+\item Making random forests interpretable, cf.~recent paper \cite{basu2018iterative}. Random intersection trees \cite{shah2014random}. Outer loop: stability. Interpretability \cite{murdoch2019interpretable}.
+\item Feature interactions \cite{murdoch2018beyond}, also: \cite{rieger2019interpretations}
+\item Cosmology. CD method applied to frequeny analysis; distill DL models into simpler models (!)
+\end{enumerate}
+
+
+%%%
+Robust hard 
+
+distributional assumptions are important. Simple theorem (too?)
+Bitcounting, need to restrict the adversary to log n bits 
+Comp hardness of result from Burbeck 2018
+%%%
+Adv examples bugs features 
+
+hypothesis: sensitivity to meaningless examples ? no!
+simple experiments: one can learn from adv examples!
+robust and non-robust features 
+non-robust can be predictive! but this leads to vulenarbility 
+
+shouldn't we try to develop architectures, wher such non-robust features become non-necessary 
+%%%
+
+Empirically measuring concentration 
+
+concentration of measure gives lower bounds on adversarial risk., mahloujifar+ 2019
+reduce problem to empirically concetration of measure on sample, some technical assumption(?) 
+does not seem to be the only reason for adv sensivity 
+
+%%%
+
+Quantum Entropy Scoring 
+
+PCA is a provably good way to find outliers  see refrences
+quadraticv run time problem with early methods
+regularized PCA, look for a collection of direction, encourage entropy (quantum entropy) 
+fast robust mean estimation, running in lin time
+
+%%%
+
+Est Lipschitz constants
+SDP relaxatiuon of non-linear program 
+overapperoximate hidden layer 
+
+%%%
+Cheap digfferential operators
+
+Hollow net architecture, do not connect ith hiden unot with ith in next 
+Interesting applications: cont normalizing flows, learning stochastic diff equations 
+
+%%%
+Sequential neural processs
+
+https://arxiv.org/abs/1807.01622
+sequential over many contexts
+(poor talk, no exposition)
+
+%%%
+
+Large initial learning rate 
+
+changes order of learning patterms in the data 
+curriculum: first learn easy to fit patterms
+interesting CIFAR 10 constructed example to demonstrate that 
+
+%%%
+
+%%%
+
+%%%
+
+
+
+
+\subsection{Legendre Memory Units: Continuous-Time Representation in RNNs \cite{voelker2019legendre}}
+\begin{enumerate}
+\item 
+The goal is to design memory units that implement time-delayed version of a determinstic continuous-time signal $x(t) \in \Re^d$. Consider some scalar observation function $y(t)$, then Takens's theorem \cite{takens1981detecting} famously states (under conditions on $y$) that as we compute time delayed versions $(y(t - \tau), y(t-2\tau),\dots,y(t-k\tau))$, the observation sequence $y(t)$ becomes completely predictable at an embedding dimension  $k \le 2d+1$ and the dynamics are completely equivalent to that of $x(t)$. 
+\item 
+This motivates the use of time-delay memory elements in DNNs. An approximation of a time-delay element is designed as coupled ODEs. 
+\begin{align}
+\theta \, \dot m(t) = Am(t) + Bu(t), \quad u(t) \in \Re^d: \text{ input signal},\quad \theta \in \Re: \text{ time delay}
+\end{align} 
+where the optimal matrices $A,B$ are derived through the use of Pad\'e approximation, see \cite[Eq.~(2)]{voelker2019legendre}. This provably leads to an approximation of time delay signals via (shifted) Legendre polynomials, see \cite[Eq.~(3)]{voelker2019legendre}
+\begin{align}
+u(t-\theta') \approx \sum_{i=0}^{d-1} \mc P _i \left(\frac {\theta'} \theta \right) m_i(t)
+\end{align}
+\item With a suitable discretization (e.g.~explicit Euler) one can derive a discrete time version, leading to a leaky integrator memory unit, cf.~\cite[Figure 2)]{voelker2019legendre}, with equations
+\begin{align}
+h_t = \tanh(W_x x_t + W_h h_{t-1} + W_m m_t)
+\end{align}
+that define the hidden state chain, conditioning on memory (read).  The memorized, i.e.~observation, sequence (write) is computed as
+\begin{align}
+u_t = e_x^\top x_t + e_h^\top h_{t-1} + e_m^\top m_{t-1}
+\end{align}
+with learned embedding vectors. 
+\item Strong experiments are performed on permuted MNIST and chaotic time series. 
+\end{enumerate}
+
+\paragraph{Learning to Learn *} Can one use a learned Legendre memorization in the context of adaptive methods for (stochastic) gradient descent? Many methods such as Adam utilize na\"ive recursive averaging (exponential decay) to estimate descent direction and pre-conditioners. Can one use the well-known idea of learning gradient-based updates from \cite{andrychowicz2016learning}, where LSTMs have been used and replace them with Legendre memory? It would retain coupled ODEs as a starting point, which would be much cleaner than using LSTMs. Perhaps one can take the formalism of \cite{orvieto2019role} to constrain the family of suitable memory functions, but then, instead of hand-designing them, learn a suitable memory function. 
+
+
+\subsection{List-Decodable Linear Regression \cite{karmalkar2019list}}
+\begin{enumerate}
+\item Investigates a situation, where the vast majority of data in linear regression are (arbitrarily) corrupted and only a small $\alpha \ll 1$ fraction is valid. The theoretical framewok is based on the idea to return a list (w/ size only depending on $\alpha$) such that one of the parameters in the list is a good approximation to the data. (This is called list-decodable regression \cite{balcan2008discriminative}.)
+\item This paper establishes a strong equivalence between the possibility of $(1/\alpha)$ list-decodable regression and an $\alpha$-anti-concentration property of the data distribution, $\forall v \neq 0: \Pr[\langle X, v \rangle] < \delta$.
+\item Inefficient algorithm: (1) find maximally uniform distribution $\mu$ on soluble subsets of size $\alpha n$. (2) sample $O(1/\alpha)$ samples from $\mu$ and (3) return list of parameters that correctly solve these equations.  This is then turned into an efficient algorithms by using SoS certificates. 
+\end{enumerate}
+
+\subsection{On Exact Computation with an Infinitely Wide Neural Net \cite{arora2019exact}}
+\begin{enumerate}
+\item Builds upon the fundamental \textit{Neural Tangent Kernel} work by \cite{jacot2018neural}, which extends the Gaussian process view of DNNs advocated in \cite{lee2017deep}. This NeurIPS 2018 paper is the real innovation, the current paper more incremental. Hence good to take a closer look at the 2018 paper. 
+\begin{itemize}
+\item The first key step is to move from paramaters $\theta$ to function spaces $\mc F$ by identifying $f_\theta$ realized by a DNN with an element in $\mc F \ni f: \Re^m \to \Re^n$. relative to a fixed input sample $S=(x_1,\dots,x_l)$, $\mc F$ is equiped with an inner product $\langle f,g \rangle = \hat \E_x[f(x)^\top g(x)]$, where $\E_x[h]  = \frac 1l \sum_{i=1}^l h(x_i)$. 
+\item A kernel $K$ can be defined as a symmetric matrix $K(x,x') \in \Re^{n \times n}$, which induces a bilinear map 
+\begin{align}
+\langle f,g\rangle_K = \hat\E_x \hat \E_{x'} \left[ f(x)^\top K(x,x') g(x') \right]\,.
+\end{align}
+\item One can consider linear forms $\mu = \langle d, \cdot \rangle \in \mc F^*$ and defines the function $\Phi: \mc F^* \to \mc F$ such that $f_\mu = \Phi(\mu)$ is given by 
+\begin{align}
+(f_{\mu})_i = \mu K_{i,\cdot}(x,\cdot)  = \langle dK_{i,\cdot}(x,\cdot) \rangle
+\end{align} 
+Note that the functional cost $C$ at some $f_0 \in \mc F$ depends only on $f_0(S)$ and hence the functional derivative can be thought of as a linear form which can be used in turn to define the Kernel gradient 
+\begin{align}
+\partial_f C_{|f_0} = \langle d_{|f_0}, \cdot  \rangle, \quad \nabla_K C_{|f_0} = \frac 1l \sum_{i=1}^l K(x,x_i) d_{|f_0}(x_i)
+\end{align}
+Kernel gradient descent is defined by the differential equation
+\begin{align}
+\dot f (t) = - \nabla_K C_{|f(t)}, \quad \text{leading to} \;\; \dot C_{|f(t)} = - \| d_{|f(t)}||^2_K 
+\end{align}
+which has guaranteed convergence, if $K$ is positive definite. 
+\item A kernel can be approximated by a sample of random functions $f^{r} \in \mc F$ and an atomic distribution on them such that 
+\begin{align}
+\E[ f^r(x) f^r(x')^\top] = K(x,x')
+\end{align}
+which also defined a linear parametrization  via
+\begin{align}
+\phi \to f_\phi = \frac1{\sqrt{R}} \sum_{r=1}^R \phi_r f^r
+\end{align}
+The gradient dynamics in such a parametrization is very easy 
+\begin{align}
+\partial_{\phi_r} f_\phi = \frac 1{\sqrt R}f^r, \quad \dot \phi_r(t) = - \frac 1{\sqrt R}\left\langle d_{f_\phi(t)}, f^r \right \rangle
+\end{align}
+which leads to the simple expression
+\begin{align}
+\dot f_\phi = -\frac 1R \sum_{r=1}^R\left\langle d_{f_\phi(t)}, f^r \right \rangle  f^r  = - \nabla_{\tilde K} C, \quad \tilde K := \frac 1R \sum_{r=1}^R f^r \otimes f^r
+\end{align}
+with tangent kernel $\tilde K$ which tends to $K$ in the limit of $R \to \infty$. 
+\item The $P$-dimensional parametrization $\theta$ of a neural network also leads to a tangent kernel, but one that has a dependency on $\theta$ (i.e.~is not linear) 
+\begin{align}
+\tilde K(\theta) = \frac{1}{P} \sum_{p=1}^P \partial_{\theta_p} f_\theta \otimes \partial_{\theta_p} f_\theta
+\end{align}
+However, in the limit of infinitely wide layers, it is determined at initialization and does not change during learning! The ouput functions tend to a Gaussian process and the kernel converges in probability to some (see Theorem 1)
+\begin{align}
+\tilde K(\theta) \to K(\theta)_\infty \otimes \textnormal{Id}
+\end{align}
+with scalar $K(\theta)$. This kernel is invariant under a family of update rules and some technical conditions (see Theorem 2). The basic insight here is that the changes in each unit vanish as the width tend to $\infty$, yet the net effect is finite and the overall system learns. 
+\end{itemize}
+\item They define the NTK in the following way, where $\mc W$ is the initial weight distribution:
+\begin{align}
+\tilde K(x,x') = \E_{\theta \sim \mc W} \left\langle  \frac{\partial f(\theta,x)}{\partial \theta}, \frac{\partial f(\theta,x')}{\partial \theta} \right\rangle
+\end{align}
+Specializing to regression with quadratic loss, they first show (Lemma 3.1) that the vector of outputs $u$ on the sample follows an ODE
+\begin{align}
+\dot {\mb u} = - \mb H(t) (\mb u- \mb y) \stackrel{\text{width $\to \infty$}} \to - \mb H^*  (\mb u- \mb y)
+\end{align}
+where entries of $\mb H$ are $\tilde K(x,x')$ and $\mb H$ is PSD.  $\mb H^* = \mb H(0) $ is given by the kernel at initialization. Theorem 3.1.~then is a slightly improved version of the one obtained by \cite{jacot2018neural}. They also show the equivalence to kernel ridge regression in Theorem 3.2. The main innovation of the paper is in extending the NTK to convolutional networks. All in all the paper is a bit incremental, but rich in ideas that are only implemented in a somewhat \textit{messy} manner. 
+\end{enumerate}
+
+\subsection{Uniform convergence may be unable to explain generalization in deep learning \cite{nagarajan2019uniform}}
+\begin{enumerate}
+\item Argues that all generalization bounds based on uniform convergence fail to apply to the actual SGD-trained DNN and/or lead to almost vacuous bounds. It is argued that even the scaling with the sample size is incorrect and that these bounds are thus inadequate. 
+\begin{itemize}
+\item On a high level, the paper states that SGD based algorithms ``\textit{can learn decision boundaries that are in some sense, largel ysimple -- and hence generalize well -- but have 'microscopic' complexity}''. 
+\item And further with regard to noise in SGD: ``\textit{In other words, it seems that noise aids generalization, yet hinders attempts at explaining generalization. We formally explain this paradox by arguing how such 'false information' could provably impair uniform convergence, without affecting generalization}.'' 
+\item Specifically to norm-based methods: ``\textit{However, we now show that recent efforts to replace the parameter-count-dependent terms in the numerator with seemingly innocuous norm-based quantities that are parameter-count-independent have also inadvertently introduced training-size-count dependencies in the numerator -- contributing to the vacuity of bounds}''.
+\end{itemize}
+\end{enumerate}
+
+
+
+
+\section{Wednesday, 11-Dec-2019}
+
+\subsection{Social Intelligence, Blaise Aguera y Arcas, Google}
+
+\begin{enumerate}
+\item Private AI. Power-efficient AI, on device computing and data. Federated learning (paper in 2016), comic book \url{https://federated.withgoogle.com/}. Data are both abundant and scarce. Compute is both massive and limted. Generative models in federated learning as an important frontier \cite{augenstein2019generative}.
+\item Passing a well-defined test or winning a game: computer AI will win. But: what are even the loss functions? E.coli: evolution finds a viable strategy. Re-formulation of the problem with reward maps, signaling. Diversity of reward maps are found in the population. May not be optimal for the individual, but great for the population. 
+\item What persists, exists. Evolution decides on ``good" or ``bad''. Not exactly optimization. Gradient descent GANs, Nagarajan 2017 NIPS. This is not optimization. What is missing in AI is ``life": true development, self-modifying, values, instincts, emotions; looking at real neurons and neuro-science; 
+\end{enumerate}
+optimization as a model for few-shot learning, Larochelle; LSTM at every synapse; noise gate;  similarly neurons; idea: build learning machines out of these components. learnign to learn 
+
+Self organizing neural cellular automata ; Mordvintsev
+
+
+Grand challemnges 
+-==
+
+Brains with fully evolved architrectures and rules 
+Understanding and charactering evolving systems 
+robelm solving by articitical societies 
+Large scale meta learning in a federated learning setting
+arrtificial ecology engineering
+Dynamocal system theory for neural ensembles
+can we define quantatitive SOTAs for sociality 
+
+Graviometric dynamics - ethics 
+
+
+(TH: need to understand magic)
+	
+
+
+
+\subsection{
+.
+}
+\begin{enumerate}
+\item 
+\end{enumerate}
+
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}

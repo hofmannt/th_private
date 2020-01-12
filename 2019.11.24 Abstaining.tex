@@ -1,0 +1,104 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[top=30pt,bottom=30pt,left=48pt,right=46pt]{geometry}
+\usepackage{amsmath,amssymb,amsthm,bm,hyperref}
+\usepackage{titlesec}
+
+\setlength\itemsep{2mm}
+\newcommand{\mb}{\mathbf}
+\newtheorem{theorem}{Theorem}
+\newtheorem{axiom}{Axiom}
+
+\titleformat{\section}
+  {\normalfont\large\bfseries}
+  {\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\normalsize\bfseries}
+  {\thesubsection}{1em}{}
+  
+  
+\author{Thomas Hofmann}
+\title{Abstaining via Optimal Generalization}
+\begin{document}
+\maketitle
+
+\noindent 
+
+%%%%%%
+\section{Introduction} 
+%%%%%%
+In practice class labels of data sets are often noisy, as human annotators may be unreliable or faced with ambiguous labeling tasks. It is therefore important to understand how to modify standard learning methods to be robust with regard to such modifications. Let us work in the following setting: we have input-output pairs $(x,y) \in \mathbb R^d \times \{1,\dots,m\}$ and a sample $S:= \{(x_i,y_i)\} \stackrel{\text{iid}} \sim D$. We fix a model with parameter $\theta$ which defines a conditional distribution $p_\theta(y|x)$. As a standard multi-class loss function we consider the cross-entropy loss 
+\begin{align}
+\ell_\theta(x,y) = -\log p_y = - \sum_{k=1}^m \delta_{ky} \log p_k, \quad p_k := p_\theta(k|x) \,.
+\end{align} 
+In classification with abstaining one introduces weights $q(x) \in [0;1]$ which quantify a soft abstaining level on each example $q_i :=q(x_i)$, where $q_i=0$ denotes complete abstaining and $q_i=1$ no abstaining.  It seems natural to require the following: 
+\begin{axiom}
+Any loss function with abstaining based on the cross entropy should (1) not depend on $p_\theta(y|x)$ for complete abstaining, (2) be equal to the cross entropy without abstaining, and (3) linearly interpolate between the two regimes for intermediate levels. So the loss function should take the form
+\begin{align}
+\bar \ell_\theta & = q \; \ell_\theta - (1-q) \; \omega(q)
+\end{align} 
+for some functional $\omega$ of $q$.
+\end{axiom}
+\noindent Note that this preserves the gradient direction $\nabla_\theta \bar\ell_\theta = q \nabla_\theta\ell_\theta$, if $q: \mathbb R^d \to [0;1]$ is independently learned. In case of parameter sharing with a model for $q$ one obtains, of course, mixed gradients. 
+
+%%%%%%
+\section{Approach of \cite{thulasidasan2019combating}}
+%%%%%%
+It is  suggested to use the loss 
+\begin{align}
+\bar \ell_\theta &  = - q \sum_k \delta_{ky}  \log \left( \frac{p_y}{q}\right) - \alpha \log q   = q \ell_\theta  + (q - \alpha ) \log q  
+\end{align}
+from which we can identify the particular choice 
+\begin{align}
+\omega(q) = \left[ \frac{q-\alpha}{1-q} \right]\log q
+\end{align}
+How can we justify this? It seems quite arbitrary. There also seems little insight that can be gained by looking at the partial derivative for $q$ and its sign. 
+\begin{align}
+	& \frac{\partial \bar\ell}{\partial q} = - \ell - \log q  - \frac{q-\alpha}{q} \stackrel ! < 0 \\
+\iff 	& \alpha  < q (1+ \ell + \log q)
+\end{align} 
+It is unclear how to interpret this\footnote{The constant $1$ is missing in the paper.}
+
+%%%%%%
+\section{Abstaining for Optimal Generalization} 
+%%%%%%
+
+\subsection{Basic Idea} 
+What would an ideal abstention scheme look like? Obviously, abstention is meant to counter label noise, so assume that we have some estimate of the noise level $\rho$. If we correctly removed the $\approx \rho n$ corrupted samples from $S$, then the generalization of the model should be optimal as random label noise will deteriorate the classifiers accuracy (see also \cite{zhang2016understanding}). Let us thus assume for simplicity that $\rho$ is known. Denote the $q$-averaged sample loss by 
+\begin{align}
+\langle \ell_\theta(S) \rangle_q = \sum_{i=1}^n \frac{q(x_i)}{\rho} \ell_\theta(x_i,y_i), \quad \rho = \sum_{i=1}^n q(x_i)
+\end{align}
+Note that practically speaking, we can enforce a certain abstention threshold in a soft manner by either (1) adding a penalty like $\lambda \sum_i (1-q(x_i))$, or by (2) imposing the constraint in the final logistic layer. We may also consider using a barrier function like $-\sum_i \log q(x_i)$, which would avoid driving the weights to zero for a subset of the examples.\footnote{It seems perhaps `dangerous' to completely eleminate data points. The $\log$ barrier is linear around $q(x)=1$, but makes it less desirable to abstain `too much' on a data point. Perhaps this is desirable? How could one formally justify it?} Denote by $\theta^* = \arg\min \langle \ell_\theta(S) \rangle_q$ the optimal parameters with regard to the sample loss on $S$ with abstention $q$.  If we had access to the test error of $\theta^*$, then we could use the following abstract inference procedure 
+\begin{align}
+q \stackrel{\text{weighting}}\mapsto \langle \ell_\theta(S) \rangle_q \stackrel{\text{learning}} \mapsto \theta^* \stackrel{\text{evaluate}}\mapsto \mathbf E\ell_{\theta^*}, \quad q \stackrel \min \longrightarrow \mathbf E\ell_{\theta^*}, \; \text{s.t. }\mathbf E q(x) = \rho
+\end{align}
+to find the optimal $q$. Obviously, we cannot perform the evaluation of the test error as the data distribution $D$ is unknown. We consider approaches of how to approximate this step.  
+
+
+\subsection{PAC Bayesian Bound}
+
+Our first suggestion is to use an upper bound on the test error as a proxy, namely the PAC Bayesian  bound proposed in \cite{dziugaite2017computing}. Let us sketch this concretely: we would maintain a model estimate $(\theta,s)$ during training, which represents a Gaussian ensemble with parameter distribution $\mathcal N(\theta,\text{diag}(s))$. In addition to this, we would use a DNN to estimate $q$, for instance by performing a logistic regression from the logit-scores of the softmax layer as suggested in  \cite{thulasidasan2019combating}), i.e.~by weight sharing between the networks. 
+
+Now we would aim to optimize the same criterion with regard to $q$. The initial gradients (starting point for backpropagation) are very simple and depend only on the empirical error over the stochastic ensemble $Q$\footnote{Notation is bad for now as we get $Q$ from PAC Bayes and $q$ from abstaining...} 
+\begin{align}
+\frac{\partial \mathbf E_Q[\langle \ell_\theta(S) \rangle_q]}{\partial q_i} = \mathbf E_Q \left[ \frac{\partial \langle \ell_\theta(S) \rangle_q}{\partial q_i} \right]  = \tfrac 1 \rho \mathbf E_Q[ \ell(x_i,y_i)]
+\end{align}
+So this is simply favoring to abstain on examples that have a high loss, on parameters sampled from $Q$, which intuitively makes sense. Obviosuly this is augmented by whatever contribution comes from the penalty term. Note that this does not depend only on the mean (e.g.~point estimate $\theta$) as well as sensitivity to perturbations (modeled via $s$). Note while this is very simple, it nicely connects to the recent literature on \textit{wide} local minima, tracing back to \cite{hinton1993keeping,hochreiter1997flat} and more recently \cite{keskar2016large}. As DNNs have very large capacity, we may not necessarily observe a larger loss on those examples \cite{zhang2016understanding}, however we expect examples with corrupted labels to be more sensitive to parameter perturbations, which is explicitly model in the PAC Bayesian approach.
+
+
+\subsection{Implicit Optimization over Validation Sets}
+
+An alternative is to explicitly make use of a validation set $T$ and then define the problem as follows
+\begin{align}
+q = \arg\min \ell_{\theta^*}(T),\quad \theta^* := \arg\min_\theta \langle \ell_\theta(S) \rangle_q
+\end{align}
+It has been suggested to make use of the implicit function theorem to compute gradients with regard to $q$ (in the context of hyper-parameter optimization). One has to approximate
+\begin{align}
+\frac{\partial \theta^*}{\partial q}_{\Big| q=q_0}= \left[ \frac{\partial^2 \ell(S,q;\theta)}{\partial \theta \partial \theta} \right]^{-1}\frac{\partial^2 \ell(S,q;\theta)}{\partial \theta \partial q}_{\Big| q = q_0, \theta = \theta^*(q_0)}
+\end{align}
+An approximation via von Neumann series has been proposed recently in \cite{lorraine2019optimizing}.\footnote{See also the discussion in \url{https://www.inference.vc/meta-learning-with-the-implicit-function-theorem/}} An alternative is \cite{rajeswaran2019meta}.
+
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}

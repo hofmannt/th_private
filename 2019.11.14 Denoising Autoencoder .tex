@@ -1,0 +1,60 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[top=30pt,bottom=30pt,left=48pt,right=46pt]{geometry}
+\usepackage{amsmath,amssymb,amsthm,bm,hyperref}
+\setlength\itemsep{2mm}
+
+\author{Thomas Hofmann}
+\title{Denoising Autoencoder}
+\begin{document}
+\maketitle
+
+\noindent 
+\begin{enumerate}
+\item 
+The linear autoencoder is a determinisitic model, parameterized as follows
+\begin{align}
+[0;1]^m \ni x \mapsto y = \sigma(Wx + b) \in [0;1]^k, \quad y \mapsto \hat x = \sigma(W'y+ b') \in [0;1]^m
+\end{align}
+The paper suggests to interpret entries $x_i$ as expectations of underlying Bernoulli variables and to use a cross entropy reconstruction loss
+\begin{align}
+\ell(x,z) = -\sum_{i=1}^m \left[ x_d \log z_d + (1-x_d) \log (1-z_d) \right]
+\end{align}
+The authors define an artificial corruption process $p(\tilde x | x)$, concretely some fixed fraction $\nu$ of entries in $x$ is selected at random and set to $0$. 
+\item 
+In the genarative model view on the denoising autoencoder we need to specifiy a joint model $p(x,y,\tilde x; \theta)$. Due to the conditional independence of $\tilde x$ and $y$, a possible factorization is
+\begin{align}
+p_\theta(x,y,\tilde x) = p(y) p_\theta(x|y) p(\tilde x|x), \quad p_\theta(x|y) = \prod_i \sigma(\langle w_i'y\rangle+b'_i ))^{x_i}  (1-\sigma(\langle w_i'y\rangle+b'_i ))^{1-x_i}
+\end{align}
+with $\theta = (W',b')$. The autoencoder view needs to be complemented by a definition of $p(y)$, for which the paper suggest a uniform density $p(y) = 1$ (note that $\text{vol}[0;1]^k = 1$). This generative model path makes use of the decoding (i.e.~$y \mapsto \hat x$) part of the autoencoder and the corresponding parameters.
+\item
+The autoencoder also has a recognition model (more recent terminology, they call it auxiliary model). Here we have an empirical data distribution $q(x)$ and a conditional distribition $q_\phi(y|x; \phi) = \mathcal N(Wx+b, \sigma^2 I)$, $\phi = (W,b)$, where we consider the deterministic limit $\sigma \to 0$. We use the same conditional noise model $q(\tilde x|x) = p(\tilde x |x)$. The recognition model makes use of the encoding part of the autoencoder.
+\item
+Now, the paper wants to advocate a view, where we think of $p_\theta(\tilde x)$ as an approximation of $q_\phi(\tilde x)$, measured by cross entropy or log-likelihood as follows:
+\begin{align}
+\ell(\theta; \phi) = E^{q_\phi} _{\tilde x}\left[ \log p_\theta(\tilde x)\right]
+\end{align}
+As $\log p_\theta(\tilde x) = \log \int p_\theta(x,y,\tilde x) dx dy$ is not tractable to maximize directly, they suggest to think of the recognition model as defining a variational bound. 
+\begin{align}
+\log p(\tilde x) &= \log \int p_\theta(x,y,\tilde x) dx dy = \log \int p_\theta(x,y,\tilde x) \frac{q_\phi(x,y| \tilde x)}{q_\phi( x,y| \tilde x)} dx dy \\
+& \ge \int q_\phi(x,y | \tilde x) \left[ \log p_\theta(x,y,\tilde x) - \log q_\phi(x,y | \tilde x) \right] dx dy \quad \text{(Jensen's ineq.)}
+\end{align}
+so that 
+\begin{align}
+\ell(\theta') & = E^{q_\phi}_{\tilde x}\left[ \log p_\theta(\tilde x)\right] \ge E^{q_\phi}_{x,y,\tilde x}[ \log p_\theta(x,y,\tilde x)] -  \underbrace{E^{q_\phi}_{x,y,\tilde x} \log q_\phi(x,y|\tilde x)}_{\text{const as $\sigma \to 0$}} \\
+& = E^{q_\phi}_{x,y,\tilde x}[ \log p_\theta(x|y) ] + \underbrace{E^{q_\phi}_{x,y,\tilde x}[ \log p(y) + \log p(\tilde x|x])]}_{=\text{const}}  + \text{const}
+\end{align}
+The final training criterion is given by 
+\begin{align}
+\phi, \theta \stackrel{\max}{\longrightarrow} \; & \int q_\phi(x,y,\tilde x) \log p_\theta(x|y) dx dy d\tilde x \\
+& = \int q_\phi(x,\tilde x) \ell(x, W' ( W \tilde x + b) + b')
+\end{align}
+
+
+\end{enumerate}
+
+
+
+\bibliography{th}
+\bibliographystyle{acm}
+
+\end{document}

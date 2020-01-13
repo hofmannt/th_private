@@ -1,0 +1,39 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[top=50pt,bottom=50pt,left=48pt,right=46pt]{geometry}
+\usepackage{amsmath,amssymb,amsthm,bm,bbm,hyperref}
+\usepackage{titlesec}
+\usepackage{graphicx}
+\graphicspath{{./images/}}
+
+\newcommand{\rPhi}{{\underline{\Phi}}}
+\input{defs}
+
+\author{Thomas Hofmann}
+\title{Weinberg: Quantum Field Theory.}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{History}
+
+\section{Relativistiv Quantum Mechanics}
+
+\begin{itemize}
+\item \textit{Physical states} are rays in a complex-valued Hilbert space. They are normalized $\langle \Phi, \Phi \rangle = 1$ and one has to identify elements $\Phi, \Phi'$ whenever $\Phi' = \alpha \Phi$ with $\alpha \in \mathbb  C$, where $|\alpha|=1$.
+\item \textit{Observables} are represented as Hermitain operators: $\Phi \mapsto A \Phi$ that are self-adjoint $A = A^\dagger$. They form a real vector space and generalize scalar, real-valued measurements. A state $\Phi$ has a definite value with regard to $A$, if it is an eigenvector of $A$, in which case $A\Phi= \lambda \Phi$, $\lambda \in \Re$.   Eigenvectors with different $\lambda$ are orthogonal. 
+\item  \textit{Born rule}. Assume a ray $\rPhi$ is subjected to measurements that aim to determine whether is is in any state $\rPhi_1,\dots,\rPhi_n$, then the probabilit to find it in state $\rPhi_i$ is given by 
+\begin{align}
+P(\rPhi \to \rPhi_i) =  |\langle \Phi, \Phi_i \rangle|^2 
+\end{align}
+\item \textit{Wigner's theorem}. We may consider transformations of representations of states $\rPhi \to \rPhi'$, e.g.~for different observers. However, we require that observables do not change in the sense that for $\Phi' = T \Phi$ 
+\begin{align}
+P(\rPhi \to \rPhi_i) = P(\rPhi' \to \rPhi'_i)
+\end{align}
+This is equivalent to transformations obeying $\langle \Phi, \Psi \rangle = \langle T \Phi, T \Psi \rangle$. Wigner's theorem states that either $T$ is linear and unitary or anti-linear and anti-unitary. As the identity operator is linear and unitary, the linear and unitray operators are more important in physics as they can often be thought of in an infinitesimal limit: $U = I + i \epsilon T$.  
+\item \textit{Group structure}. Invariance trnasformation have group structure. However operating on vectors (nor rays) means:  phase may change, yet this change only depends on the operator. This leads to projective group representations. However it is shown later that groups can be enlarged to obtain non-projective representations without phase changes. [\textit{Requires diving deeper into Lie group representations.}]
+\item \textit{Connected Lie group}. Finite dimensional parameterization, each operator has a continuous path to identity, $T(0) = I$, $T(\theta_1) T(\theta_2) = T(f(\theta_1,\theta_2))$, where $f^a(0,\theta) = f^a(\theta,0) = \theta^a$.
+\end{itemize}
+
+\end{document}

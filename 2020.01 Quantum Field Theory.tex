@@ -31,9 +31,38 @@ P(\rPhi \to \rPhi_i) =  |\langle \Phi, \Phi_i \rangle|^2
 \begin{align}
 P(\rPhi \to \rPhi_i) = P(\rPhi' \to \rPhi'_i)
 \end{align}
-This is equivalent to transformations obeying $\langle \Phi, \Psi \rangle = \langle T \Phi, T \Psi \rangle$. Wigner's theorem states that either $T$ is linear and unitary or anti-linear and anti-unitary. As the identity operator is linear and unitary, the linear and unitray operators are more important in physics as they can often be thought of in an infinitesimal limit: $U = I + i \epsilon T$.  
-\item \textit{Group structure}. Invariance trnasformation have group structure. However operating on vectors (nor rays) means:  phase may change, yet this change only depends on the operator. This leads to projective group representations. However it is shown later that groups can be enlarged to obtain non-projective representations without phase changes. [\textit{Requires diving deeper into Lie group representations.}]
-\item \textit{Connected Lie group}. Finite dimensional parameterization, each operator has a continuous path to identity, $T(0) = I$, $T(\theta_1) T(\theta_2) = T(f(\theta_1,\theta_2))$, where $f^a(0,\theta) = f^a(\theta,0) = \theta^a$.
+This is equivalent to transformations obeying $\langle \Phi, \Psi \rangle = \langle T \Phi, T \Psi \rangle$. Wigner's theorem states that either $T$ is linear and unitary or anti-linear and anti-unitary. As the identity operator is linear and unitary, the linear and unit ray operators are more important in physics as they can often be thought of in an infinitesimal limit.
+\item \textit{Group structure}. Invariance transformation have group structure. However operating on vectors (nor rays) means:  phase may change, yet this change only depends on the operator. This leads to projective group representations. However it is shown later that groups can be enlarged to obtain non-projective representations without phase changes. [\textit{Requires diving deeper into Lie group representations.}]
+\item \textit{Connected Lie group}. Finite dimensional parameterization, each operator is continuously connected with the identity, $T(0) = I$, $T(\theta_1) T(\theta_2) = T(f(\theta_1,\theta_2))$, where $f^a(0,\theta) = f^a(\theta,0) = \theta^a$. Operators can be represented by power series (in finite neighborhood)
+\begin{align}
+U(T(\theta)) = 1 +  i \theta^a t_a + \frac 12 \theta^b \theta^c  t_{bc} + \dots
+\end{align}
+with conditions: (1) $t_a$ is Hermitian, (2) $t_{bc}$ is symmetric. If $U(T(\theta))$ is a non-projective representation of the Lie group, then one can derive a (necessary) consistency condition that reads $t_{bc} = - t_b t_c - i f^a_{bc} t_a$, with $f^a(\theta',\theta) = \theta+ \theta' + f^a_{bc} \theta_b' \theta_c+ ...$. 
+\item \textit{Lie algebra}. Together with the symmetry requirements, one finally gets a set of commutation relations of a Lie algebra  
+\begin{align}
+[t_b, t_c]  = C^a_{bc} t_a, \quad C^a_{bc} = -f^a_{bc} + f^a_{cb} 
+\end{align}
+\item \textit{Abelian group}. If $f^a(\bar \theta,\theta) =\bar \theta^a + \theta^a$ then $[t_b, t_c] =0$ $\forall b,c$. Then one finds 
+\begin{align}
+U(T(\theta)) = \exp[i t_a \theta^a]
+\end{align}
+\item \textit{Special relativity.} Lorentz transform invariance
+\begin{align}
+d\mb x^2 - dt^2 = d \mb x'^2 - dt'^2
+\end{align}
+This is motivated from speed of light requirement $| d\mb x / dt |= 1$, hence $d \mb x^2 - dt^2= 0$. Lorentz transformations are affine $x'^\mu = \Lambda^\mu_\nu x^\nu + a^\mu$ with conditions as follows
+\begin{align}
+\eta_{\mu \nu} = \begin{cases} -1, & \mu=\nu=0 \\ 1 & \mu=\nu \in \{1,2,3\} \\ 0 & \text{otherwise} \end{cases}, \quad 
+\eta_{\mu \nu} \Lambda^\mu_\rho \Lambda^\nu_\sigma = \eta_{\rho \sigma} 
+\quad \text{or} \quad \eta^{\mu \nu} = \Lambda^\mu_\rho \Lambda_\sigma^\nu \eta^{\rho \sigma}
+\end{align}
+\item \textit{Inhomegenous Lorentz group}. Lorentz transformations form a group with composition
+\begin{align}
+T(\Lambda',a') T(\Lambda,a) = T(\Lambda' \Lambda, \Lambda'a + a') \,.
+\end{align}
+The transformations are unitary as $\text{det}(\Lambda)^2 =1$. This is also know as the Poincar\'e group.
+\item \textit{Proper orthochronous Lorentz group}: Subgroup with $\text{det}(\Lambda)=1$ and $\Lambda^0_0 \ge 1$. The whole Lorentz group can be obtained from the poLg via space  inversion and time reversal operations.
+\item \textit{Poincar\'e algebra}. 
 \end{itemize}
 
 \end{document}
